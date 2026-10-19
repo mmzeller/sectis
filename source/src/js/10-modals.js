@@ -106,7 +106,7 @@ function openQuickEntry(prefill = '') {
   const ignore = { when: false, deadline: false, tags: false };
   let saved = false, parsed = null;
   const L = openLayer({ modal: true, cls: 'qe-modal top',
-    html: `<div class="qe"><div class="c-top"><span class="cb" aria-hidden="true"></span><input class="qe-title" id="qe-title" placeholder="New To-Do" autocomplete="off" aria-label="Title" enterkeyhint="done"></div>
+    html: `<div class="qe"><div class="c-top"><span class="cb" aria-hidden="true"></span><textarea class="qe-title" id="qe-title" placeholder="New To-Do" autocomplete="off" aria-label="Title" enterkeyhint="done" rows="1" data-autosize data-oneline></textarea></div>
       <div class="qe-parsed" id="qe-parsed"></div>
       <div class="c-body"><textarea class="c-notes" id="qe-notes" rows="2" placeholder="Notes" aria-label="Notes"></textarea>
       <div class="c-foot"><div class="c-chips" id="qe-chips"></div><div class="c-tools">
@@ -149,7 +149,7 @@ function openQuickEntry(prefill = '') {
         const x2 = getT(draft.id);
         if (x2) toast(`Added to ${isTodayItem(x2) ? 'Today' : x2.projectId ? pTitle(getP(x2.projectId)) : x2.areaId ? aTitle(getA(x2.areaId)) : x2.start === 'someday' ? 'Someday' : x2.when ? 'Upcoming' : x2.start === 'inbox' ? 'Inbox' : 'Anytime'}`, { action: visibleInCurrentView(x2) ? null : 'Show', fn: () => revealTodo(draft.id) });
       };
-      ti.value = prefill; refresh();
+      ti.value = prefill; autosize(ti); refresh();
       ti.addEventListener('input', refresh);
       ti.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); save(); } });
       no.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); } });

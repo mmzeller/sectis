@@ -183,6 +183,17 @@ function viewMenu(el) {
 }
 
 /* ---- typing ---- */
+/* titles wrap onto more lines but stay one paragraph: no line breaks, and the box grows to fit */
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (!el || el.tagName !== 'TEXTAREA' || e.isComposing) return;
+  if (el.hasAttribute('data-oneline') && /[\r\n]/.test(el.value)) {
+    const pos = el.selectionStart; el.value = el.value.replace(/[\r\n]+/g, ' ');
+    try { el.setSelectionRange(pos, pos); } catch (err) { /* ignore */ }
+  }
+  if (el.hasAttribute('data-autosize')) autosize(el);
+}, true);
+window.addEventListener('resize', debounce(() => $$('textarea[data-autosize]').forEach(autosize), 120));
 document.addEventListener('input', (e) => {
   const el = e.target, f = el.dataset && el.dataset.edit; if (!f) return;
   const id = el.dataset.id;
@@ -227,7 +238,7 @@ function fieldKeys(e) {
   const mod = e.metaKey || e.ctrlKey;
   if (f === 'title') {
     if (e.key === 'Enter') { e.preventDefault(); if (ui.tplModal === id) { closeTplModal(); return true; } closeEditor(); return true; }
-    if (e.key === 'ArrowDown' && !mod) { const n = $(`[data-fkey="notes-${id}"]`); if (n) { e.preventDefault(); n.focus(); n.setSelectionRange(0, 0); } return true; }
+    if (e.key === 'ArrowDown' && !mod && el.selectionStart === el.value.length) { const n = $(`[data-fkey="notes-${id}"]`); if (n) { e.preventDefault(); n.focus(); n.setSelectionRange(0, 0); } return true; }
   }
   if (f === 'notes' && e.key === 'ArrowUp' && el.selectionStart === 0) { const n = $(`[data-fkey="title-${id}"]`); if (n) { e.preventDefault(); n.focus(); } return true; }
   if (f === 'ck') {

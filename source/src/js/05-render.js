@@ -187,7 +187,7 @@ function cardHTML(t) {
   ].join('');
   return `<div class="card" data-id="${t.id}" data-kind="todo">
     ${tpl ? `<div class="c-tpl">${ic('repeat')}<span>Repeating to-do. Changes apply to the copies it makes from now on.</span></div>` : ''}
-    <div class="c-top">${tpl ? `<span class="cb" style="opacity:.35;border-style:dashed"></span>` : checkboxHTML(t)}<input class="c-title" data-edit="title" data-id="${t.id}" data-fkey="title-${t.id}" value="${esc(t.title)}" placeholder="New To-Do" enterkeyhint="done" aria-label="Title" autocomplete="off"></div>
+    <div class="c-top">${tpl ? `<span class="cb" style="opacity:.35;border-style:dashed"></span>` : checkboxHTML(t)}<textarea class="c-title" data-edit="title" data-id="${t.id}" data-fkey="title-${t.id}" placeholder="New To-Do" enterkeyhint="done" aria-label="Title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(t.title)}</textarea></div>
     <div class="c-body"><textarea class="c-notes" data-edit="notes" data-id="${t.id}" data-fkey="notes-${t.id}" data-autosize rows="1" placeholder="Notes" aria-label="Notes">${esc(t.notes)}</textarea>${ck}${tags}
     <div class="c-foot"><div class="c-chips">${chips}</div><div class="c-tools">${tools}</div></div></div></div>`;
 }
@@ -391,7 +391,7 @@ function viewProject(p) {
   const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
   const ctx = { when: true };
   const meta = whenChipHTML(p) + deadlineChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag')}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh"><span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span><input class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" value="${esc(p.title)}" placeholder="New Project" aria-label="Project title" autocomplete="off"><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
+  let html = `<div class="lh"><span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span><textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.status !== 'open') html += `<div class="lh-banner"><b>${p.status === 'done' ? 'Completed' : 'Canceled'}</b> ${p.completedAt ? 'on ' + esc(fmtDate(stampDay(p.completedAt))) : ''} <button class="link-btn" data-action="reopen-project" data-id="${p.id}">Reopen</button></div>`;
   html += `<textarea class="lh-notes" data-edit="project-notes" data-id="${p.id}" data-fkey="pnotes" data-autosize rows="1" placeholder="Notes" aria-label="Project notes">${esc(p.notes)}</textarea>`;
@@ -399,7 +399,7 @@ function viewProject(p) {
   html += tagBarHTML(live);
   html += `<div class="list">${secHTML(`project:${p.id}:`, items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx)}`;
   headings.forEach((h) => {
-    html += `<div class="hrow" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><input class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" value="${esc(h.title)}" placeholder="New Heading" aria-label="Heading" autocomplete="off"><button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options">${ic('more')}</button></div>`;
+    html += `<div class="hrow" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><textarea class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea><button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options">${ic('more')}</button></div>`;
     html += secHTML(`project:${p.id}:${h.id}`, items.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
   });
   html += '</div>';
@@ -419,7 +419,7 @@ function viewArea(a) {
   const active = projAll.filter((p) => p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const later = projAll.filter((p) => p.status === 'open' && (p.start === 'someday' || (p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const meta = a.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="area-tags" data-id="${a.id}">${ic('tag')}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${a.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><input class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" value="${esc(a.title)}" placeholder="New Area" aria-label="Area title" autocomplete="off"><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
   html += `<div class="list">${secHTML(`area:${a.id}`, items, { when: true })}`;

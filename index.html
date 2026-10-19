@@ -134,11 +134,13 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .sb-brand { display: none; }
 
 /* ---------- list header ---------- */
-.lh { display: flex; align-items: center; gap: 12px; padding: 0 10px 6px; }
+.lh { display: flex; align-items: flex-start; gap: 12px; padding: 0 10px 6px; }
+.lh > .lh-ic { margin-top: 3px; }
+.lh > .ib, .lh > .btn { margin-top: 2px; }
 .lh-ic { width: 28px; height: 28px; }
 .lh-ic.pie-lg { color: var(--accent); }
 .lh-title { flex: 1; min-width: 0; font: 700 28px/1.2 var(--display); letter-spacing: -.01em; margin: 0; padding: 0; }
-input.lh-title::placeholder { color: var(--faint); }
+.lh-title::placeholder { color: var(--faint); }
 .lh-sub { padding: 0 10px 0 50px; color: var(--muted); font-size: 13px; margin-top: -4px; }
 .lh-notes { display: block; width: 100%; resize: none; padding: 6px 10px 2px 50px; color: var(--fg); min-height: 28px; line-height: 1.5; overflow: hidden; }
 .lh-notes::placeholder { color: var(--faint); }
@@ -216,9 +218,9 @@ input.lh-title::placeholder { color: var(--faint); }
 .prow .r-title { font-weight: 600; }
 .prow { cursor: pointer; }
 
-.hrow { display: flex; align-items: center; gap: 6px; margin: 24px 10px 4px; padding-bottom: 4px; border-bottom: 1px solid var(--line); color: var(--accent); user-select: none; -webkit-user-select: none; }
+.hrow { display: flex; align-items: flex-start; gap: 6px; margin: 24px 10px 4px; padding-bottom: 4px; border-bottom: 1px solid var(--line); color: var(--accent); user-select: none; -webkit-user-select: none; }
 .hrow.dragging { opacity: .35; }
-.h-title { flex: 1; min-width: 0; font-weight: 650; color: var(--accent); padding: 0; }
+.h-title { flex: 1; min-width: 0; font-weight: 650; color: var(--accent); padding: 0; line-height: 1.45; }
 .h-title::placeholder { color: var(--faint); }
 .hrow .ib { width: 26px; height: 26px; opacity: 0; }
 .hrow:hover .ib, .hrow:focus-within .ib, .touch .hrow .ib { opacity: 1; }
@@ -382,7 +384,7 @@ input.lh-title::placeholder { color: var(--faint); }
 /* Quick Entry */
 .qe { padding: 16px 18px 14px; }
 .qe .c-top { gap: 10px; }
-.qe-title { flex: 1; font-size: 16px; font-weight: 500; }
+.qe-title { flex: 1; min-width: 0; font-size: 16px; font-weight: 500; padding: 0; line-height: 22px; }
 .qe-parsed { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 0 25px; }
 .qe-p { font-size: 12px; display: inline-flex; align-items: center; gap: 5px; padding: 2px 4px 2px 8px; border-radius: 6px; background: var(--accent-tint); color: var(--accent); }
 .qe-p button { color: inherit; opacity: .7; display: inline-flex; }
@@ -548,6 +550,10 @@ input.lh-title::placeholder { color: var(--faint); }
 .rules-box { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
 .rules-box pre { margin: 0; width: 100%; overflow-x: auto; font: 11.5px/1.45 var(--mono); padding: 10px 12px; border-radius: 8px; background: var(--hover); }
 
+/* one-line fields that wrap: textareas styled like the text around them */
+textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit-appearance: none; appearance: none; border-radius: 0; overflow-wrap: anywhere; }
+.c-top { align-items: flex-start; }
+
 </style>
 </head>
 <body>
@@ -565,7 +571,7 @@ input.lh-title::placeholder { color: var(--faint); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1641,7 +1647,7 @@ function cardHTML(t) {
   ].join('');
   return `<div class="card" data-id="${t.id}" data-kind="todo">
     ${tpl ? `<div class="c-tpl">${ic('repeat')}<span>Repeating to-do. Changes apply to the copies it makes from now on.</span></div>` : ''}
-    <div class="c-top">${tpl ? `<span class="cb" style="opacity:.35;border-style:dashed"></span>` : checkboxHTML(t)}<input class="c-title" data-edit="title" data-id="${t.id}" data-fkey="title-${t.id}" value="${esc(t.title)}" placeholder="New To-Do" enterkeyhint="done" aria-label="Title" autocomplete="off"></div>
+    <div class="c-top">${tpl ? `<span class="cb" style="opacity:.35;border-style:dashed"></span>` : checkboxHTML(t)}<textarea class="c-title" data-edit="title" data-id="${t.id}" data-fkey="title-${t.id}" placeholder="New To-Do" enterkeyhint="done" aria-label="Title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(t.title)}</textarea></div>
     <div class="c-body"><textarea class="c-notes" data-edit="notes" data-id="${t.id}" data-fkey="notes-${t.id}" data-autosize rows="1" placeholder="Notes" aria-label="Notes">${esc(t.notes)}</textarea>${ck}${tags}
     <div class="c-foot"><div class="c-chips">${chips}</div><div class="c-tools">${tools}</div></div></div></div>`;
 }
@@ -1845,7 +1851,7 @@ function viewProject(p) {
   const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
   const ctx = { when: true };
   const meta = whenChipHTML(p) + deadlineChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag')}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh"><span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span><input class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" value="${esc(p.title)}" placeholder="New Project" aria-label="Project title" autocomplete="off"><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
+  let html = `<div class="lh"><span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span><textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.status !== 'open') html += `<div class="lh-banner"><b>${p.status === 'done' ? 'Completed' : 'Canceled'}</b> ${p.completedAt ? 'on ' + esc(fmtDate(stampDay(p.completedAt))) : ''} <button class="link-btn" data-action="reopen-project" data-id="${p.id}">Reopen</button></div>`;
   html += `<textarea class="lh-notes" data-edit="project-notes" data-id="${p.id}" data-fkey="pnotes" data-autosize rows="1" placeholder="Notes" aria-label="Project notes">${esc(p.notes)}</textarea>`;
@@ -1853,7 +1859,7 @@ function viewProject(p) {
   html += tagBarHTML(live);
   html += `<div class="list">${secHTML(`project:${p.id}:`, items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx)}`;
   headings.forEach((h) => {
-    html += `<div class="hrow" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><input class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" value="${esc(h.title)}" placeholder="New Heading" aria-label="Heading" autocomplete="off"><button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options">${ic('more')}</button></div>`;
+    html += `<div class="hrow" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><textarea class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea><button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options">${ic('more')}</button></div>`;
     html += secHTML(`project:${p.id}:${h.id}`, items.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
   });
   html += '</div>';
@@ -1873,7 +1879,7 @@ function viewArea(a) {
   const active = projAll.filter((p) => p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const later = projAll.filter((p) => p.status === 'open' && (p.start === 'someday' || (p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const meta = a.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="area-tags" data-id="${a.id}">${ic('tag')}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${a.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><input class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" value="${esc(a.title)}" placeholder="New Area" aria-label="Area title" autocomplete="off"><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
   html += `<div class="list">${secHTML(`area:${a.id}`, items, { when: true })}`;
@@ -2844,6 +2850,17 @@ function viewMenu(el) {
 }
 
 /* ---- typing ---- */
+/* titles wrap onto more lines but stay one paragraph: no line breaks, and the box grows to fit */
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (!el || el.tagName !== 'TEXTAREA' || e.isComposing) return;
+  if (el.hasAttribute('data-oneline') && /[\r\n]/.test(el.value)) {
+    const pos = el.selectionStart; el.value = el.value.replace(/[\r\n]+/g, ' ');
+    try { el.setSelectionRange(pos, pos); } catch (err) { /* ignore */ }
+  }
+  if (el.hasAttribute('data-autosize')) autosize(el);
+}, true);
+window.addEventListener('resize', debounce(() => $$('textarea[data-autosize]').forEach(autosize), 120));
 document.addEventListener('input', (e) => {
   const el = e.target, f = el.dataset && el.dataset.edit; if (!f) return;
   const id = el.dataset.id;
@@ -2888,7 +2905,7 @@ function fieldKeys(e) {
   const mod = e.metaKey || e.ctrlKey;
   if (f === 'title') {
     if (e.key === 'Enter') { e.preventDefault(); if (ui.tplModal === id) { closeTplModal(); return true; } closeEditor(); return true; }
-    if (e.key === 'ArrowDown' && !mod) { const n = $(`[data-fkey="notes-${id}"]`); if (n) { e.preventDefault(); n.focus(); n.setSelectionRange(0, 0); } return true; }
+    if (e.key === 'ArrowDown' && !mod && el.selectionStart === el.value.length) { const n = $(`[data-fkey="notes-${id}"]`); if (n) { e.preventDefault(); n.focus(); n.setSelectionRange(0, 0); } return true; }
   }
   if (f === 'notes' && e.key === 'ArrowUp' && el.selectionStart === 0) { const n = $(`[data-fkey="title-${id}"]`); if (n) { e.preventDefault(); n.focus(); } return true; }
   if (f === 'ck') {
@@ -3104,7 +3121,7 @@ function openQuickEntry(prefill = '') {
   const ignore = { when: false, deadline: false, tags: false };
   let saved = false, parsed = null;
   const L = openLayer({ modal: true, cls: 'qe-modal top',
-    html: `<div class="qe"><div class="c-top"><span class="cb" aria-hidden="true"></span><input class="qe-title" id="qe-title" placeholder="New To-Do" autocomplete="off" aria-label="Title" enterkeyhint="done"></div>
+    html: `<div class="qe"><div class="c-top"><span class="cb" aria-hidden="true"></span><textarea class="qe-title" id="qe-title" placeholder="New To-Do" autocomplete="off" aria-label="Title" enterkeyhint="done" rows="1" data-autosize data-oneline></textarea></div>
       <div class="qe-parsed" id="qe-parsed"></div>
       <div class="c-body"><textarea class="c-notes" id="qe-notes" rows="2" placeholder="Notes" aria-label="Notes"></textarea>
       <div class="c-foot"><div class="c-chips" id="qe-chips"></div><div class="c-tools">
@@ -3147,7 +3164,7 @@ function openQuickEntry(prefill = '') {
         const x2 = getT(draft.id);
         if (x2) toast(`Added to ${isTodayItem(x2) ? 'Today' : x2.projectId ? pTitle(getP(x2.projectId)) : x2.areaId ? aTitle(getA(x2.areaId)) : x2.start === 'someday' ? 'Someday' : x2.when ? 'Upcoming' : x2.start === 'inbox' ? 'Inbox' : 'Anytime'}`, { action: visibleInCurrentView(x2) ? null : 'Show', fn: () => revealTodo(draft.id) });
       };
-      ti.value = prefill; refresh();
+      ti.value = prefill; autosize(ti); refresh();
       ti.addEventListener('input', refresh);
       ti.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); save(); } });
       no.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); } });
