@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.1.1
+Version 1.2.0
 
 ## What's in it
 
@@ -109,6 +109,10 @@ If the iPhone only has the sample to-dos, they're replaced by your Mac's list. I
 - Stored locally in the browser (or the data file above). Nothing leaves your device unless you turn on sync, and then only in encrypted form.
 - Clearing your browser's website data deletes it, so export a backup now and then (**Settings → Export Backup**).
 - The sample to-dos can be removed in **Settings → Remove Sample To-Dos**.
+
+## Updates
+
+The installed app checks for a new version when you bring it to the front (and every few hours while it stays open). When one is ready, a message appears with an **Update Now** button. You can also check any time in **Settings**, next to the version number. Updating keeps your to-dos and sync settings, and there's no need to remove Sectis from your Dock or Home Screen.
 
 ## Good to know
 

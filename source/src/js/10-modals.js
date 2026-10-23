@@ -204,7 +204,7 @@ function openSettings() {
       <div class="set-btns"><button class="btn" data-s="export">${'Export Backup…'}</button><button class="btn" data-s="import">Import…</button></div>
       ${fsOK ? `<div class="set-row" style="margin-top:10px"><span class="lbl">Data file<small>${fileSync.name ? `Saving to <b>${esc(fileSync.name)}</b>${fileSync.needsPermission ? ' (click Reconnect to allow access)' : ''}` : 'Keep your to-dos in a file, for example on a thumb drive next to Sectis.'}</small></span><div class="set-btns">${fileSync.name ? `${fileSync.needsPermission ? '<button class="btn primary" data-s="fs-reconnect">Reconnect</button>' : ''}<button class="btn" data-s="fs-unlink">Disconnect</button>` : '<button class="btn" data-s="fs-new">Create File…</button><button class="btn" data-s="fs-open">Open File…</button>'}</div></div>` : ''}
       <div class="set-btns" style="margin-top:12px">${hasSample ? '<button class="btn" data-s="sample-remove">Remove Sample To-Dos</button>' : '<button class="btn" data-s="sample-add">Add Sample To-Dos</button>'}<button class="btn" data-s="erase" style="color:var(--red)">Erase All Data…</button></div></div>
-    <div class="about"><span><b>Sectis</b> version ${APP_VERSION}</span><span>Press <kbd>?</kbd> for keyboard shortcuts</span></div></div>`;
+    <div class="about"><span><b>Sectis</b> version ${APP_VERSION}${updatesAvailable() ? ` · <button class="link-btn" data-s="update-check" id="upd-btn">${upd.latest && newerVersion(upd.latest, APP_VERSION) ? `Update to ${esc(upd.latest)}` : 'Check for Updates'}</button>` : ''}</span><span>Press <kbd>?</kbd> for keyboard shortcuts</span></div></div>`;
   const L = openLayer({ modal: true, html: build(), onMount: (el) => {
     el.addEventListener('click', async (e) => {
       const s = e.target.closest('[data-set]');
@@ -220,6 +220,15 @@ function openSettings() {
       if (act === 'tags') { closeLayer(L); openTagManager(); }
       if (act === 'export') { closeLayer(L); openExport(); }
       if (act === 'import') { closeLayer(L); openImport(); }
+      if (act === 'update-check') {
+        if (upd.latest && newerVersion(upd.latest, APP_VERSION)) { applyUpdate(); return; }
+        b.textContent = 'Checking…'; b.disabled = true;
+        const v = await checkForUpdate(true);
+        b.disabled = false;
+        if (v) b.textContent = `Update to ${v}`;
+        else b.textContent = v === false ? 'You have the latest version' : 'Couldn’t check. Are you online?';
+        return;
+      }
       if (act === 'sample-remove') { removeSample(); el.innerHTML = build(); }
       if (act === 'sample-add') { commit('Sample To-Dos', () => seedSample()); el.innerHTML = build(); }
       if (act === 'erase') { const ok = await confirmDialog({ title: 'Erase all data?', body: Y.enabled ? 'Every to-do, project, area and tag will be deleted here and on every device that syncs with this one. Export a backup first if you might want them back.' : 'Every to-do, project, area and tag in this browser will be deleted. Export a backup first if you might want them back.', ok: 'Erase Everything', danger: true }); if (ok) { commit('Erase All', () => { const keep = S.settings; S = emptyState(); S.settings = keep; S.meta.sampleLoaded = true; }); navigate('inbox'); closeLayer(L); } }

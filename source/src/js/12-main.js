@@ -198,5 +198,57 @@ function init() {
   if (typeof SECTIS_WEB !== 'undefined' && SECTIS_WEB && !IN_FRAME && 'serviceWorker' in navigator && /^https?:/.test(location.protocol)) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
+  if (updatesAvailable()) {
+    setTimeout(() => checkForUpdate(), 4000);
+    setInterval(() => checkForUpdate(), 3 * 3600e3);
+    const onFront = () => { if (document.visibilityState === 'visible' && Date.now() - upd.checkedAt > 15 * 60e3) checkForUpdate(); };
+    document.addEventListener('visibilitychange', onFront);
+    window.addEventListener('focus', onFront);
+  }
+}
+
+/* ---- updates: an installed copy (Dock or Home Screen) can stay open for days,
+   so it checks for a newer version and offers to load it ---- */
+const upd = { checkedAt: 0, latest: null, offered: null };
+function updatesAvailable() { return typeof SECTIS_WEB !== 'undefined' && SECTIS_WEB && !IN_FRAME && /^https?:/.test(location.protocol); }
+function newerVersion(a, b) {
+  const pa = String(a).split('.').map(Number), pb = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i++) { if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0); }
+  return false;
+}
+async function checkForUpdate(manual) {
+  if (!updatesAvailable()) return null;
+  upd.checkedAt = Date.now();
+  try {
+    const r = await fetch(`version.json?t=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) throw new Error('bad response');
+    const v = (await r.json()).version;
+    upd.latest = v;
+    if (v && newerVersion(v, APP_VERSION)) {
+      const msg = `Sectis ${v} is available`;
+      if (manual || !$$('#toasts .t-msg').some((m) => m.textContent === msg)) {
+        upd.offered = v;
+        toast(msg, { action: 'Update Now', fn: applyUpdate, ms: 30 * 60e3 });
+      }
+      return v;
+    }
+    return false;
+  } catch (e) { return null; }
+}
+async function applyUpdate() {
+  toast('Updating…', { ms: 8000 });
+  try { saveNow(); } catch (e) { /* ignore */ }
+  try { if (typeof syncSaveState === 'function' && Y.enabled) syncSaveState(); } catch (e) { /* ignore */ }
+  try {
+    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+    if (reg) await Promise.race([reg.update(), new Promise((res) => setTimeout(res, 5000))]);
+  } catch (e) { /* ignore */ }
+  try { // drop the old version's saved files so the reload can't fall back to them
+    const keep = `sectis-${upd.latest}`;
+    const keys = await caches.keys();
+    await Promise.all(keys.filter((k) => k.startsWith('sectis-') && k !== keep).map((k) => caches.delete(k)));
+  } catch (e) { /* ignore */ }
+  try { await fetch(location.pathname, { cache: 'reload' }); } catch (e) { /* refresh the browser's copy of the page */ }
+  location.reload();
 }
 init();

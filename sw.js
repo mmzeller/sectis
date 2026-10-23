@@ -1,8 +1,9 @@
 /* Sectis service worker: keeps the app working offline. */
-const CACHE = 'sectis-1.1.1';
+const CACHE = 'sectis-1.2.0';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icons/favicon.svg', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: 'reload' skips the browser's own cache so an update never installs stale files
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS.map((u) => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
@@ -15,9 +16,10 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  if (new URL(req.url).pathname.endsWith('/version.json')) return; // always ask the network
   if (req.mode === 'navigate') {
     // Fresh copy when online (so updates arrive), cached copy when offline.
-    e.respondWith(fetch(req).then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put('./index.html', copy)); return res; }).catch(() => caches.match('./index.html')));
+    e.respondWith(fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }).then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put('./index.html', copy)); return res; }).catch(() => caches.match('./index.html')));
     return;
   }
   e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)); return res; })));
