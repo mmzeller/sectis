@@ -9,7 +9,7 @@ function openEditor(id, opts = {}) {
 }
 function closeEditor(opts = {}) {
   const id = ui.editing; if (!id) return;
-  ui.editing = null; ui.ckOpen = null; ui.lastEditKey = null;
+  ui.editing = null; ui.ckOpen = null; ui.lastEditKey = null; ui.notesEdit = null;
   const t = getT(id);
   if (t && ui.newId === id && !t.title.trim() && !t.notes.trim() && !t.checklist.length) {
     S.todos = S.todos.filter((x) => x !== t); reindex(); ui.sel.delete(id);

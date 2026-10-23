@@ -3,7 +3,7 @@ function navigate(key, opts = {}) {
   closeEditor({ noRender: true });
   const [type, id] = key.split(':');
   ui.view = id ? { type, id } : { type };
-  ui.sel.clear(); ui.anchor = null; ui.tagFilter = null; ui.selectMode = false; ui.logbookLimit = 150;
+  ui.sel.clear(); ui.anchor = null; ui.tagFilter = null; ui.selectMode = false; ui.logbookLimit = 150; ui.notesEdit = null;
   ui.mobile = 'list';
   lsSet('sectis.view', key);
   render();
@@ -37,6 +37,8 @@ document.addEventListener('click', (e) => {
     const isTool = a && a.dataset.id === ui.editing;
     if (!isTool) closeEditor({ noRender: !!(a || e.target.closest('[data-nav], .row[data-id], [data-tpl], #magic')) });
   }
+  const nv = e.target.closest('.notes-view');
+  if (nv) { if (!e.target.closest('a')) { e.preventDefault(); showNotesEditor(nv.dataset.notesFor, true); } return; }
   if (a) { if (!(inLayer && !a.closest('.tpl-modal'))) handleAction(a.dataset.action, a, e); else if (a.dataset.action === 'close-layer') closeLayer(); return; }
   if (inLayer) return;
   const nav = e.target.closest('[data-nav]'); if (nav) { navigate(nav.dataset.nav); return; }
@@ -75,6 +77,7 @@ function handleAction(act, el, e) {
     case 'ck-open': ui.ckOpen = id; ui.focusAfter = `[data-fkey="cknew-${id}"]`; render(); return;
     case 'ck-toggle': { const t = getT(id); const c = t && t.checklist.find((x) => x.id === el.dataset.ck); if (c) commit('Checklist', () => { c.done = !c.done; touch(t); }); return; }
     case 'ck-del': ckRemove(id, el.dataset.ck, false); return;
+    case 'ck-menu': checklistMenu(id, el.dataset.ck, el); return;
     case 'todo-menu': todoMenu(id, el); return;
     case 'proj-menu': projectMenu(getP(id), el); return;
     case 'area-menu': areaMenu(getA(id), el); return;
@@ -114,7 +117,11 @@ function endSelectAfter(L) {
 function todoMenu(id, el) {
   const t = getT(id); if (!t) return;
   const items = [];
-  if (t.isTemplate) {
+  if (isTplChild(t)) {
+    items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
+    items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
+    items.push({ sep: 1 }, { label: 'Delete To-Do', icon: 'trash', danger: true, fn: () => trashItems([id]) });
+  } else if (t.isTemplate) {
     items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(id, el) });
     items.push({ label: 'Move…', icon: 'move', fn: () => openMove([id], el) });
     items.push({ sep: 1 }, { label: 'Stop Repeating', icon: 'x', danger: true, fn: () => stopRepeating(id) });
@@ -134,6 +141,16 @@ function projectMenu(p, el) {
   if (!p) return;
   const items = [];
   if (isMobile() && p.status === 'open' && !p.trashed) items.push(selectModeItem(), { sep: 1 });
+  const src = p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
+  if (p.isTemplate && !p.trashed) {
+    items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
+    items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
+    items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
+    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => newHeading(p.id) });
+    items.push({ sep: 1 }, { label: 'Stop Repeating', icon: 'x', fn: () => stopRepeating(p.id) });
+    items.push({ label: 'Delete Project', icon: 'trash', danger: true, fn: () => trashItems([p.id]) });
+    openMenu(el, items); return;
+  }
   if (p.status === 'open') {
     items.push({ label: 'Complete Project', icon: 'check', fn: () => completeProjectFlow(p, 'done') });
     items.push({ label: 'When…', icon: 'calendar', fn: () => openWhen([p.id], el) });
@@ -141,6 +158,7 @@ function projectMenu(p, el) {
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => newHeading(p.id) });
+    items.push(src ? { label: 'Edit Repeating Project', icon: 'repeat', fn: () => navigate('project:' + src.id) } : { label: 'Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
   } else items.push({ label: 'Reopen Project', icon: 'reopen', fn: () => reopenProject(p) });
@@ -238,22 +256,23 @@ function fieldKeys(e) {
   const mod = e.metaKey || e.ctrlKey;
   if (f === 'title') {
     if (e.key === 'Enter') { e.preventDefault(); if (ui.tplModal === id) { closeTplModal(); return true; } closeEditor(); return true; }
-    if (e.key === 'ArrowDown' && !mod && el.selectionStart === el.value.length) { const n = $(`[data-fkey="notes-${id}"]`); if (n) { e.preventDefault(); n.focus(); n.setSelectionRange(0, 0); } return true; }
+    if (e.key === 'ArrowDown' && !mod && el.selectionStart === el.value.length) { if ($(`[data-fkey="notes-${id}"]`)) { e.preventDefault(); showNotesEditor(`notes-${id}`, false); } return true; }
   }
   if (f === 'notes' && e.key === 'ArrowUp' && el.selectionStart === 0) { const n = $(`[data-fkey="title-${id}"]`); if (n) { e.preventDefault(); n.focus(); } return true; }
   if (f === 'ck') {
     const t = getT(id), ckId = el.dataset.ck, i = t.checklist.findIndex((c) => c.id === ckId);
+    if (mod && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); ckMove(id, ckId, e.key === 'ArrowUp' ? -1 : 1); return true; }
     if (e.key === 'Enter') { e.preventDefault(); const item = ckAdd(id, ckId, ''); ui.focusAfter = `[data-fkey="ck-${item.id}"]`; render(); return true; }
     if (e.key === 'Backspace' && !el.value) { e.preventDefault(); ckRemove(id, ckId, true); return true; }
-    if (e.key === 'ArrowUp' && i > 0) { e.preventDefault(); $(`[data-fkey="ck-${t.checklist[i - 1].id}"]`).focus(); return true; }
-    if (e.key === 'ArrowDown') { e.preventDefault(); const nx = t.checklist[i + 1]; const target = nx ? $(`[data-fkey="ck-${nx.id}"]`) : $(`[data-fkey="cknew-${id}"]`); if (target) target.focus(); return true; }
+    if (e.key === 'ArrowUp' && i > 0 && el.selectionStart === 0) { e.preventDefault(); $(`[data-fkey="ck-${t.checklist[i - 1].id}"]`).focus(); return true; }
+    if (e.key === 'ArrowDown' && el.selectionStart === el.value.length) { e.preventDefault(); const nx = t.checklist[i + 1]; const target = nx ? $(`[data-fkey="ck-${nx.id}"]`) : $(`[data-fkey="cknew-${id}"]`); if (target) target.focus(); return true; }
   }
   if (f === 'ck-new') {
     if (e.key === 'Enter') { e.preventDefault(); const v = el.value.trim(); if (!v) return true; ckAdd(id, null, v); el.value = ''; ui.focusAfter = `[data-fkey="cknew-${id}"]`; render(); return true; }
     if (e.key === 'ArrowUp') { const t = getT(id); const last = t.checklist[t.checklist.length - 1]; if (last) { e.preventDefault(); $(`[data-fkey="ck-${last.id}"]`).focus(); } return true; }
     if (e.key === 'Backspace' && !el.value) { const t = getT(id); if (!t.checklist.length) { e.preventDefault(); ui.ckOpen = null; ui.focusAfter = `[data-fkey="notes-${id}"]`; render(); } return true; }
   }
-  if (f === 'project-title' && e.key === 'Enter') { e.preventDefault(); const n = $('[data-fkey="pnotes"]'); if (n) n.focus(); return true; }
+  if (f === 'project-title' && e.key === 'Enter') { e.preventDefault(); if ($('[data-fkey="pnotes"]')) showNotesEditor('pnotes', false); return true; }
   if ((f === 'area-title' || f === 'heading-title') && e.key === 'Enter') { e.preventDefault(); el.blur(); return true; }
   return false;
 }

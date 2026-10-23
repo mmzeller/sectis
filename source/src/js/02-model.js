@@ -93,7 +93,8 @@ function newTodoShape() {
 }
 function newProjectShape() {
   return { id: '', type: 'project', title: '', notes: '', status: 'open', start: 'anytime', when: null, evening: false, deadline: null, reminder: null,
-    areaId: null, tags: [], order: 0, todayOrder: 0, createdAt: 0, modifiedAt: 0, completedAt: null, logged: false, trashed: false, sample: false };
+    areaId: null, tags: [], order: 0, todayOrder: 0, createdAt: 0, modifiedAt: 0, completedAt: null, logged: false, trashed: false, sample: false,
+    isTemplate: false, repeat: null, next: null, templateId: null };
 }
 function makeTodo(props) { const now = Date.now(); return Object.assign(newTodoShape(), { id: uid(), createdAt: now, modifiedAt: now }, props); }
 function makeProject(props) { const now = Date.now(); return Object.assign(newProjectShape(), { id: uid(), createdAt: now, modifiedAt: now }, props); }
@@ -115,14 +116,14 @@ const endOrder = (arr, key = 'order') => { const m = maxOf(arr, key); return m =
 const T0 = () => ui.today;
 const isOpen = (x) => x.status === 'open';
 function liveTodo(t) { return !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged); }
-function liveProject(p) { return p && !p.trashed && (p.status === 'open' || !p.logged); }
+function liveProject(p) { return p && !p.trashed && !p.isTemplate && (p.status === 'open' || !p.logged); }
 function projectOf(t) { return t.projectId ? getP(t.projectId) : null; }
 function areaOf(x) {
   if (x.areaId) return getA(x.areaId) || null;
   if (x.type === 'todo' && x.projectId) { const p = getP(x.projectId); if (p && p.areaId) return getA(p.areaId) || null; }
   return null;
 }
-function inLiveProject(t) { if (!t.projectId) return true; const p = getP(t.projectId); return !!(p && !p.trashed); }
+function inLiveProject(t) { if (!t.projectId) return true; const p = getP(t.projectId); return !!(p && !p.trashed && !p.isTemplate); }
 function isScheduledToday(x) { return x.start === 'anytime' && !!x.when && x.when <= T0(); }
 function isTodayItem(x) {
   if (isScheduledToday(x)) return true;

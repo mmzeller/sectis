@@ -60,6 +60,7 @@ function tick() {
   const d = todayStr();
   if (d !== ui.today) { ui.today = d; generateRepeats(); if (!ui.editing) render(); else renderSidebar(); }
   checkReminders();
+  dailyBackup();
 }
 function checkReminders() {
   const T = T0(), now = new Date(), hm = `${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
@@ -191,6 +192,7 @@ function init() {
   } else { generateRepeats(); render(); }
   setInterval(tick, 20000);
   setTimeout(checkReminders, 1500);
+  setTimeout(dailyBackup, 6000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tick(); });
   mq.addEventListener && mq.addEventListener('change', () => { if (!isMobile()) ui.mobile = 'list'; render(); });
   window.addEventListener('resize', debounce(() => { if (layers.length) layers.forEach((L) => L.el.classList.contains('pop') && placePop(L.el, L.anchor)); }, 120));
@@ -251,4 +253,3 @@ async function applyUpdate() {
   try { await fetch(location.pathname, { cache: 'reload' }); } catch (e) { /* refresh the browser's copy of the page */ }
   location.reload();
 }
-init();

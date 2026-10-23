@@ -72,7 +72,7 @@ function setStatus(x, status) {
   touch(x);
 }
 function toggleComplete(ids, status = 'done') {
-  const items = itemsFor(ids).filter((x) => !x.isTemplate);
+  const items = itemsFor(ids).filter((x) => !x.isTemplate && !isTplChild(x));
   if (!items.length) return;
   const projects = items.filter((x) => x.type === 'project' && x.status === 'open');
   if (projects.length) { completeProjectFlow(projects[0], status); return; }
@@ -244,7 +244,7 @@ function moveHeading(h, projectId) {
 function duplicateProject(p) {
   let c;
   commit('Duplicate Project', () => {
-    c = makeProject(Object.assign({}, p, { id: uid(), title: (p.title || 'New Project') + ' copy', status: 'open', completedAt: null, logged: false, trashed: false, order: p.order + 0.01, createdAt: Date.now() }));
+    c = makeProject(Object.assign({}, p, { id: uid(), title: (p.title || 'New Project') + ' copy', status: 'open', completedAt: null, logged: false, trashed: false, order: p.order + 0.01, createdAt: Date.now(), isTemplate: false, repeat: null, next: null, templateId: null }));
     c.tags = p.tags.slice(); S.projects.push(c);
     const hmap = {};
     S.headings.filter((h) => h.projectId === p.id && !h.archived).forEach((h) => { const nh = Object.assign({}, h, { id: uid(), projectId: c.id }); hmap[h.id] = nh.id; S.headings.push(nh); });

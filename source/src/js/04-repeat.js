@@ -125,59 +125,104 @@ function spawnInstance(tpl, date) {
   syncHint(inst.id);
   return inst;
 }
+/* A repeating project is a hidden template project whose headings and to-dos are the
+   steps. Each copy gets the template's open to-dos and headings, with predictable IDs. */
+function spawnProjectInstance(tpl, date) {
+  const r = tpl.repeat;
+  const id = `${tpl.id}-${date}`;
+  r.count = (r.count || 0) + 1;
+  syncHint(tpl.id);
+  if (getP(id)) return getP(id);
+  const p = makeProject({
+    id, title: tpl.title, notes: tpl.notes, tags: tpl.tags.slice(), areaId: tpl.areaId,
+    start: 'anytime', when: date, evening: !!r.evening, reminder: r.reminder || null,
+    deadline: r.deadlineDays != null && r.deadlineDays !== '' ? addDays(date, +r.deadlineDays) : null,
+    templateId: tpl.id, order: tpl.order + 0.001, todayOrder: todayTop(), sample: tpl.sample,
+  });
+  S.projects.push(p); idx.project.set(p.id, p); syncHint(p.id);
+  const hmap = {};
+  S.headings.filter((h) => h.projectId === tpl.id && !h.archived).forEach((h) => {
+    const nh = { id: `${h.id}-${date}`, projectId: p.id, title: h.title, order: h.order, archived: false };
+    hmap[h.id] = nh.id; S.headings.push(nh); idx.heading.set(nh.id, nh); syncHint(nh.id);
+  });
+  S.todos.filter((c) => c.projectId === tpl.id && !c.trashed && !c.isTemplate && !c.isDraft && c.status === 'open').forEach((c) => {
+    const t = makeTodo({
+      id: `${c.id}-${date}`, title: c.title, notes: c.notes, tags: c.tags.slice(),
+      checklist: (c.checklist || []).map((k, i) => ({ id: `${c.id}-${date}-${i}`, title: k.title, done: false })),
+      projectId: p.id, headingId: c.headingId ? hmap[c.headingId] || null : null,
+      start: c.start === 'someday' ? 'someday' : 'anytime', order: c.order, todayOrder: c.todayOrder, sample: c.sample,
+    });
+    S.todos.push(t); idx.todo.set(t.id, t); syncHint(t.id);
+  });
+  return p;
+}
+function isTplChild(t) { const p = t && t.type === 'todo' && t.projectId && getP(t.projectId); return !!(p && p.isTemplate); }
 function generateRepeats() {
   const T = T0(); let changed = false;
+  const step = (tpl, spawn) => {
+    const r = tpl.repeat;
+    if (ruleEnded(r, tpl.next)) { tpl.next = null; syncHint(tpl.id); changed = true; return; }
+    if (tpl.next > T) return;
+    if (r.mode === 'after') { spawn(tpl, tpl.next); tpl.next = null; changed = true; return; }
+    let d = tpl.next, last = null, guard = 0;
+    while (d && d <= T && guard++ < 2000) { last = d; d = nextOccurrence(r, d); }
+    spawn(tpl, last);
+    tpl.next = d && !ruleEnded(r, d) ? d : null;
+    changed = true;
+  };
   for (const tpl of S.todos.slice()) {
     if (!tpl.isTemplate || tpl.trashed || !tpl.repeat || !tpl.next) continue;
     const proj = tpl.projectId && getP(tpl.projectId);
-    if (proj && (proj.trashed || proj.status !== 'open')) continue;
-    const r = tpl.repeat;
-    if (ruleEnded(r, tpl.next)) { tpl.next = null; syncHint(tpl.id); changed = true; continue; }
-    if (tpl.next > T) continue;
-    if (r.mode === 'after') { spawnInstance(tpl, tpl.next); tpl.next = null; changed = true; continue; }
-    let d = tpl.next, last = null, guard = 0;
-    while (d && d <= T && guard++ < 2000) { last = d; d = nextOccurrence(r, d); }
-    spawnInstance(tpl, last);
-    tpl.next = d && !ruleEnded(r, d) ? d : null;
-    changed = true;
+    if (proj && (proj.trashed || proj.status !== 'open' || proj.isTemplate)) continue;
+    step(tpl, spawnInstance);
+  }
+  for (const tpl of S.projects.slice()) {
+    if (!tpl.isTemplate || tpl.trashed || !tpl.repeat || !tpl.next) continue;
+    step(tpl, spawnProjectInstance);
   }
   if (changed) { reindex(); saveSoon(); }
   return changed;
 }
 function onInstanceDone(inst) {
-  const tpl = getT(inst.templateId);
+  const tpl = itemById(inst.templateId);
   if (!tpl || !tpl.isTemplate || tpl.trashed || !tpl.repeat || tpl.repeat.mode !== 'after' || tpl.next) return;
-  const hasOpen = S.todos.some((t) => t.templateId === tpl.id && t !== inst && t.status === 'open' && !t.trashed);
+  const list = inst.type === 'project' ? S.projects : S.todos;
+  const hasOpen = list.some((t) => t.templateId === tpl.id && t !== inst && t.status === 'open' && !t.trashed);
   if (hasOpen) return;
   const next = addInterval(tpl.repeat, T0());
   if (!ruleEnded(tpl.repeat, next)) tpl.next = next;
 }
-/* Turn a to-do into a repeating template (or update an existing template's rule). */
+/* Turn a to-do or project into a repeating template (or update an existing template's rule). */
 function setRepeat(id, rule) {
-  const t = getT(id); if (!t) return;
+  const t = itemById(id); if (!t) return;
   let tplId = null;
+  const wasTemplate = !!t.isTemplate;
   commit('Repeat', () => {
-    let tpl = t.isTemplate ? t : (t.templateId && getT(t.templateId)) || null;
+    let tpl = t.isTemplate ? t : (t.templateId && itemById(t.templateId)) || null;
     if (!tpl) {
-      // the selected to-do becomes the template; the first copy is generated from it
-      tpl = t; tpl.isTemplate = true; tpl.status = 'open'; tpl.completedAt = null;
+      // the selected item becomes the template; the first copy is generated from it
+      tpl = t; tpl.isTemplate = true; tpl.status = 'open'; tpl.completedAt = null; tpl.logged = false;
       tpl.when = null; tpl.evening = false; tpl.reminder = null; tpl.deadline = null;
       if (tpl.start !== 'anytime') tpl.start = 'anytime';
     }
     tpl.repeat = Object.assign({}, rule, { count: tpl.repeat ? tpl.repeat.count || 0 : 0 });
     tpl.next = rule.mode === 'after' ? rule.anchor : firstOccurrence(tpl.repeat);
     if (tpl.next && tpl.next < T0() && rule.mode === 'schedule') { let d = tpl.next; while (d && d < T0()) d = nextOccurrence(tpl.repeat, d); tpl.next = d; }
-    // a template already producing copies: drop the future (unstarted) copy so the new rule takes over
-    if (tpl !== t) { /* editing from an instance: leave existing instances alone */ }
     tplId = tpl.id; touch(tpl);
     reindex(); generateRepeats();
   });
-  if (ui.editing === id && getT(id) && getT(id).isTemplate) { ui.editing = null; openTplModal(id); }
+  if (t.type === 'todo' && ui.editing === id && getT(id) && getT(id).isTemplate) { ui.editing = null; openTplModal(id); }
+  if (t.type === 'project' && !wasTemplate && ui.view.id !== tplId) navigate('project:' + tplId);
   return tplId;
 }
 function stopRepeating(tplId) {
-  const tpl = getT(tplId); if (!tpl) return;
-  commit('Stop Repeating', () => { tpl.trashed = true; tpl.trashedAt = Date.now(); S.todos.filter((t) => t.templateId === tplId).forEach((t) => { t.templateId = null; }); });
+  const tpl = itemById(tplId); if (!tpl) return;
+  const isProject = tpl.type === 'project';
+  commit('Stop Repeating', () => {
+    tpl.trashed = true; tpl.trashedAt = Date.now();
+    (isProject ? S.projects : S.todos).filter((t) => t.templateId === tplId).forEach((t) => { t.templateId = null; });
+  });
+  if (isProject) { if (ui.view.id === tplId) navigate(tpl.areaId ? 'area:' + tpl.areaId : 'today'); toast('Stopped repeating. Existing copies were kept.', { undo: true }); return; }
   closeTplModal();
   toast('Stopped repeating. Existing to-dos were kept.', { undo: true });
 }

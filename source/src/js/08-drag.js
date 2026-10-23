@@ -242,7 +242,7 @@ function dropOnList(ids, key, kind, anchorEl) {
   }
 }
 function completeIds(ids) {
-  const items = itemsFor(ids).filter((x) => x.status === 'open' && !x.isTemplate);
+  const items = itemsFor(ids).filter((x) => x.status === 'open' && !x.isTemplate && !isTplChild(x));
   const projects = items.filter((x) => x.type === 'project');
   if (projects.length) { completeProjectFlow(projects[0]); return; }
   if (!items.length) return;

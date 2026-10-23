@@ -8,7 +8,7 @@ function findResults(q, includeLog) {
   Object.entries(LISTS).forEach(([key, L]) => { if (!words.length || m(L.title)) out.push({ g: 'Lists', kind: 'list', key, title: L.title, icon: L.icon, color: L.color }); });
   S.areas.slice().sort(byOrder).forEach((a) => { if (words.length && m(aTitle(a))) out.push({ g: 'Areas', kind: 'area', key: 'area:' + a.id, title: aTitle(a), icon: 'area', color: 'var(--c-area)' }); });
   S.projects.filter((p) => !p.trashed && (p.status === 'open' || includeLog)).sort(byOrder).forEach((p) => {
-    if (!words.length ? p.status === 'open' && p.start !== 'someday' : m(pTitle(p), p.notes)) out.push({ g: 'Projects', kind: 'project', key: 'project:' + p.id, title: pTitle(p), pie: projectProgress(p).frac, sub: (areaOf(p) ? aTitle(areaOf(p)) : '') + (p.status !== 'open' ? ' · Completed' : '') });
+    if (!words.length ? p.status === 'open' && p.start !== 'someday' && !p.isTemplate : m(pTitle(p), p.notes)) out.push({ g: 'Projects', kind: 'project', key: 'project:' + p.id, title: pTitle(p), pie: projectProgress(p).frac, sub: [areaOf(p) ? aTitle(areaOf(p)) : '', p.isTemplate ? 'Repeating' : '', p.status !== 'open' ? 'Completed' : ''].filter(Boolean).join(' · ') });
   });
   if (words.length) {
     tagTree().forEach(({ tag }) => { if (m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: 'var(--muted)' }); });
@@ -201,7 +201,7 @@ function openSettings() {
     <div class="set-sec"><h3>Tags</h3><div class="set-btns"><button class="btn" data-s="tags">Manage Tags…</button></div></div>
     <div class="set-sec"><h3>Your data</h3>
       <p class="note" style="margin:0 0 10px">Your to-dos are saved in this browser on this device. Nothing is sent anywhere.</p>
-      <div class="set-btns"><button class="btn" data-s="export">${'Export Backup…'}</button><button class="btn" data-s="import">Import…</button></div>
+      <div class="set-btns"><button class="btn" data-s="backups">Backups…</button><button class="btn" data-s="export">${'Export Backup…'}</button><button class="btn" data-s="import">Import…</button></div>
       ${fsOK ? `<div class="set-row" style="margin-top:10px"><span class="lbl">Data file<small>${fileSync.name ? `Saving to <b>${esc(fileSync.name)}</b>${fileSync.needsPermission ? ' (click Reconnect to allow access)' : ''}` : 'Keep your to-dos in a file, for example on a thumb drive next to Sectis.'}</small></span><div class="set-btns">${fileSync.name ? `${fileSync.needsPermission ? '<button class="btn primary" data-s="fs-reconnect">Reconnect</button>' : ''}<button class="btn" data-s="fs-unlink">Disconnect</button>` : '<button class="btn" data-s="fs-new">Create File…</button><button class="btn" data-s="fs-open">Open File…</button>'}</div></div>` : ''}
       <div class="set-btns" style="margin-top:12px">${hasSample ? '<button class="btn" data-s="sample-remove">Remove Sample To-Dos</button>' : '<button class="btn" data-s="sample-add">Add Sample To-Dos</button>'}<button class="btn" data-s="erase" style="color:var(--red)">Erase All Data…</button></div></div>
     <div class="about"><span><b>Sectis</b> version ${APP_VERSION}${updatesAvailable() ? ` · <button class="link-btn" data-s="update-check" id="upd-btn">${upd.latest && newerVersion(upd.latest, APP_VERSION) ? `Update to ${esc(upd.latest)}` : 'Check for Updates'}</button>` : ''}</span><span>Press <kbd>?</kbd> for keyboard shortcuts</span></div></div>`;
@@ -218,6 +218,7 @@ function openSettings() {
       const b = e.target.closest('[data-s]'); if (!b) return;
       const act = b.dataset.s;
       if (act === 'tags') { closeLayer(L); openTagManager(); }
+      if (act === 'backups') { closeLayer(L); openBackups(); }
       if (act === 'export') { closeLayer(L); openExport(); }
       if (act === 'import') { closeLayer(L); openImport(); }
       if (act === 'update-check') {
@@ -231,7 +232,7 @@ function openSettings() {
       }
       if (act === 'sample-remove') { removeSample(); el.innerHTML = build(); }
       if (act === 'sample-add') { commit('Sample To-Dos', () => seedSample()); el.innerHTML = build(); }
-      if (act === 'erase') { const ok = await confirmDialog({ title: 'Erase all data?', body: Y.enabled ? 'Every to-do, project, area and tag will be deleted here and on every device that syncs with this one. Export a backup first if you might want them back.' : 'Every to-do, project, area and tag in this browser will be deleted. Export a backup first if you might want them back.', ok: 'Erase Everything', danger: true }); if (ok) { commit('Erase All', () => { const keep = S.settings; S = emptyState(); S.settings = keep; S.meta.sampleLoaded = true; }); navigate('inbox'); closeLayer(L); } }
+      if (act === 'erase') { const ok = await confirmDialog({ title: 'Erase all data?', body: Y.enabled ? 'Every to-do, project, area and tag will be deleted here and on every device that syncs with this one. Export a backup first if you might want them back.' : 'Every to-do, project, area and tag in this browser will be deleted. Export a backup first if you might want them back.', ok: 'Erase Everything', danger: true }); if (ok) { await makeBackup('erase'); commit('Erase All', () => { const keep = S.settings; S = emptyState(); S.settings = keep; S.meta.sampleLoaded = true; }); navigate('inbox'); closeLayer(L); } }
       if (act === 'fs-new') { await fileSyncCreate(); el.innerHTML = build(); }
       if (act === 'fs-open') { await fileSyncOpen(); el.innerHTML = build(); }
       if (act === 'fs-reconnect') { await fileSyncReconnect(); el.innerHTML = build(); }
@@ -304,7 +305,7 @@ function openShortcuts() {
     ['Create', [['New to-do', k('N') + ' or ' + k('Space')], ['New heading (in a project)', k('⇧', 'N')], ['Quick Entry', k('Q')], ['Quick Find', k('/') + ' or ' + k(MODK + 'F')]]],
     ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
     ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash', k('1') + '–' + k('7')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
-    ['While editing', [['Save and close', k('Return') + ' or ' + k(MODK + '↩')], ['Complete', k(MODK + 'K')], ['When…', k(MODK + 'S')], ['Deadline…', k(MODK + '⇧', 'D')], ['Add checklist', k(MODK + '⇧', 'C')], ['Paste several lines', 'one to-do per line']]],
+    ['While editing', [['Save and close', k('Return') + ' or ' + k(MODK + '↩')], ['Complete', k(MODK + 'K')], ['When…', k(MODK + 'S')], ['Deadline…', k(MODK + '⇧', 'D')], ['Add checklist', k(MODK + '⇧', 'C')], ['Move checklist item', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Paste several lines', 'one to-do per line']]],
   ];
   openLayer({ modal: true, html: `<div class="modal-h"><h2>Keyboard Shortcuts</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b"><div class="sc-grid">${rows.map(([h, list]) => `<h4>${h}</h4>${list.map(([l, keys]) => `<div class="sc"><span>${l}</span><span>${keys}</span></div>`).join('')}`).join('')}</div></div>` });
 }
@@ -352,9 +353,9 @@ function openImport() {
       };
       $('#im-ta', el).addEventListener('input', (e) => check(e.target.value));
       $('#im-file', el).addEventListener('change', (e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $('#im-ta', el).value = String(r.result).slice(0, 2000) + (String(r.result).length > 2000 ? '\n…' : ''); check(String(r.result)); }; r.readAsText(f); });
-      go.addEventListener('click', () => {
+      go.addEventListener('click', async () => {
         if (!pending) return;
-        if (pending.kind === 'backup') { const data = pending.data; commit('Import', () => { const keepFs = S.meta && S.meta.fileName; S = normalizeState(data); if (keepFs) S.meta.fileName = keepFs; S.meta.sampleLoaded = true; }); closeLayer(L); navigate('today'); toast('Backup imported', { undo: true }); }
+        if (pending.kind === 'backup') { const data = pending.data; await makeBackup('import'); commit('Import', () => { const keepFs = S.meta && S.meta.fileName; S = normalizeState(data); if (keepFs) S.meta.fileName = keepFs; S.meta.sampleLoaded = true; }); closeLayer(L); navigate('today'); toast('Backup imported', { undo: true }); }
         else { commit('Add To-Dos', () => { let o = topOrder(inboxItems()) - pending.lines.length; pending.lines.forEach((line) => { S.todos.push(makeTodo({ title: line, start: 'inbox', order: o++ })); }); }); closeLayer(L); navigate('inbox'); toast(`Added ${plural(pending.lines.length, 'to-do')}`, { undo: true }); }
       });
     } });

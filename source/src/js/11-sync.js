@@ -290,6 +290,7 @@ async function syncJoin(code) {
       mode = r;
     } else mode = 'replace';
   }
+  if (mode === 'replace' && hasRealData()) await makeBackup('join');
   snapshot('Join Sync');
   if (mode === 'replace') { for (const list of Object.values(SYNC_KINDS)) S[list] = []; reindex(); }
   else if (hasRemote) dropSampleData(); // the other device already has the tour

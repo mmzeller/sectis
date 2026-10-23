@@ -215,7 +215,7 @@ function openMove(ids, anchor, opts = {}) {
       S.areas.slice().sort(byOrder).forEach((a) => { if (m(aTitle(a))) out += `<button class="pick-i a" data-to="area:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span>${cur.areaId === a.id ? `<span class="check">${ic('check')}</span>` : ''}</button>`; });
       return out;
     }
-    const projRows = (areaId) => S.projects.filter((p) => !p.trashed && p.status === 'open' && (p.areaId || null) === areaId).sort(byOrder).map((p) => {
+    const projRows = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === areaId).sort(byOrder).map((p) => {
       let r = '';
       const hs = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
       const pm = m(pTitle(p)); const hm = hs.filter((h) => m(h.title) || pm);
@@ -254,8 +254,8 @@ function openMove(ids, anchor, opts = {}) {
 
 /* ---- Repeat editor ---- */
 function openRepeat(id, anchor) {
-  const t = getT(id); if (!t) return;
-  const tpl = t.isTemplate ? t : (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? getT(t.templateId) : null);
+  const t = itemById(id); if (!t) return;
+  const tpl = t.isTemplate ? t : (t.templateId && itemById(t.templateId) && !itemById(t.templateId).trashed ? itemById(t.templateId) : null);
   const r = JSON.parse(JSON.stringify(tpl ? tpl.repeat : defaultRule(t.when && t.when > T0() ? t.when : T0())));
   if (!tpl) { if (t.reminder) r.reminder = t.reminder; if (t.evening) r.evening = true; if (t.deadline && t.when) r.deadlineDays = Math.max(0, diffDays(t.when, t.deadline)); }
   if (tpl && tpl.next) r.anchor = r.mode === 'after' ? tpl.next : r.anchor;
@@ -277,6 +277,7 @@ function openRepeat(id, anchor) {
     <div class="rp-row"><span>Reminder</span><input type="time" id="rp-rem" value="${r.reminder || ''}" aria-label="Reminder time">${r.reminder ? `<button class="link-btn" data-rp-clear-rem="1">Remove</button>` : ''}<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="rp-eve" ${r.evening ? 'checked' : ''}>This Evening</label></div>
     <div class="rp-row"><span>Ends</span><select id="rp-ends" aria-label="Ends"><option value="never" ${r.ends.type === 'never' ? 'selected' : ''}>Never</option><option value="on" ${r.ends.type === 'on' ? 'selected' : ''}>On date</option><option value="after" ${r.ends.type === 'after' ? 'selected' : ''}>After</option></select>
       ${r.ends.type === 'on' ? `<input type="date" id="rp-end-date" value="${r.ends.date || addDays(r.anchor, 90)}" aria-label="End date">` : ''}${r.ends.type === 'after' ? `<input type="number" id="rp-end-count" min="1" max="999" value="${r.ends.count || 10}" aria-label="Number of times"><span>times</span>` : ''}</div>
+    ${t.type === 'project' ? '<p class="note" style="margin:8px 0 0">Each copy is a new project with this project’s to-dos and headings, scheduled for its start date.</p>' : ''}
     <div class="rp-prev"><b>${esc(ruleSummary(r))}</b><br>${prev.length ? (r.mode === 'after' ? 'First copy ' : 'Next: ') + prev.map((d) => esc(fmtDate(d, { weekday: true }))).join(' · ') : 'No dates match these settings.'}</div>`;
   };
   const L = openLayer({ modal: true, cls: 'narrow', html: `<div class="modal-h"><h2>Repeat</h2></div><div class="modal-b" id="rp-body">${body()}</div><div class="modal-f">${tpl ? `<button class="btn" data-rp="stop" style="margin-right:auto">Stop Repeating</button>` : ''}<button class="btn" data-rp="cancel">Cancel</button><button class="btn primary" data-rp="save">${tpl ? 'Save' : 'Repeat'}</button></div>`,
@@ -293,7 +294,7 @@ function openRepeat(id, anchor) {
           if (r.mode === 'schedule' && !firstOccurrence(r)) { toast('No dates match these settings'); return; }
           closeLayer(L);
           const tplId = setRepeat(tpl ? tpl.id : t.id, r);
-          if (!tpl) toast(`Repeating ${ruleSummary(r).toLowerCase()}`);
+          if (!tpl) toast(`${t.type === 'project' ? 'Project repeats' : 'Repeating'} ${ruleSummary(r).toLowerCase()}`);
           if (tplId && !ui.tplModal && !tpl) { /* stays in list as its first copy, or in Upcoming */ }
         }
       });
