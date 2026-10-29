@@ -599,7 +599,8 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .share-modal .sh-fmt { margin-bottom: 4px; }
 .sh-opts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 6px 0 10px; }
 .sh-opt { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
-.share-modal #sh-out { min-height: 220px; white-space: pre-wrap; overflow: auto; }
+.share-modal #sh-out { min-height: 240px; white-space: pre-wrap; overflow: auto; font: 13.5px/1.55 var(--ui); tab-size: 4; }
+.share-modal #sh-out.csv { font: 12px/1.45 var(--mono); white-space: pre; }
 #print-root { display: none; }
 @media print {
   html.printing, html.printing body { height: auto !important; overflow: visible !important; background: #fff !important; padding: 0 !important; }

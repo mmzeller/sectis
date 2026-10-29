@@ -620,7 +620,8 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .share-modal .sh-fmt { margin-bottom: 4px; }
 .sh-opts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 6px 0 10px; }
 .sh-opt { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
-.share-modal #sh-out { min-height: 220px; white-space: pre-wrap; overflow: auto; }
+.share-modal #sh-out { min-height: 240px; white-space: pre-wrap; overflow: auto; font: 13.5px/1.55 var(--ui); tab-size: 4; }
+.share-modal #sh-out.csv { font: 12px/1.45 var(--mono); white-space: pre; }
 #print-root { display: none; }
 @media print {
   html.printing, html.printing body { height: auto !important; overflow: visible !important; background: #fff !important; padding: 0 !important; }
@@ -677,7 +678,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.6.1';
+const APP_VERSION = '1.7.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -4538,8 +4539,12 @@ async function openBackups() {
    Markdown, a spreadsheet (CSV) or a printable page. */
 const SHARE_PREF = 'sectis.share';
 function sharePrefs() {
-  const d = { format: 'text', notes: true, checklist: true, meta: true, done: false };
-  try { return Object.assign(d, JSON.parse(lsGet(SHARE_PREF) || '{}')); } catch (e) { return d; }
+  const d = { format: 'text', notes: true, checklist: true, dates: true, tags: false, done: false };
+  let saved = {};
+  try { saved = JSON.parse(lsGet(SHARE_PREF) || '{}') || {}; } catch (e) { saved = {}; }
+  if ('meta' in saved && !('dates' in saved)) saved.dates = saved.meta; // older setting
+  delete saved.meta;
+  return Object.assign(d, saved);
 }
 
 /* ---- collect what to export as a flat list of blocks:
@@ -4636,24 +4641,31 @@ function projectLine(p) {
   if (p.isTemplate && p.repeat) bits.push(ruleSummary(p.repeat));
   else if (p.start === 'someday') bits.push('Someday');
   else if (p.when) bits.push(p.when <= T0() ? 'Today' : fmtDate(p.when));
-  if (p.deadline) bits.push('Deadline ' + fmtDate(p.deadline));
-  return bits.join(' · ');
+  if (p.deadline) bits.push('due ' + fmtDate(p.deadline));
+  return bits.join(', ');
 }
 
 /* ---- format each item ---- */
-function shareMeta(x, o) {
-  if (!o.meta) return [];
+const cap = (t) => (t ? t[0].toUpperCase() + t.slice(1) : t);
+function shareDates(x, o) {
+  if (!o.dates) return [];
   const bits = [];
-  if (x.status === 'done') bits.push(x.completedAt ? 'Done ' + fmtDate(stampDay(x.completedAt), { weekday: false }) : 'Done');
-  else if (x.status === 'canceled') bits.push('Canceled');
+  if (x.type === 'project') { const l = projectLine(x); return l ? [l] : []; }
+  if (x.status === 'done') bits.push(x.completedAt ? 'done ' + fmtDate(stampDay(x.completedAt), { weekday: false }) : 'done');
+  else if (x.status === 'canceled') bits.push('canceled');
   else if (x.start === 'someday') bits.push('Someday');
   else if (isEveningItem(x)) bits.push('This Evening');
   else if (x.when && x.when <= T0()) bits.push('Today');
   else if (x.when) bits.push(fmtDate(x.when));
-  if (x.deadline && x.status === 'open') bits.push('Deadline ' + fmtDate(x.deadline));
-  x.tags.map(tagTitle).filter(Boolean).forEach((t) => bits.push('#' + t.replace(/\s+/g, '')));
+  if (x.deadline && x.status === 'open') bits.push('due ' + fmtDate(x.deadline));
   return bits;
 }
+function shareTags(x, o) { return o.tags ? x.tags.map(tagTitle).filter(Boolean).map((t) => '#' + t.replace(/\s+/g, '')) : []; }
+function itemLabel(x, o, sep = ' — ') {
+  const d = shareDates(x, o), t = shareTags(x, o);
+  return (d.length ? sep + d.join(', ') : '') + (t.length ? '  ' + t.join(' ') : '');
+}
+function itemName(x) { return x.type === 'project' ? pTitle(x) : x.title || 'New To-Do'; }
 function shareItems(doc, o) {
   const keep = (x) => doc.forceDone || o.done || x.status === 'open';
   const out = []; let pendingH = [];
@@ -4665,66 +4677,71 @@ function shareItems(doc, o) {
   }
   return out;
 }
+function headingLabel(b, o) { const extra = b.proj && o.dates ? projectLine(b.proj) : ''; return b.text + (extra ? ' — ' + extra : ''); }
+/* Plain text: no underlines or brackets; sections are indented under their heading */
 function buildText(doc, o) {
-  const L = [doc.title, '='.repeat(Math.min(60, Math.max(3, doc.title.length)))];
-  if (doc.sub) L.push(doc.sub);
+  const L = [doc.title];
+  if (doc.sub) L.push(cap(doc.sub));
   if (o.notes && doc.notes && doc.notes.trim()) L.push('', ...doc.notes.trim().split('\n'));
-  const box = (x) => (x.type === 'project' ? '◯' : x.status === 'done' ? '☑' : x.status === 'canceled' ? '☒' : '☐');
+  L.push('');
+  const box = (x) => (x.type === 'project' ? '○' : x.status === 'done' ? '☑' : x.status === 'canceled' ? '☒' : '☐');
+  let depth = 0, lastHeading = false;
   for (const b of shareItems(doc, o)) {
     if (b.h) {
-      const extra = b.proj ? projectLine(b.proj) : '';
-      L.push('', b.h === 2 ? b.text : `${b.text}:`);
-      if (b.h === 2) L.push('-'.repeat(Math.min(60, Math.max(3, b.text.length))));
-      if (extra && o.meta) L.push(extra);
-      continue;
+      if (L[L.length - 1] !== '' && !lastHeading) L.push('');
+      L.push('  '.repeat(b.h - 2) + headingLabel(b, o));
+      depth = b.h - 1; lastHeading = true; continue;
     }
-    const x = b.item, meta = shareMeta(x, o);
-    L.push(`${box(x)} ${x.type === 'project' ? pTitle(x) : x.title || 'New To-Do'}${meta.length ? `  (${meta.join(' · ')})` : ''}`);
-    if (o.notes && x.notes && x.notes.trim()) x.notes.trim().split('\n').forEach((n) => L.push('    ' + n));
-    if (o.checklist && x.type === 'todo') x.checklist.forEach((c) => L.push(`    ${c.done ? '☑' : '☐'} ${c.title}`));
+    lastHeading = false;
+    const x = b.item, pad = '  '.repeat(depth);
+    L.push(`${pad}${box(x)} ${itemName(x)}${itemLabel(x, o)}`);
+    if (o.notes && x.notes && x.notes.trim()) x.notes.trim().split('\n').forEach((n) => L.push(`${pad}    ${n}`));
+    if (o.checklist && x.type === 'todo') x.checklist.forEach((c) => L.push(`${pad}    ${c.done ? '✓' : '–'} ${c.title}`));
   }
-  return L.join('\n').replace(/\n{3,}/g, '\n\n') + '\n';
+  while (L.length && L[L.length - 1] === '') L.pop();
+  return L.join('\n') + '\n';
 }
 function buildMarkdown(doc, o) {
   const L = [`# ${doc.title}`];
-  if (doc.sub) L.push('', `_${doc.sub}_`);
+  if (doc.sub) L.push('', cap(doc.sub));
   if (o.notes && doc.notes && doc.notes.trim()) L.push('', doc.notes.trim());
   let inList = false;
   for (const b of shareItems(doc, o)) {
-    if (b.h) {
-      L.push('', `${'#'.repeat(b.h)} ${b.text}`);
-      if (b.proj && o.meta && projectLine(b.proj)) L.push('', `_${projectLine(b.proj)}_`);
-      inList = false; continue;
-    }
+    if (b.h) { L.push('', `${'#'.repeat(b.h)} ${headingLabel(b, o)}`); inList = false; continue; }
     if (!inList) { L.push(''); inList = true; }
-    const x = b.item, meta = shareMeta(x, o);
-    const name = x.type === 'project' ? `**${pTitle(x)}** (project)` : (x.title || 'New To-Do');
-    L.push(`- [${x.status === 'open' || x.type === 'project' ? ' ' : 'x'}] ${x.status === 'canceled' ? `~~${name}~~` : name}${meta.length ? ` — ${meta.join(' · ')}` : ''}`);
+    const x = b.item;
+    const name = x.type === 'project' ? `**${pTitle(x)}**` : itemName(x);
+    L.push(`- [${x.status === 'open' || x.type === 'project' ? ' ' : 'x'}] ${x.status === 'canceled' ? `~~${name}~~` : name}${itemLabel(x, o)}`);
     if (o.notes && x.notes && x.notes.trim()) x.notes.trim().split('\n').forEach((n) => L.push('  ' + n));
     if (o.checklist && x.type === 'todo') x.checklist.forEach((c) => L.push(`  - [${c.done ? 'x' : ' '}] ${c.title}`));
   }
   return L.join('\n').replace(/\n{3,}/g, '\n\n') + '\n';
 }
+/* Spreadsheet: only the columns that are switched on */
 function buildCSV(doc, o) {
   const q = (v) => { const s = String(v == null ? '' : v); return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
-  const rows = [['Title', 'Type', 'Status', 'Group', 'List', 'Heading', 'When', 'Deadline', 'Tags', 'Notes', 'Checklist']];
-  let group = '';
-  for (const b of shareItems(doc, o)) {
-    if (b.h) { group = b.text; continue; }
-    const x = b.item;
-    const when = x.start === 'someday' ? 'Someday' : x.when || '';
-    const h = x.type === 'todo' && x.headingId && getH(x.headingId);
-    rows.push([x.type === 'project' ? pTitle(x) : x.title, x.type === 'project' ? 'Project' : 'To-Do', { open: 'Open', done: 'Done', canceled: 'Canceled' }[x.status],
-      group, parentLabel(x).split(' › ')[0], h ? h.title : '', o.meta ? when : '', o.meta ? x.deadline || '' : '', o.meta ? x.tags.map(tagTitle).filter(Boolean).join(', ') : '',
-      o.notes ? x.notes : '', o.checklist && x.type === 'todo' ? x.checklist.map((c) => `${c.done ? '[x]' : '[ ]'} ${c.title}`).join('\n') : '']);
+  const items = shareItems(doc, o).filter((b) => b.item).map((b) => b.item);
+  const showStatus = doc.forceDone || o.done;
+  const cols = [['Title', (x) => itemName(x)]];
+  if (items.some((x) => x.type === 'project')) cols.push(['Type', (x) => (x.type === 'project' ? 'Project' : 'To-Do')]);
+  cols.push(['List', (x) => (x.type === 'project' ? (areaOf(x) ? aTitle(areaOf(x)) : '') : parentLabel(x).split(' › ')[0])]);
+  if (items.some((x) => x.type === 'todo' && x.headingId && getH(x.headingId))) cols.push(['Heading', (x) => { const h = x.type === 'todo' && x.headingId && getH(x.headingId); return h ? h.title : ''; }]);
+  if (showStatus) cols.push(['Status', (x) => ({ open: 'Open', done: 'Done', canceled: 'Canceled' }[x.status])]);
+  if (o.dates) {
+    cols.push(['When', (x) => (x.start === 'someday' ? 'Someday' : x.when ? fmtDate(x.when, { year: true }) : '')]);
+    cols.push(['Deadline', (x) => (x.deadline ? fmtDate(x.deadline, { year: true }) : '')]);
   }
+  if (o.tags) cols.push(['Tags', (x) => x.tags.map(tagTitle).filter(Boolean).join(', ')]);
+  if (o.notes) cols.push(['Notes', (x) => x.notes]);
+  if (o.checklist) cols.push(['Checklist', (x) => (x.type === 'todo' ? x.checklist.map((c) => `${c.done ? '✓' : '–'} ${c.title}`).join('\n') : '')]);
+  const rows = [cols.map((c) => c[0]), ...items.map((x) => cols.map((c) => c[1](x)))];
   return '﻿' + rows.map((r) => r.map(q).join(',')).join('\r\n') + '\r\n';
 }
 function buildPrintHTML(doc, o) {
-  let h = `<h1>${esc(doc.title)}</h1>${doc.sub ? `<p class="sub">${esc(doc.sub)}</p>` : ''}${o.notes && doc.notes && doc.notes.trim() ? `<div class="md pnotes">${renderMarkdown(doc.notes)}</div>` : ''}`;
+  let h = `<h1>${esc(doc.title)}</h1>${doc.sub ? `<p class="sub">${esc(cap(doc.sub))}</p>` : ''}${o.notes && doc.notes && doc.notes.trim() ? `<div class="md pnotes">${renderMarkdown(doc.notes)}</div>` : ''}`;
   for (const b of shareItems(doc, o)) {
-    if (b.h) { h += `<h${b.h}>${esc(b.text)}</h${b.h}>${b.proj && o.meta && projectLine(b.proj) ? `<p class="sub">${esc(projectLine(b.proj))}</p>` : ''}`; continue; }
-    const x = b.item, meta = shareMeta(x, o);
+    if (b.h) { h += `<h${b.h}>${esc(b.text)}</h${b.h}>${b.proj && o.dates && projectLine(b.proj) ? `<p class="sub">${esc(cap(projectLine(b.proj)))}</p>` : ''}`; continue; }
+    const x = b.item, meta = [...shareDates(x, o), ...shareTags(x, o)];
     h += `<div class="pi ${x.type} ${x.status}"><span class="pbox">${x.status === 'done' ? '✓' : x.status === 'canceled' ? '×' : ''}</span><div class="pmain"><div class="pt">${esc(x.type === 'project' ? pTitle(x) : x.title || 'New To-Do')}${meta.length ? ` <span class="pm">${esc(meta.join(' · '))}</span>` : ''}</div>`
       + (o.notes && x.notes && x.notes.trim() ? `<div class="md pn">${renderMarkdown(x.notes)}</div>` : '')
       + (o.checklist && x.type === 'todo' && x.checklist.length ? `<ul class="pc">${x.checklist.map((c) => `<li class="${c.done ? 'done' : ''}">${esc(c.title)}</li>`).join('')}</ul>` : '') + '</div></div>';
@@ -4767,7 +4784,7 @@ function openShare(scope) {
     <div class="modal-b">
       <div class="seg sh-fmt" role="group" aria-label="Format">${fmtBtn('text', 'Text')}${fmtBtn('markdown', 'Markdown')}${fmtBtn('csv', 'Spreadsheet')}</div>
       <p class="note" id="sh-desc"></p>
-      <div class="sh-opts">${opt('notes', 'Notes')}${opt('checklist', 'Checklists')}${opt('meta', 'Dates and tags')}${doc.forceDone ? '' : opt('done', 'Completed to-dos')}</div>
+      <div class="sh-opts">${opt('notes', 'Notes')}${opt('checklist', 'Checklists')}${opt('dates', 'Dates')}${opt('tags', 'Tags')}${doc.forceDone ? '' : opt('done', 'Completed to-dos')}</div>
       <textarea class="ta" id="sh-out" readonly aria-label="Preview"></textarea>
       <p class="note" id="sh-note"></p>
     </div>
@@ -4775,7 +4792,7 @@ function openShare(scope) {
     onMount: (el) => {
       const ta = $('#sh-out', el), note = $('#sh-note', el);
       const refresh = () => {
-        ta.value = out();
+        ta.value = out(); ta.classList.toggle('csv', o.format === 'csv');
         const n = count();
         $('#sh-desc', el).textContent = (o.format === 'csv' ? 'A file that opens in Numbers, Excel or Google Sheets, one row per to-do. ' : o.format === 'markdown' ? 'Checkbox lists for Notes, Obsidian, GitHub and other Markdown apps. ' : 'Readable anywhere: Messages, Mail, Notes. ')
           + `${plural(n, 'item')}.`;
