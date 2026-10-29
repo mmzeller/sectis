@@ -102,6 +102,22 @@ async function completeProjectFlow(p, status = 'done') {
   if (S.settings.logMode === 'immediate') setTimeout(() => { if (autoLog()) render(); }, 1300);
 }
 function reopenProject(p) { commit('Reopen Project', () => setStatus(p, 'open')); }
+/* send items to the Logbook now, whatever the Logbook setting. Open to-dos are completed first;
+   an open project is left alone (Complete Project asks about its remaining to-dos). */
+function loggableItems(ids) { return itemsFor(ids).filter((x) => !x.trashed && !x.isTemplate && !isTplChild(x) && !x.logged && !(x.type === 'project' && x.status === 'open')); }
+function logItems(ids) {
+  const items = loggableItems(ids);
+  if (!items.length) return;
+  const completing = items.some((x) => x.status === 'open');
+  if (ui.editing && items.some((x) => x.id === ui.editing)) closeEditor({ noRender: true });
+  commit('Move to Logbook', () => items.forEach((x) => {
+    if (x.status === 'open') setStatus(x, 'done');
+    x.logged = true; touch(x); ui.sel.delete(x.id);
+    if (x.type === 'project') S.todos.forEach((t) => { if (t.projectId === x.id && t.status !== 'open' && !t.trashed && !t.logged) { t.logged = true; touch(t); } });
+  }));
+  const what = items.length > 1 ? plural(items.length, 'item') : '';
+  toast(completing ? `Completed${what ? ' ' + what : ''} and moved to the Logbook` : `Moved ${what ? what + ' ' : ''}to the Logbook`, { undo: true });
+}
 
 function trashItems(ids) {
   const items = itemsFor(ids);

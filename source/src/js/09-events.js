@@ -156,6 +156,7 @@ function todoMenu(id, el) {
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ label: 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
     items.push({ sep: 1 });
+    if (!t.logged && !t.trashed) items.push({ label: t.status === 'open' ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', fn: () => logItems([id]) });
     items.push(t.status === 'canceled' ? { label: 'Mark as Open', icon: 'reopen', fn: () => toggleComplete([id], 'canceled') } : { label: 'Mark as Canceled', icon: 'cancel', fn: () => toggleComplete([id], 'canceled') });
     items.push(t.trashed ? { label: 'Put Back', icon: 'reopen', fn: () => restoreItems([id]) } : { label: 'Delete To-Do', icon: 'trash', danger: true, fn: () => trashItems([id]) });
   }
@@ -186,7 +187,10 @@ function projectMenu(p, el, extra = []) {
     items.push(src ? { label: 'Edit Repeating Project', icon: 'repeat', fn: () => navigate('project:' + src.id) } : { label: 'Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
-  } else items.push({ label: 'Reopen Project', icon: 'reopen', fn: () => reopenProject(p) });
+  } else {
+    if (!p.logged && !p.trashed) items.push({ label: 'Move to Logbook', icon: 'logbook', fn: () => logItems([p.id]) });
+    items.push({ label: 'Reopen Project', icon: 'reopen', fn: () => reopenProject(p) });
+  }
   items.push(p.trashed ? { label: 'Put Back', icon: 'reopen', fn: () => restoreItems([p.id]) } : { label: 'Delete Project', icon: 'trash', danger: true, fn: () => trashItems([p.id]) });
   openMenu(el, items);
 }
@@ -221,6 +225,7 @@ function batchMenuItems(anchor) {
   const ids = selectedIds(); const n = ids.length;
   if (n < 2) return [];
   const todos = ids.filter((x) => getT(x));
+  const loggable = loggableItems(ids);
   const close = () => { if (ui.selectMode) { ui.selectMode = false; ui.sel.clear(); render(); } };
   return [
     { header: `${n} Selected` },
@@ -231,6 +236,7 @@ function batchMenuItems(anchor) {
     { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
     { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
+    { label: loggable.some((x) => x.status === 'open') ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', disabled: !loggable.length, fn: () => { logItems(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: 'Delete', icon: 'trash', danger: true, fn: () => { trashItems(ids); ui.selectMode = false; render(); } },
     { label: 'Share…', icon: 'share', fn: () => openShare({ type: 'items', ids }) },
     { label: 'Clear Selection', icon: 'x', fn: () => { ui.sel.clear(); ui.selectMode = false; render(); } },
