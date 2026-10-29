@@ -118,24 +118,30 @@ function parentLabel(x) {
   if (x.type === 'todo' && isInbox(x) && !x.isTemplate) return 'Inbox';
   return '';
 }
-/* tags shown on rows. "Own Only" leaves out what a to-do already gets from where it lives (its project and area,
-   and the places its linked copies live), and a project's area tags or a tag named like the project itself.
-   An open to-do always shows every tag. */
+/* tags shown on rows. "Own Only" leaves out what a row already says by where it lives: tags it gets
+   from its project and area (and from where its linked copies live), a project's area tags, and any
+   tag named the same as the project or area it sits in. An open to-do always shows every tag. */
 function shownTagIds(x) {
   const mode = S.settings.rowTags || 'own';
   if (mode === 'none') return [];
   if (mode === 'all') return x.tags;
-  let hide;
+  const hide = new Set(), names = new Set();
+  const nm = (s) => (s || '').trim().toLowerCase();
+  const place = (t) => { // a to-do's project and area
+    placeTagIds(t).forEach((id) => hide.add(id));
+    const p = t.projectId && getP(t.projectId), a = areaOf(t);
+    if (p) names.add(nm(p.title)); if (a) names.add(nm(a.title));
+  };
   if (x.type === 'todo') {
-    hide = placeTagIds(x);
-    if (x.linkId) linkSiblings(x).forEach((s) => placeTagIds(s).forEach((id) => hide.add(id)));
+    place(x);
+    if (x.linkId) linkSiblings(x).forEach(place);
   } else {
-    hide = new Set();
-    const a = x.areaId && getA(x.areaId); if (a) a.tags.forEach((id) => hide.add(id));
-    const name = (x.title || '').trim().toLowerCase();
-    x.tags.forEach((id) => { const g = getTag(id); if (g && g.title.trim().toLowerCase() === name) hide.add(id); });
+    names.add(nm(x.title));
+    const a = x.areaId && getA(x.areaId);
+    if (a) { a.tags.forEach((id) => hide.add(id)); names.add(nm(a.title)); }
   }
-  return x.tags.filter((id) => !hide.has(id));
+  names.delete('');
+  return x.tags.filter((id) => { if (hide.has(id)) return false; const g = getTag(id); return !(g && names.has(nm(g.title))); });
 }
 function tagPills(x) { return shownTagIds(x).map((id) => getTag(id)).filter(Boolean).map((t) => `<span class="tg">${esc(t.title)}</span>`).join(''); }
 function deadlineHTML(x) { if (!x.deadline || x.isTemplate) return ''; const d = deadlineInfo(x.deadline); return `<span class="dl${d.due && x.status === 'open' ? ' due' : ''}" title="Deadline ${fmtDate(x.deadline)}">${ic('flag')}${esc(d.text)}</span>`; }
