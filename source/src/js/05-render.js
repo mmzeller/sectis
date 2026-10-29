@@ -192,7 +192,7 @@ function cardHTML(t) {
   const tags = t.tags.length ? `<div class="c-tags">${t.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
   const chips = whenChipHTML(t) + repeatChipHTML(t) + deadlineChipHTML(t);
   const tools = [
-    !t.tags.length ? `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>` : '',
+    `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>`,
     !ckOpen ? `<button class="ib" data-action="ck-open" data-id="${t.id}" title="Checklist" aria-label="Checklist">${ic('checklist')}</button>` : '',
     !t.deadline && !tpl && !tplChild ? `<button class="ib" data-action="deadline" data-id="${t.id}" title="Deadline (D)" aria-label="Deadline">${ic('flag')}</button>` : '',
     !t.when && t.start !== 'someday' && !tpl && !tplChild ? `<button class="ib" data-action="when" data-id="${t.id}" title="When (S)" aria-label="When">${ic('calendar')}</button>` : '',

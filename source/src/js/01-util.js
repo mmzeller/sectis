@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));

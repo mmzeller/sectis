@@ -263,6 +263,7 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .ck-item:hover .ck-del, .ck-item:focus-within .ck-del, .touch .ck-del { opacity: .7; }
 .c-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
 .c-tags .tg { cursor: pointer; }
+.c-tags .tg:hover { color: var(--fg); border-color: var(--muted); }
 .c-foot { display: flex; align-items: flex-end; justify-content: space-between; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
 .c-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
 .c-tools { display: flex; gap: 2px; margin-left: auto; }
@@ -630,7 +631,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '1.3.1';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1758,7 +1759,7 @@ function cardHTML(t) {
   const tags = t.tags.length ? `<div class="c-tags">${t.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
   const chips = whenChipHTML(t) + repeatChipHTML(t) + deadlineChipHTML(t);
   const tools = [
-    !t.tags.length ? `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>` : '',
+    `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>`,
     !ckOpen ? `<button class="ib" data-action="ck-open" data-id="${t.id}" title="Checklist" aria-label="Checklist">${ic('checklist')}</button>` : '',
     !t.deadline && !tpl && !tplChild ? `<button class="ib" data-action="deadline" data-id="${t.id}" title="Deadline (D)" aria-label="Deadline">${ic('flag')}</button>` : '',
     !t.when && t.start !== 'someday' && !tpl && !tplChild ? `<button class="ib" data-action="when" data-id="${t.id}" title="When (S)" aria-label="When">${ic('calendar')}</button>` : '',

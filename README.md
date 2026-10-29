@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.3.0
+Version 1.3.1
 
 ## What's in it
 
