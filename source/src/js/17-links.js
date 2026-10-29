@@ -93,7 +93,23 @@ function afterLinkedComplete(items) {
 }
 
 /* ---- expandable projects inside an area ---- */
-function loadExpanded() { try { ui.expanded = new Set(JSON.parse(lsGet('sectis.expanded') || '[]')); } catch (e) { ui.expanded = new Set(); } }
+function loadExpanded() {
+  try { ui.expanded = new Set(JSON.parse(lsGet('sectis.expanded') || '[]')); } catch (e) { ui.expanded = new Set(); }
+  try { ui.sbCollapsed = new Set(JSON.parse(lsGet('sectis.sbCollapsed') || '[]')); } catch (e) { ui.sbCollapsed = new Set(); }
+}
+/* sidebar: hide or show the projects under an area (⌥ for every area) */
+function toggleSidebarArea(id, all) {
+  const hide = !ui.sbCollapsed.has(id);
+  const ids = all ? S.areas.map((a) => a.id) : [id];
+  ids.forEach((x) => (hide ? ui.sbCollapsed.add(x) : ui.sbCollapsed.delete(x)));
+  lsSet('sectis.sbCollapsed', JSON.stringify([...ui.sbCollapsed]));
+  renderSidebar();
+}
+function setSidebarAreas(hide) {
+  ui.sbCollapsed = new Set(hide ? S.areas.map((a) => a.id) : []);
+  lsSet('sectis.sbCollapsed', JSON.stringify([...ui.sbCollapsed]));
+  renderSidebar();
+}
 function setExpanded(ids, on) {
   ids.forEach((id) => (on ? ui.expanded.add(id) : ui.expanded.delete(id)));
   lsSet('sectis.expanded', JSON.stringify([...ui.expanded]));

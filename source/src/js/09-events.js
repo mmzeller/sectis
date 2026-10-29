@@ -42,6 +42,8 @@ document.addEventListener('click', (e) => {
     const isTool = a && a.dataset.id === ui.editing;
     if (!isTool) closeEditor({ noRender: !!(a || e.target.closest('[data-nav], .row[data-id], [data-tpl], #magic')) });
   }
+  const sbt = e.target.closest('[data-sbtoggle]');
+  if (sbt) { e.preventDefault(); toggleSidebarArea(sbt.dataset.sbtoggle, e.altKey); return; }
   const nv = e.target.closest('.notes-view');
   if (nv) { if (!e.target.closest('a')) { e.preventDefault(); showNotesEditor(nv.dataset.notesFor, true); } return; }
   if (a) { if (!(inLayer && !a.closest('.tpl-modal'))) handleAction(a.dataset.action, a, e); else if (a.dataset.action === 'close-layer') closeLayer(); return; }
@@ -195,6 +197,7 @@ function areaMenu(a, el, extra = []) {
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
+    { label: ui.sbCollapsed.size ? 'Show All Projects in Sidebar' : 'Hide All Projects in Sidebar', icon: 'layers', fn: () => setSidebarAreas(!ui.sbCollapsed.size) },
     { label: 'Collapse All Projects', icon: 'chevR', fn: () => setExpanded(areaProjectIds(a.id), false) },
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },

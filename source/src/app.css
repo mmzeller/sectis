@@ -639,3 +639,12 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
   .pchildren { margin-left: 18px; padding-left: 6px; }
   .prow .open-proj { width: 34px; height: 34px; }
 }
+
+/* sidebar: hide/show an area's projects */
+.sb-disc { flex: none; width: 20px; height: 20px; margin-right: -4px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); opacity: 0; transition: opacity .12s; cursor: pointer; }
+.sb-disc .ic, .sb-area-row .sb-disc .ic { width: 13px; height: 13px; color: inherit; transition: transform .15s; }
+.sb-disc .ic svg { stroke-width: 2.4; }
+.sb-disc.open .ic { transform: rotate(90deg); }
+.sb-disc:hover { background: var(--line); color: var(--fg); }
+.sb-item:hover .sb-disc, .sb-disc:not(.open), .sb-disc:focus-visible, .touch .sb-disc { opacity: .75; }
+@media (max-width: 760px) { .sb-disc { width: 30px; height: 30px; margin-right: -6px; } .sb-disc .ic, .sb-area-row .sb-disc .ic { width: 16px; height: 16px; } }

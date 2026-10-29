@@ -70,6 +70,9 @@ function renderSidebar() {
     const ar = areaOf(t); if (ar) openIn.a.set(ar.id, (openIn.a.get(ar.id) || 0) + 1);
   }
   const cnt = (n) => (n ? `<span class="sb-count">${n}</span>` : '');
+  // areas can hide the projects listed under them; the project you have open stays visible
+  const areaToggle = (a, n) => (n ? `<span class="sb-disc${ui.sbCollapsed.has(a.id) ? '' : ' open'}" data-sbtoggle="${a.id}" role="button" aria-expanded="${!ui.sbCollapsed.has(a.id)}" aria-label="${ui.sbCollapsed.has(a.id) ? 'Show' : 'Hide'} projects in ${esc(aTitle(a))}" title="${ui.sbCollapsed.has(a.id) ? 'Show' : 'Hide'} projects (⌥-click for all areas)">${ic('chevR')}</span>` : '');
+  const sbAreaProjects = (a, list) => (ui.sbCollapsed.has(a.id) ? list.filter((p) => v.type === 'project' && v.id === p.id) : list);
   const on = (key) => (v.type + (v.id ? ':' + v.id : '')) === key ? ' on' : '';
   const item = (key, cnt, extra = '') => {
     const L = LISTS[key];
@@ -87,7 +90,7 @@ function renderSidebar() {
   const loose = sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   S.areas.slice().sort(byOrder).forEach((a) => {
-    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}</button>${sbProjects(a.id).map(projRow).join('')}</div>`;
+    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
   });
   html += `</nav><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button></div>`;
   const sb = $('#sidebar');

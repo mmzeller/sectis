@@ -661,6 +661,15 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
   .prow .open-proj { width: 34px; height: 34px; }
 }
 
+/* sidebar: hide/show an area's projects */
+.sb-disc { flex: none; width: 20px; height: 20px; margin-right: -4px; border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); opacity: 0; transition: opacity .12s; cursor: pointer; }
+.sb-disc .ic, .sb-area-row .sb-disc .ic { width: 13px; height: 13px; color: inherit; transition: transform .15s; }
+.sb-disc .ic svg { stroke-width: 2.4; }
+.sb-disc.open .ic { transform: rotate(90deg); }
+.sb-disc:hover { background: var(--line); color: var(--fg); }
+.sb-item:hover .sb-disc, .sb-disc:not(.open), .sb-disc:focus-visible, .touch .sb-disc { opacity: .75; }
+@media (max-width: 760px) { .sb-disc { width: 30px; height: 30px; margin-right: -6px; } .sb-disc .ic, .sb-area-row .sb-disc .ic { width: 16px; height: 16px; } }
+
 </style>
 </head>
 <body>
@@ -678,7 +687,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.8.1';
+const APP_VERSION = '1.9.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -877,7 +886,7 @@ const idx = { todo: new Map(), project: new Map(), heading: new Map(), area: new
 const ui = {
   today: todayStr(), view: { type: 'today' }, sel: new Set(), anchor: null, editing: null, newId: null,
   tagFilter: null, mobile: 'home', selectMode: false, showLogged: {}, laterOpen: {}, tplModal: null,
-  lastEditKey: null, logbookLimit: 150, focusAfter: null, scrollToEditor: false, expanded: new Set(),
+  lastEditKey: null, logbookLimit: 150, focusAfter: null, scrollToEditor: false, expanded: new Set(), sbCollapsed: new Set(),
 };
 
 function defaultSettings() {
@@ -1706,6 +1715,9 @@ function renderSidebar() {
     const ar = areaOf(t); if (ar) openIn.a.set(ar.id, (openIn.a.get(ar.id) || 0) + 1);
   }
   const cnt = (n) => (n ? `<span class="sb-count">${n}</span>` : '');
+  // areas can hide the projects listed under them; the project you have open stays visible
+  const areaToggle = (a, n) => (n ? `<span class="sb-disc${ui.sbCollapsed.has(a.id) ? '' : ' open'}" data-sbtoggle="${a.id}" role="button" aria-expanded="${!ui.sbCollapsed.has(a.id)}" aria-label="${ui.sbCollapsed.has(a.id) ? 'Show' : 'Hide'} projects in ${esc(aTitle(a))}" title="${ui.sbCollapsed.has(a.id) ? 'Show' : 'Hide'} projects (⌥-click for all areas)">${ic('chevR')}</span>` : '');
+  const sbAreaProjects = (a, list) => (ui.sbCollapsed.has(a.id) ? list.filter((p) => v.type === 'project' && v.id === p.id) : list);
   const on = (key) => (v.type + (v.id ? ':' + v.id : '')) === key ? ' on' : '';
   const item = (key, cnt, extra = '') => {
     const L = LISTS[key];
@@ -1723,7 +1735,7 @@ function renderSidebar() {
   const loose = sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   S.areas.slice().sort(byOrder).forEach((a) => {
-    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}</button>${sbProjects(a.id).map(projRow).join('')}</div>`;
+    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
   });
   html += `</nav><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button></div>`;
   const sb = $('#sidebar');
@@ -2920,6 +2932,8 @@ document.addEventListener('click', (e) => {
     const isTool = a && a.dataset.id === ui.editing;
     if (!isTool) closeEditor({ noRender: !!(a || e.target.closest('[data-nav], .row[data-id], [data-tpl], #magic')) });
   }
+  const sbt = e.target.closest('[data-sbtoggle]');
+  if (sbt) { e.preventDefault(); toggleSidebarArea(sbt.dataset.sbtoggle, e.altKey); return; }
   const nv = e.target.closest('.notes-view');
   if (nv) { if (!e.target.closest('a')) { e.preventDefault(); showNotesEditor(nv.dataset.notesFor, true); } return; }
   if (a) { if (!(inLayer && !a.closest('.tpl-modal'))) handleAction(a.dataset.action, a, e); else if (a.dataset.action === 'close-layer') closeLayer(); return; }
@@ -3073,6 +3087,7 @@ function areaMenu(a, el, extra = []) {
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
+    { label: ui.sbCollapsed.size ? 'Show All Projects in Sidebar' : 'Hide All Projects in Sidebar', icon: 'layers', fn: () => setSidebarAreas(!ui.sbCollapsed.size) },
     { label: 'Collapse All Projects', icon: 'chevR', fn: () => setExpanded(areaProjectIds(a.id), false) },
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
@@ -4988,7 +5003,23 @@ function afterLinkedComplete(items) {
 }
 
 /* ---- expandable projects inside an area ---- */
-function loadExpanded() { try { ui.expanded = new Set(JSON.parse(lsGet('sectis.expanded') || '[]')); } catch (e) { ui.expanded = new Set(); } }
+function loadExpanded() {
+  try { ui.expanded = new Set(JSON.parse(lsGet('sectis.expanded') || '[]')); } catch (e) { ui.expanded = new Set(); }
+  try { ui.sbCollapsed = new Set(JSON.parse(lsGet('sectis.sbCollapsed') || '[]')); } catch (e) { ui.sbCollapsed = new Set(); }
+}
+/* sidebar: hide or show the projects under an area (⌥ for every area) */
+function toggleSidebarArea(id, all) {
+  const hide = !ui.sbCollapsed.has(id);
+  const ids = all ? S.areas.map((a) => a.id) : [id];
+  ids.forEach((x) => (hide ? ui.sbCollapsed.add(x) : ui.sbCollapsed.delete(x)));
+  lsSet('sectis.sbCollapsed', JSON.stringify([...ui.sbCollapsed]));
+  renderSidebar();
+}
+function setSidebarAreas(hide) {
+  ui.sbCollapsed = new Set(hide ? S.areas.map((a) => a.id) : []);
+  lsSet('sectis.sbCollapsed', JSON.stringify([...ui.sbCollapsed]));
+  renderSidebar();
+}
 function setExpanded(ids, on) {
   ids.forEach((id) => (on ? ui.expanded.add(id) : ui.expanded.delete(id)));
   lsSet('sectis.expanded', JSON.stringify([...ui.expanded]));
