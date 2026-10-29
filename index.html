@@ -120,7 +120,7 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .sb-item .ic { width: 17px; height: 17px; }
 .sb-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sb-name.untitled { color: var(--muted); }
-.sb-count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.sb-count { color: var(--muted); font-size: 12px; font-weight: 400; font-variant-numeric: tabular-nums; }
 .sb-due { background: var(--red); color: #fff; font-size: 11px; font-weight: 600; border-radius: 999px; padding: 0 6px; line-height: 17px; font-variant-numeric: tabular-nums; }
 .sb-area-row { font-weight: 600; }
 .sb-area-row .ic { color: var(--c-area); }
@@ -678,7 +678,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.8.0';
+const APP_VERSION = '1.8.1';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1698,6 +1698,14 @@ function renderShell() {
 /* ---------- sidebar ---------- */
 function renderSidebar() {
   const c = counts(), v = ui.view;
+  // open to-dos per project and per area (an area's count includes its projects)
+  const openIn = { p: new Map(), a: new Map() };
+  for (const t of S.todos) {
+    if (t.status !== 'open' || t.trashed || t.isTemplate || t.isDraft || !inLiveProject(t)) continue;
+    if (t.projectId) openIn.p.set(t.projectId, (openIn.p.get(t.projectId) || 0) + 1);
+    const ar = areaOf(t); if (ar) openIn.a.set(ar.id, (openIn.a.get(ar.id) || 0) + 1);
+  }
+  const cnt = (n) => (n ? `<span class="sb-count">${n}</span>` : '');
   const on = (key) => (v.type + (v.id ? ':' + v.id : '')) === key ? ' on' : '';
   const item = (key, cnt, extra = '') => {
     const L = LISTS[key];
@@ -1705,7 +1713,7 @@ function renderSidebar() {
   };
   const projRow = (p) => {
     const pr = projectProgress(p);
-    return `<button class="sb-item sb-proj${on('project:' + p.id)}" data-nav="project:${p.id}" data-drop-list="project:${p.id}" data-drag="project" data-kind="project" data-id="${p.id}" data-sb="1">${pieIc(pr.frac)}<span class="sb-name${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${p.deadline && p.deadline <= T0() ? `<span class="sb-due">!</span>` : ''}</button>`;
+    return `<button class="sb-item sb-proj${on('project:' + p.id)}" data-nav="project:${p.id}" data-drop-list="project:${p.id}" data-drag="project" data-kind="project" data-id="${p.id}" data-sb="1">${pieIc(pr.frac)}<span class="sb-name${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${p.deadline && p.deadline <= T0() ? `<span class="sb-due">!</span>` : ''}${cnt(openIn.p.get(p.id))}</button>`;
   };
   const sbProjects = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && (p.areaId || null) === areaId).sort(byOrder);
   let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button></div><nav class="sb-scroll" id="sb-scroll">`;
@@ -1715,7 +1723,7 @@ function renderSidebar() {
   const loose = sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   S.areas.slice().sort(byOrder).forEach((a) => {
-    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span></button>${sbProjects(a.id).map(projRow).join('')}</div>`;
+    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}</button>${sbProjects(a.id).map(projRow).join('')}</div>`;
   });
   html += `</nav><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button></div>`;
   const sb = $('#sidebar');
