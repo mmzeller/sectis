@@ -197,7 +197,8 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .dl { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dl .ic { width: 13px; height: 13px; }
 .dl.due { color: var(--red); }
-.tg { font-size: 11px; line-height: 17px; padding: 0 7px; border-radius: 999px; color: var(--muted); border: 1px solid var(--line-strong); white-space: nowrap; }
+.tg { font-size: 11px; line-height: 17px; padding: 0 7px; border-radius: 999px; color: var(--muted); background: var(--hover); border: 1px solid transparent; white-space: nowrap; }
+.row.selected .tg { background: transparent; border-color: var(--line-strong); }
 .row.done .r-title, .row.canceled .r-title { color: var(--muted); }
 .row.canceled .r-title { text-decoration: line-through; }
 .row.ghost { opacity: .55; cursor: pointer; }
@@ -755,7 +756,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.13.0';
+const APP_VERSION = '1.14.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -959,7 +960,7 @@ const ui = {
 };
 
 function defaultSettings() {
-  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true };
+  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own' };
 }
 function emptyState() {
   return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
@@ -1845,7 +1846,26 @@ function parentLabel(x) {
   if (x.type === 'todo' && isInbox(x) && !x.isTemplate) return 'Inbox';
   return '';
 }
-function tagPills(x) { return x.tags.map((id) => getTag(id)).filter(Boolean).map((t) => `<span class="tg">${esc(t.title)}</span>`).join(''); }
+/* tags shown on rows. "Own Only" leaves out what a to-do already gets from where it lives (its project and area,
+   and the places its linked copies live), and a project's area tags or a tag named like the project itself.
+   An open to-do always shows every tag. */
+function shownTagIds(x) {
+  const mode = S.settings.rowTags || 'own';
+  if (mode === 'none') return [];
+  if (mode === 'all') return x.tags;
+  let hide;
+  if (x.type === 'todo') {
+    hide = placeTagIds(x);
+    if (x.linkId) linkSiblings(x).forEach((s) => placeTagIds(s).forEach((id) => hide.add(id)));
+  } else {
+    hide = new Set();
+    const a = x.areaId && getA(x.areaId); if (a) a.tags.forEach((id) => hide.add(id));
+    const name = (x.title || '').trim().toLowerCase();
+    x.tags.forEach((id) => { const g = getTag(id); if (g && g.title.trim().toLowerCase() === name) hide.add(id); });
+  }
+  return x.tags.filter((id) => !hide.has(id));
+}
+function tagPills(x) { return shownTagIds(x).map((id) => getTag(id)).filter(Boolean).map((t) => `<span class="tg">${esc(t.title)}</span>`).join(''); }
 function deadlineHTML(x) { if (!x.deadline || x.isTemplate) return ''; const d = deadlineInfo(x.deadline); return `<span class="dl${d.due && x.status === 'open' ? ' due' : ''}" title="Deadline ${fmtDate(x.deadline)}">${ic('flag')}${esc(d.text)}</span>`; }
 function rowHTML(x, ctx = {}) {
   if (x.type === 'project') return projRowHTML(x, ctx);
@@ -3665,6 +3685,7 @@ function openSettings() {
       <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
       <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
       <div class="set-row"><span class="lbl">To-dos take on the tags of their project and area<small>When you add or move a to-do into a project or area, it gets that place’s tags. Moving it elsewhere swaps them.</small></span>${sw('inheritTags')}</div>
+      <div class="set-row"><span class="lbl">Tags shown in lists<small>Own Only hides the tags a to-do already gets from its project or area, so lists stay clean. Open a to-do to see all of its tags.</small></span>${seg('rowTags', [['own', 'Own Only'], ['all', 'All'], ['none', 'None']])}</div>
       <div class="set-row"><span class="lbl">Tag to-dos already in projects and areas<small>Adds each project’s and area’s tags to the to-dos inside it now. You can undo it.</small></span><button class="btn" data-s="retag-all">Tag Them Now</button></div>
       <div class="set-row"><span class="lbl">Week starts on</span>${seg('weekStart', [[0, 'Sunday'], [1, 'Monday']])}</div>
       <div class="set-row"><span class="lbl">Quick Entry reads dates and tags<small>“Pay rent friday #Home !oct 31” sets When, tag and deadline.</small></span>${sw('parseEntry')}</div></div>

@@ -115,7 +115,26 @@ function parentLabel(x) {
   if (x.type === 'todo' && isInbox(x) && !x.isTemplate) return 'Inbox';
   return '';
 }
-function tagPills(x) { return x.tags.map((id) => getTag(id)).filter(Boolean).map((t) => `<span class="tg">${esc(t.title)}</span>`).join(''); }
+/* tags shown on rows. "Own Only" leaves out what a to-do already gets from where it lives (its project and area,
+   and the places its linked copies live), and a project's area tags or a tag named like the project itself.
+   An open to-do always shows every tag. */
+function shownTagIds(x) {
+  const mode = S.settings.rowTags || 'own';
+  if (mode === 'none') return [];
+  if (mode === 'all') return x.tags;
+  let hide;
+  if (x.type === 'todo') {
+    hide = placeTagIds(x);
+    if (x.linkId) linkSiblings(x).forEach((s) => placeTagIds(s).forEach((id) => hide.add(id)));
+  } else {
+    hide = new Set();
+    const a = x.areaId && getA(x.areaId); if (a) a.tags.forEach((id) => hide.add(id));
+    const name = (x.title || '').trim().toLowerCase();
+    x.tags.forEach((id) => { const g = getTag(id); if (g && g.title.trim().toLowerCase() === name) hide.add(id); });
+  }
+  return x.tags.filter((id) => !hide.has(id));
+}
+function tagPills(x) { return shownTagIds(x).map((id) => getTag(id)).filter(Boolean).map((t) => `<span class="tg">${esc(t.title)}</span>`).join(''); }
 function deadlineHTML(x) { if (!x.deadline || x.isTemplate) return ''; const d = deadlineInfo(x.deadline); return `<span class="dl${d.due && x.status === 'open' ? ' due' : ''}" title="Deadline ${fmtDate(x.deadline)}">${ic('flag')}${esc(d.text)}</span>`; }
 function rowHTML(x, ctx = {}) {
   if (x.type === 'project') return projRowHTML(x, ctx);

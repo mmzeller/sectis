@@ -176,7 +176,8 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .dl { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 12px; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .dl .ic { width: 13px; height: 13px; }
 .dl.due { color: var(--red); }
-.tg { font-size: 11px; line-height: 17px; padding: 0 7px; border-radius: 999px; color: var(--muted); border: 1px solid var(--line-strong); white-space: nowrap; }
+.tg { font-size: 11px; line-height: 17px; padding: 0 7px; border-radius: 999px; color: var(--muted); background: var(--hover); border: 1px solid transparent; white-space: nowrap; }
+.row.selected .tg { background: transparent; border-color: var(--line-strong); }
 .row.done .r-title, .row.canceled .r-title { color: var(--muted); }
 .row.canceled .r-title { text-decoration: line-through; }
 .row.ghost { opacity: .55; cursor: pointer; }

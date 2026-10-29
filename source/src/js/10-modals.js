@@ -194,6 +194,7 @@ function openSettings() {
       <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
       <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
       <div class="set-row"><span class="lbl">To-dos take on the tags of their project and area<small>When you add or move a to-do into a project or area, it gets that place’s tags. Moving it elsewhere swaps them.</small></span>${sw('inheritTags')}</div>
+      <div class="set-row"><span class="lbl">Tags shown in lists<small>Own Only hides the tags a to-do already gets from its project or area, so lists stay clean. Open a to-do to see all of its tags.</small></span>${seg('rowTags', [['own', 'Own Only'], ['all', 'All'], ['none', 'None']])}</div>
       <div class="set-row"><span class="lbl">Tag to-dos already in projects and areas<small>Adds each project’s and area’s tags to the to-dos inside it now. You can undo it.</small></span><button class="btn" data-s="retag-all">Tag Them Now</button></div>
       <div class="set-row"><span class="lbl">Week starts on</span>${seg('weekStart', [[0, 'Sunday'], [1, 'Monday']])}</div>
       <div class="set-row"><span class="lbl">Quick Entry reads dates and tags<small>“Pay rent friday #Home !oct 31” sets When, tag and deadline.</small></span>${sw('parseEntry')}</div></div>
