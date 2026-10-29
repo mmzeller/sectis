@@ -312,9 +312,40 @@ function openShortcuts() {
 
 /* ---- Backup: export / import ---- */
 /*WEB-ONLY*/
-function downloadText(name, text) {
-  try { const url = URL.createObjectURL(new Blob([text], { type: 'application/json' })); const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000); return true; } catch (e) { return false; }
+/* Saving a file. In the installed app (Dock or Home Screen) Safari can turn a download
+   into a page load that replaces Sectis with an error page, so there the download runs
+   inside a hidden frame (a failure stays in the frame), and on iPhone it goes through
+   the share sheet, which has Save to Files. Returns 'saved', 'shared' or 'failed'. */
+const isStandalone = () => { try { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; } catch (e) { return false; } };
+const isIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+async function saveFile(name, text, type) {
+  const file = typeof File === 'function' ? new File([text], name, { type }) : null;
+  if (isStandalone() && isIOS() && file && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); return 'shared'; } catch (e) { return e && e.name === 'AbortError' ? 'cancelled' : 'failed'; }
+  }
+  try {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    if (isStandalone()) {
+      const f = document.createElement('iframe');
+      f.hidden = true; f.setAttribute('aria-hidden', 'true');
+      document.body.append(f);
+      const d = f.contentDocument;
+      const a = d.createElement('a'); a.href = url; a.download = name; d.body.append(a); a.click();
+      setTimeout(() => { f.remove(); URL.revokeObjectURL(url); }, 60000);
+    } else {
+      const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    }
+    return 'saved';
+  } catch (e) { return 'failed'; }
 }
+function savedNote(r, name) {
+  if (r === 'saved') return `Saved ${name} to your Downloads.${isStandalone() ? ' If it isn’t there, use Copy or Share instead.' : ''}`;
+  if (r === 'shared') return 'Done.';
+  if (r === 'cancelled') return '';
+  return 'Couldn’t save a file here. Use Copy or Share instead.';
+}
+function downloadText(name, text) { return saveFile(name, text, 'application/json'); }
 /*END-WEB-ONLY*/
 function openExport() {
   const json = JSON.stringify(Object.assign({ app: 'Sectis', version: APP_VERSION, exportedAt: new Date().toISOString() }, S));
@@ -325,7 +356,7 @@ function openExport() {
     onMount: (el) => el.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-ex]'); if (!b) return;
       const note = $('#ex-note', el);
-      if (b.dataset.ex === 'file') { downloadText(name, json); note.textContent = 'Saved to your Downloads folder.'; }
+      if (b.dataset.ex === 'file') { note.textContent = savedNote(await saveFile(name, json, 'application/json'), name); }
       else { try { await navigator.clipboard.writeText(json); note.textContent = 'Copied. Paste it into a text file to keep it.'; } catch (err) { const ta = $('#ex-ta', el); ta.focus(); ta.select(); note.textContent = 'Press ' + MODK + 'C to copy the selected text.'; } }
     }) });
 }

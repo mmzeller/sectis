@@ -17,7 +17,7 @@ js_parts = [p.read_text() for p in sorted((SRC / 'js').glob('*.js'))]
 def bundle(web: bool) -> str:
     body = '\n'.join(js_parts)
     if not web:
-        body = re.sub(r'/\*WEB-ONLY\*/.*?/\*END-WEB-ONLY\*/', 'function downloadText() { return false; }', body, flags=re.S)
+        body = re.sub(r'/\*WEB-ONLY\*/.*?/\*END-WEB-ONLY\*/', "function downloadText() { return false; } async function saveFile() { return 'failed'; } function savedNote() { return 'Use Copy instead.'; } const isStandalone = () => false;", body, flags=re.S)
     return f"(function () {{\n'use strict';\nconst SECTIS_WEB = {'true' if web else 'false'};\n{body}\n}})();\n"
 
 def write(path: pathlib.Path, text: str):

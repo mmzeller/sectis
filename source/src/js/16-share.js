@@ -273,7 +273,8 @@ function openShare(scope) {
         if (b.dataset.sh === 'copy') { copyText(text, ta, note); return; }
         if (b.dataset.sh === 'print') { closeLayer(L); printDoc(doc, o); return; }
         if (b.dataset.sh === 'save') {
-          try { const url = URL.createObjectURL(new Blob([text], { type })); const a = document.createElement('a'); a.href = url; a.download = shareFileName(doc, ext); document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000); note.textContent = `Saved ${shareFileName(doc, ext)} to your Downloads.`; } catch (err) { note.textContent = 'Couldn’t save a file here. Use Copy instead.'; }
+          const name = shareFileName(doc, ext);
+          note.textContent = savedNote(await saveFile(name, text, type), name);
           return;
         }
         if (b.dataset.sh === 'share') {
