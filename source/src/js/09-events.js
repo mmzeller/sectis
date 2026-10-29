@@ -104,6 +104,9 @@ function handleAction(act, el, e) {
       setExpanded(e.altKey ? [...document.querySelectorAll('#content .r-ck-btn')].map((b) => b.dataset.id) : [id], on);
       return;
     }
+    case 'board-add': openBoardPicker(el); return;
+    case 'bcol-add': newTodo({ sec: el.dataset.sec }); return;
+    case 'bcol-menu': boardColMenu(el.dataset.col, el); return;
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
     case 'collapse-all': setExpanded(areaProjectIds(id), false); return;
     case 'reveal': revealTodo(id); return;
@@ -188,12 +191,14 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Deadline…', icon: 'flag', fn: () => openWhen([p.id], el, 'deadline') });
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
-    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => newHeading(p.id) });
+    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
+    items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
     items.push({ label: 'Share Project…', icon: 'share', fn: () => openShare({ type: 'items', ids: [p.id] }) });
     items.push(src ? { label: 'Edit Repeating Project', icon: 'repeat', fn: () => navigate('project:' + src.id) } : { label: 'Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
   } else {
+    if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
     if (!p.logged && !p.trashed) items.push({ label: 'Move to Logbook', icon: 'logbook', fn: () => logItems([p.id]) });
     items.push({ label: 'Reopen Project', icon: 'reopen', fn: () => reopenProject(p) });
   }
@@ -206,12 +211,14 @@ function areaMenu(a, el, extra = []) {
     ...extra,
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
+    ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
+    ...boardMenuItems('a', a.id, isColMenu(extra)),
     { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
     { label: ui.sbCollapsed.size ? 'Show All Projects in Sidebar' : 'Hide All Projects in Sidebar', icon: 'layers', fn: () => setSidebarAreas(!ui.sbCollapsed.size) },
     { label: 'Collapse All Projects', icon: 'chevR', fn: () => setExpanded(areaProjectIds(a.id), false) },
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
-    { label: 'Rename', icon: 'edit', fn: () => { const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
+    { label: 'Rename', icon: 'edit', fn: () => { if (!(ui.view.type === 'area' && ui.view.id === a.id)) navigate('area:' + a.id); const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
     { sep: 1 }, { label: 'Delete Area…', icon: 'trash', danger: true, fn: () => deleteArea(a) },
   ]);
 }
@@ -250,6 +257,13 @@ function batchMenuItems(anchor) {
   ];
 }
 document.addEventListener('contextmenu', (e) => {
+  if (!isCoarse() && !layers.length && !(D.st && D.st.active)) {
+    // sidebar projects and areas, and board column headers, get their menus too
+    const sbi = e.target.closest('#sidebar .sb-item[data-kind="project"], #sidebar .sb-item[data-kind="area"]');
+    if (sbi) { e.preventDefault(); const at = { x: e.clientX, y: e.clientY }; if (sbi.dataset.kind === 'project') projectMenu(getP(sbi.dataset.id), at); else areaMenu(getA(sbi.dataset.id), at); return; }
+    const bh = e.target.closest('#content .bcol-h[data-col]');
+    if (bh) { e.preventDefault(); boardColMenu(bh.dataset.col, { x: e.clientX, y: e.clientY }); return; }
+  }
   const row = e.target.closest('#content .row[data-id]');
   if (!row || isCoarse() || layers.length || (D.st && D.st.active) || e.target.closest('input, textarea, .card')) return;
   e.preventDefault();
@@ -264,6 +278,14 @@ function viewMenu(el) {
   const items = [...batch];
   if (v === 'project') { projectMenu(getP(ui.view.id), el, batch); return; }
   if (v === 'area') { areaMenu(getA(ui.view.id), el, batch); return; }
+  if (v === 'board') {
+    const n = boardCols().length;
+    openMenu(el, [...batch,
+      { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
+      { label: 'Remove All Columns', icon: 'x', disabled: !n, fn: () => { const prev = ui.board.slice(); ui.board = []; saveBoard(); render(); toast('Board cleared', { action: 'Undo', fn: () => { ui.board = prev; saveBoard(); render(); } }); } },
+    ]);
+    return;
+  }
   if (isMobile() && !['logbook', 'trash', 'tag'].includes(v)) items.push(selectModeItem());
   if (v === 'today') items.push({ label: S.settings.groupToday ? 'Don’t Group by Project' : 'Group by Project & Area', icon: 'layers', fn: () => { S.settings.groupToday = !S.settings.groupToday; saveSoon(); render(); } });
   const unlogged = S.todos.concat(S.projects).some((x) => x.status !== 'open' && !x.logged);
@@ -381,7 +403,7 @@ document.addEventListener('keydown', (e) => {
   if (mod && e.code === 'KeyS') { e.preventDefault(); if (one.length) openWhen(one, anchorFor(one[0])); return; }
   if (mod && e.code === 'KeyD') { e.preventDefault(); if (todosSel.length) duplicateItems(todosSel); return; }
   if ((mod || e.altKey) && (k === 'ArrowUp' || k === 'ArrowDown')) { e.preventDefault(); nudge(todosSel, k === 'ArrowUp' ? -1 : 1); return; }
-  if (e.altKey && !mod && /^Digit[1-7]$/.test(e.code)) { e.preventDefault(); navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash'][+e.code.slice(5) - 1]); return; }
+  if (e.altKey && !mod && /^Digit[1-8]$/.test(e.code)) { e.preventDefault(); navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+e.code.slice(5) - 1]); return; }
   if (e.altKey && !mod && e.code === 'KeyK') { e.preventDefault(); if (one.length) completeOrToggle(one, true); return; }
   if (mod || e.altKey) return;
   switch (key) {
@@ -399,7 +421,7 @@ document.addEventListener('keydown', (e) => {
     case 'Backspace': case 'Delete': if (one.length) { e.preventDefault(); trashItems(one); } return;
   }
   if (!one.length) {
-    if (/^[1-7]$/.test(key) && !e.shiftKey) { navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash'][+key - 1]); }
+    if (/^[1-8]$/.test(key) && !e.shiftKey) { navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+key - 1]); }
     return;
   }
   switch (key) {
@@ -413,7 +435,7 @@ document.addEventListener('keydown', (e) => {
     case '#': e.preventDefault(); openTagPicker(one, anchorFor(one[0])); return;
     case 'm': e.preventDefault(); openMove(todosSel.length ? todosSel : one, anchorFor(one[0])); return;
     case 'r': e.preventDefault(); if (todosSel.length === 1) { const t = getT(todosSel[0]); if (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed) openTplModal(t.templateId); else openRepeat(t.id, anchorFor(t.id)); } return;
-    default: if (/^[1-7]$/.test(key) && !e.shiftKey) navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash'][+key - 1]);
+    default: if (/^[1-8]$/.test(key) && !e.shiftKey) navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+key - 1]);
   }
 });
 function completeOrToggle(ids, cancel) { toggleComplete(ids, cancel ? 'canceled' : 'done'); }

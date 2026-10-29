@@ -162,6 +162,7 @@ function dragTrack(fromLoop) {
     if (!refEl) { if (sec && sectionAccepts(sec.dataset.sec, k)) { zone.classList.add('drop-hover'); st.target = { type: 'sec', sec: sec.dataset.sec, secEl: sec, index: 0 }; } return; }
   } else {
     sec = el.closest('[data-sec]');
+    if (!sec) { const cz = el.closest('[data-colzone]'); if (cz && cz.dataset.colzone) sec = $(`#content [data-sec="${CSS.escape(cz.dataset.colzone)}"]`); } // anywhere in a board column
     if (sec) { const rows = $$(':scope > .row[data-id]', sec).filter((r) => !st.ids.includes(r.dataset.id)); index = rows.length; refEl = rows[rows.length - 1]; after = true; }
   }
   if (!sec || !sectionAccepts(sec.dataset.sec, k)) return;

@@ -47,6 +47,7 @@
   --c-logbook: #36a46b;
   --c-trash: #8a909c;
   --c-area: #5b8f78;
+  --c-board: #8b6fd6;
   --shadow-card: 0 1px 2px rgba(20, 28, 48, .06), 0 10px 30px rgba(20, 28, 48, .13);
   --shadow-pop: 0 2px 6px rgba(20, 28, 48, .08), 0 18px 48px rgba(20, 28, 48, .2);
   --scrim: rgba(18, 22, 32, .32);
@@ -62,7 +63,7 @@
     --bg: #17191e; --side: #1e2027; --card: #22252d; --pop: #262a33; --fg: #e7e9ef; --muted: #9aa1b1; --faint: #626a7a;
     --line: #2c3039; --line-strong: #3a3f4a; --hover: #282c35; --accent: #6d8cff; --accent-ink: #0f1424; --accent-tint: #26304d;
     --sel: #263252; --cb: #5c6372; --red: #ff6a5f; --c-inbox: #5aa2ee; --c-today: #f6c443; --c-evening: #8d99f0;
-    --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a;
+    --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .45); --shadow-pop: 0 2px 8px rgba(0, 0, 0, .35), 0 20px 50px rgba(0, 0, 0, .55);
     --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
   }
@@ -71,7 +72,7 @@
   --bg: #17191e; --side: #1e2027; --card: #22252d; --pop: #262a33; --fg: #e7e9ef; --muted: #9aa1b1; --faint: #626a7a;
   --line: #2c3039; --line-strong: #3a3f4a; --hover: #282c35; --accent: #6d8cff; --accent-ink: #0f1424; --accent-tint: #26304d;
   --sel: #263252; --cb: #5c6372; --red: #ff6a5f; --c-inbox: #5aa2ee; --c-today: #f6c443; --c-evening: #8d99f0;
-  --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a;
+  --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .45); --shadow-pop: 0 2px 8px rgba(0, 0, 0, .35), 0 20px 50px rgba(0, 0, 0, .55);
   --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
 }
@@ -693,6 +694,41 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
   .row.ck-open { align-items: flex-start; }
 }
 
+/* ---- Board: projects and areas side by side ---- */
+.content.board-view { max-width: none; padding-left: 28px; padding-right: max(28px, env(safe-area-inset-right, 0px)); }
+.board-view .lh { padding-left: 4px; padding-right: 4px; }
+.board-view .lh .lh-title { flex: 1; }
+.board-add { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px 6px 9px; }
+.board-add .ic { width: 15px; height: 15px; }
+.board { display: flex; align-items: flex-start; gap: 14px; overflow-x: auto; padding: 16px 2px 28px; scroll-snap-type: x proximity; }
+.bcol { flex: 1 0 300px; min-width: 300px; background: var(--side); border: 1px solid var(--line); border-radius: 12px; padding: 8px 6px 10px; scroll-snap-align: start; scroll-margin-left: 2px; }
+.bcol.closed { opacity: .75; }
+.bcol-h { display: flex; align-items: center; gap: 8px; padding: 4px 4px 9px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+.bcol-h > .ib { width: 28px; height: 28px; flex: none; }
+.bcol-ic { flex: none; width: 18px; height: 18px; }
+.bcol-t { flex: 1; min-width: 0; }
+.bcol-title { display: block; max-width: 100%; text-align: left; font-weight: 650; font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
+.bcol-title:hover { text-decoration: underline; text-underline-offset: 3px; }
+.bcol-sub { font-size: 11.5px; color: var(--muted); line-height: 15px; }
+.bcol-count { flex: none; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; padding: 0 2px; }
+.bcol-body { min-height: 40px; }
+.bcol .sec { min-height: 6px; }
+.bcol .sub-h { margin: 12px 8px 2px; }
+.bcol .row { padding-left: 8px; padding-right: 8px; }
+.bcol .bcol-projs { margin-top: 6px; }
+.bcol .pchildren { margin-left: 26px; }
+.bcol-empty { padding: 10px; color: var(--faint); font-size: 13px; }
+.bcol .card { margin-left: 0; margin-right: 0; }
+.board-pop .pick-i.in-area { padding-left: 30px; }
+.board-pop .pk-foot { padding: 8px 12px 4px; font-size: 11.5px; border-top: 1px solid var(--line); margin-top: 4px; }
+@media (max-width: 760px) {
+  .sb-board-g { display: none; }
+  .content.board-view { padding-left: 0; padding-right: 0; }
+  .board-view .lh { padding-left: 16px; padding-right: 16px; }
+  .board { padding: 10px 16px 24px; scroll-snap-type: x mandatory; scroll-padding-left: 16px; }
+  .bcol { flex: 0 0 86%; min-width: 0; }
+}
+
 </style>
 </head>
 <body>
@@ -710,7 +746,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.12.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -865,6 +901,7 @@ const I = {
   search: svg('<circle cx="10.6" cy="10.6" r="6.4"/><path d="m15.4 15.4 5 5"/>'),
   plus: svg('<path d="M12 5v14M5 12h14"/>'),
   more: svg('<circle class="fill" cx="5.5" cy="12" r="1.7"/><circle class="fill" cx="12" cy="12" r="1.7"/><circle class="fill" cx="18.5" cy="12" r="1.7"/>'),
+  columns: svg('<rect x="3.5" y="4" width="7" height="16" rx="2"/><rect x="13.5" y="4" width="7" height="10.5" rx="2"/>'),
   chevL: svg('<path d="m14.5 5.5-6.5 6.5 6.5 6.5"/>'),
   chevR: svg('<path d="m9.5 5.5 6.5 6.5-6.5 6.5"/>'),
   chevD: svg('<path d="m5.5 9.5 6.5 6.5 6.5-6.5"/>'),
@@ -1691,6 +1728,7 @@ const LISTS = {
   someday: { title: 'Someday', icon: 'box', color: 'var(--c-someday)' },
   logbook: { title: 'Logbook', icon: 'logbook', color: 'var(--c-logbook)' },
   trash: { title: 'Trash', icon: 'trash', color: 'var(--c-trash)' },
+  board: { title: 'Board', icon: 'columns', color: 'var(--c-board)' },
 };
 const byOrder = (a, b) => a.order - b.order || a.createdAt - b.createdAt;
 const byToday = (a, b) => ((a.type === 'project' ? 0 : 1) - (b.type === 'project' ? 0 : 1)) || a.todayOrder - b.todayOrder || a.createdAt - b.createdAt;
@@ -1771,6 +1809,7 @@ function renderSidebar() {
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
   html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${item('anytime')}${item('someday')}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
+  html += `<div class="sb-group sb-board-g"><button class="sb-item${on('board')}" data-nav="board" title="Projects and areas side by side (8)"><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">Board</span></button></div>`;
   const loose = sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   S.areas.slice().sort(byOrder).forEach((a) => {
@@ -1957,8 +1996,10 @@ function renderMain() {
     case 'project': html = viewProject(getP(ui.view.id)); break;
     case 'area': html = viewArea(getA(ui.view.id)); break;
     case 'tag': html = viewTag(getTag(ui.view.id)); break;
+    case 'board': html = viewBoard(); break;
     default: html = viewToday();
   }
+  $('#content').classList.toggle('board-view', ui.view.type === 'board');
   $('#content').innerHTML = mobileBarHTML() + html;
 }
 function viewInbox() {
@@ -2209,6 +2250,7 @@ function visibleInCurrentView(x) {
     case 'logbook': return x.status !== 'open' && x.logged;
     case 'trash': return !!x.trashed;
     case 'tag': return effectiveTags(x).has(v.id);
+    case 'board': return boardCols().some((c) => (c.t === 'p' ? x.projectId === c.id || x.id === c.id : (areaOf(x) || {}).id === c.id));
     default: return true;
   }
 }
@@ -2278,6 +2320,15 @@ function nextRowEl(row) { let n = row.nextElementSibling; while (n && !n.matches
 function newTodo(opts = {}) {
   if (['logbook', 'trash'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
   if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) { toast('Reopen the project to add to-dos'); return; } }
+  if (ui.view.type === 'board' && !opts.sec && !opts.place) {
+    // a selected to-do decides the spot below; otherwise its column (or the first column) does
+    const row = ui.anchor && ui.sel.has(ui.anchor) && document.querySelector(`#content .row[data-id="${CSS.escape(ui.anchor)}"]`);
+    if (!(row && row.dataset.kind === 'todo' && row.closest('[data-sec]'))) {
+      const sec = boardNewSec();
+      if (!sec) { openQuickEntry(); return; }
+      opts = Object.assign({}, opts, { sec });
+    }
+  }
   closeEditor({ noRender: true });
   let props = defaultsForView(opts.extra || {});
   const place = Object.assign({}, opts.place || {});
@@ -2299,6 +2350,7 @@ function newTodo(opts = {}) {
       }
     }
   }
+  if (props._fromInbox && props.start === 'inbox') props.start = props._fromInbox; // filed in a project or area, so not the Inbox
   for (const k of Object.keys(props)) if (k.startsWith('_') || props[k] === undefined) delete props[k];
   let t;
   commit('New To-Do', () => { t = createTodoIn(props, place); }, { render: false });
@@ -2853,6 +2905,7 @@ function dragTrack(fromLoop) {
     if (!refEl) { if (sec && sectionAccepts(sec.dataset.sec, k)) { zone.classList.add('drop-hover'); st.target = { type: 'sec', sec: sec.dataset.sec, secEl: sec, index: 0 }; } return; }
   } else {
     sec = el.closest('[data-sec]');
+    if (!sec) { const cz = el.closest('[data-colzone]'); if (cz && cz.dataset.colzone) sec = $(`#content [data-sec="${CSS.escape(cz.dataset.colzone)}"]`); } // anywhere in a board column
     if (sec) { const rows = $$(':scope > .row[data-id]', sec).filter((r) => !st.ids.includes(r.dataset.id)); index = rows.length; refEl = rows[rows.length - 1]; after = true; }
   }
   if (!sec || !sectionAccepts(sec.dataset.sec, k)) return;
@@ -3048,6 +3101,9 @@ function handleAction(act, el, e) {
       setExpanded(e.altKey ? [...document.querySelectorAll('#content .r-ck-btn')].map((b) => b.dataset.id) : [id], on);
       return;
     }
+    case 'board-add': openBoardPicker(el); return;
+    case 'bcol-add': newTodo({ sec: el.dataset.sec }); return;
+    case 'bcol-menu': boardColMenu(el.dataset.col, el); return;
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
     case 'collapse-all': setExpanded(areaProjectIds(id), false); return;
     case 'reveal': revealTodo(id); return;
@@ -3132,12 +3188,14 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Deadline…', icon: 'flag', fn: () => openWhen([p.id], el, 'deadline') });
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
-    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => newHeading(p.id) });
+    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
+    items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
     items.push({ label: 'Share Project…', icon: 'share', fn: () => openShare({ type: 'items', ids: [p.id] }) });
     items.push(src ? { label: 'Edit Repeating Project', icon: 'repeat', fn: () => navigate('project:' + src.id) } : { label: 'Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
   } else {
+    if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
     if (!p.logged && !p.trashed) items.push({ label: 'Move to Logbook', icon: 'logbook', fn: () => logItems([p.id]) });
     items.push({ label: 'Reopen Project', icon: 'reopen', fn: () => reopenProject(p) });
   }
@@ -3150,12 +3208,14 @@ function areaMenu(a, el, extra = []) {
     ...extra,
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
+    ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
+    ...boardMenuItems('a', a.id, isColMenu(extra)),
     { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
     { label: ui.sbCollapsed.size ? 'Show All Projects in Sidebar' : 'Hide All Projects in Sidebar', icon: 'layers', fn: () => setSidebarAreas(!ui.sbCollapsed.size) },
     { label: 'Collapse All Projects', icon: 'chevR', fn: () => setExpanded(areaProjectIds(a.id), false) },
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
-    { label: 'Rename', icon: 'edit', fn: () => { const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
+    { label: 'Rename', icon: 'edit', fn: () => { if (!(ui.view.type === 'area' && ui.view.id === a.id)) navigate('area:' + a.id); const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
     { sep: 1 }, { label: 'Delete Area…', icon: 'trash', danger: true, fn: () => deleteArea(a) },
   ]);
 }
@@ -3194,6 +3254,13 @@ function batchMenuItems(anchor) {
   ];
 }
 document.addEventListener('contextmenu', (e) => {
+  if (!isCoarse() && !layers.length && !(D.st && D.st.active)) {
+    // sidebar projects and areas, and board column headers, get their menus too
+    const sbi = e.target.closest('#sidebar .sb-item[data-kind="project"], #sidebar .sb-item[data-kind="area"]');
+    if (sbi) { e.preventDefault(); const at = { x: e.clientX, y: e.clientY }; if (sbi.dataset.kind === 'project') projectMenu(getP(sbi.dataset.id), at); else areaMenu(getA(sbi.dataset.id), at); return; }
+    const bh = e.target.closest('#content .bcol-h[data-col]');
+    if (bh) { e.preventDefault(); boardColMenu(bh.dataset.col, { x: e.clientX, y: e.clientY }); return; }
+  }
   const row = e.target.closest('#content .row[data-id]');
   if (!row || isCoarse() || layers.length || (D.st && D.st.active) || e.target.closest('input, textarea, .card')) return;
   e.preventDefault();
@@ -3208,6 +3275,14 @@ function viewMenu(el) {
   const items = [...batch];
   if (v === 'project') { projectMenu(getP(ui.view.id), el, batch); return; }
   if (v === 'area') { areaMenu(getA(ui.view.id), el, batch); return; }
+  if (v === 'board') {
+    const n = boardCols().length;
+    openMenu(el, [...batch,
+      { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
+      { label: 'Remove All Columns', icon: 'x', disabled: !n, fn: () => { const prev = ui.board.slice(); ui.board = []; saveBoard(); render(); toast('Board cleared', { action: 'Undo', fn: () => { ui.board = prev; saveBoard(); render(); } }); } },
+    ]);
+    return;
+  }
   if (isMobile() && !['logbook', 'trash', 'tag'].includes(v)) items.push(selectModeItem());
   if (v === 'today') items.push({ label: S.settings.groupToday ? 'Don’t Group by Project' : 'Group by Project & Area', icon: 'layers', fn: () => { S.settings.groupToday = !S.settings.groupToday; saveSoon(); render(); } });
   const unlogged = S.todos.concat(S.projects).some((x) => x.status !== 'open' && !x.logged);
@@ -3325,7 +3400,7 @@ document.addEventListener('keydown', (e) => {
   if (mod && e.code === 'KeyS') { e.preventDefault(); if (one.length) openWhen(one, anchorFor(one[0])); return; }
   if (mod && e.code === 'KeyD') { e.preventDefault(); if (todosSel.length) duplicateItems(todosSel); return; }
   if ((mod || e.altKey) && (k === 'ArrowUp' || k === 'ArrowDown')) { e.preventDefault(); nudge(todosSel, k === 'ArrowUp' ? -1 : 1); return; }
-  if (e.altKey && !mod && /^Digit[1-7]$/.test(e.code)) { e.preventDefault(); navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash'][+e.code.slice(5) - 1]); return; }
+  if (e.altKey && !mod && /^Digit[1-8]$/.test(e.code)) { e.preventDefault(); navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+e.code.slice(5) - 1]); return; }
   if (e.altKey && !mod && e.code === 'KeyK') { e.preventDefault(); if (one.length) completeOrToggle(one, true); return; }
   if (mod || e.altKey) return;
   switch (key) {
@@ -3343,7 +3418,7 @@ document.addEventListener('keydown', (e) => {
     case 'Backspace': case 'Delete': if (one.length) { e.preventDefault(); trashItems(one); } return;
   }
   if (!one.length) {
-    if (/^[1-7]$/.test(key) && !e.shiftKey) { navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash'][+key - 1]); }
+    if (/^[1-8]$/.test(key) && !e.shiftKey) { navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+key - 1]); }
     return;
   }
   switch (key) {
@@ -3357,7 +3432,7 @@ document.addEventListener('keydown', (e) => {
     case '#': e.preventDefault(); openTagPicker(one, anchorFor(one[0])); return;
     case 'm': e.preventDefault(); openMove(todosSel.length ? todosSel : one, anchorFor(one[0])); return;
     case 'r': e.preventDefault(); if (todosSel.length === 1) { const t = getT(todosSel[0]); if (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed) openTplModal(t.templateId); else openRepeat(t.id, anchorFor(t.id)); } return;
-    default: if (/^[1-7]$/.test(key) && !e.shiftKey) navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash'][+key - 1]);
+    default: if (/^[1-8]$/.test(key) && !e.shiftKey) navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+key - 1]);
   }
 });
 function completeOrToggle(ids, cancel) { toggleComplete(ids, cancel ? 'canceled' : 'done'); }
@@ -3702,7 +3777,7 @@ function openShortcuts() {
   const rows = [
     ['Create', [['New to-do', k('N') + ' or ' + k('Space')], ['New heading (in a project)', k('⇧', 'N')], ['Quick Entry', k('Q')], ['Quick Find', k('/') + ' or ' + k(MODK + 'F')]]],
     ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
-    ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash', k('1') + '–' + k('7')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
+    ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing', [['Save and close', k('Return') + ' or ' + k(MODK + '↩')], ['Complete', k(MODK + 'K')], ['When…', k(MODK + 'S')], ['Deadline…', k(MODK + '⇧', 'D')], ['Add checklist', k(MODK + '⇧', 'C')], ['Move checklist item', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Paste several lines', 'one to-do per line']]],
   ];
   openLayer({ modal: true, html: `<div class="modal-h"><h2>Keyboard Shortcuts</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b"><div class="sc-grid">${rows.map(([h, list]) => `<h4>${h}</h4>${list.map(([l, keys]) => `<div class="sc"><span>${l}</span><span>${keys}</span></div>`).join('')}`).join('')}</div></div>` });
@@ -4377,6 +4452,7 @@ function restoreView() {
 function init() {
   loadState();
   loadExpanded();
+  loadBoard();
   syncLoadState();
   restoreView();
   ui.mobile = isMobile() && !LISTS[(location.hash || '').slice(1)] ? 'home' : 'list';
@@ -5104,6 +5180,150 @@ function projectChildrenHTML(p) {
   });
   if (!todos.length) html += `<div class="pchildren-empty">No to-dos yet</div>`;
   return html + '</div>';
+}
+
+/* ===================== Board =====================
+   Projects and areas side by side, one per column, like a kanban board.
+   The columns are remembered per device (a Mac layout, not synced). */
+function loadBoard() {
+  try { ui.board = JSON.parse(lsGet('sectis.board') || '[]').filter((c) => c && c.id && (c.t === 'p' || c.t === 'a')); } catch (e) { ui.board = []; }
+}
+function saveBoard() { lsSet('sectis.board', JSON.stringify(ui.board)); }
+function colShown(c) {
+  if (c.t === 'a') return !!getA(c.id);
+  const p = getP(c.id);
+  return !!p && !p.trashed && !p.isTemplate && !(p.status !== 'open' && p.logged);
+}
+function boardCols() { return (ui.board || []).filter(colShown); }
+function onBoard(t, id) { return (ui.board || []).some((c) => c.t === t && c.id === id); }
+function colName(t, id) { return t === 'p' ? pTitle(getP(id)) : aTitle(getA(id)); }
+
+function boardAdd(cols, opts = {}) {
+  if (opts.replace) ui.board = [];
+  cols.forEach((c) => { if (!onBoard(c.t, c.id)) ui.board.push({ t: c.t, id: c.id }); });
+  saveBoard();
+  if (opts.go) navigate('board');
+  else { render(); if (opts.toast) toast(opts.toast, { action: 'Show Board', fn: () => navigate('board') }); }
+}
+function boardRemove(t, id) { ui.board = ui.board.filter((c) => !(c.t === t && c.id === id)); saveBoard(); render(); }
+function boardToggle(t, id) { if (onBoard(t, id)) boardRemove(t, id); else boardAdd([{ t, id }]); }
+function boardMove(t, id, dir) {
+  const vis = boardCols(), hidden = ui.board.filter((c) => !colShown(c));
+  const i = vis.findIndex((c) => c.t === t && c.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= vis.length) return;
+  [vis[i], vis[j]] = [vis[j], vis[i]];
+  ui.board = vis.concat(hidden); saveBoard(); render();
+}
+/* an area's projects as columns, plus the area itself first when it has to-dos of its own */
+function areaAsBoard(a) {
+  const projs = S.projects.filter((p) => p.areaId === a.id && !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday').sort(byOrder);
+  const loose = S.todos.some((t) => t.areaId === a.id && !t.projectId && t.status === 'open' && liveTodo(t));
+  const cols = (loose || !projs.length ? [{ t: 'a', id: a.id }] : []).concat(projs.map((p) => ({ t: 'p', id: p.id })));
+  boardAdd(cols, { replace: true, go: true });
+}
+const isColMenu = (extra) => extra.some((x) => x.header === 'Column'); // a column's own menu has its own board items
+function boardMenuItems(t, id, fromColumn) {
+  if (isMobile() || fromColumn) return [];
+  const on = onBoard(t, id);
+  return [on
+    ? { label: 'Remove from Board', icon: 'columns', fn: () => { boardRemove(t, id); toast(`Removed “${colName(t, id)}” from the Board`); } }
+    : { label: 'Add to Board', icon: 'columns', fn: () => boardAdd([{ t, id }], { toast: `Added “${colName(t, id)}” to the Board` }) }];
+}
+
+/* ---- view ---- */
+function viewBoard() {
+  const cols = boardCols();
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><h1 class="lh-title">Board</h1><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
+  if (!cols.length) {
+    return html + emptyHTML('columns', 'See your lists side by side',
+      'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');
+  }
+  return html + `<div class="board" data-cols="${cols.length}">${cols.map(boardColHTML).join('')}</div>`;
+}
+function boardColHTML(c) {
+  const more = `<button class="ib" data-action="bcol-menu" data-col="${c.t}:${c.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`;
+  if (c.t === 'p') {
+    const p = getP(c.id), pr = projectProgress(p), open = p.status === 'open';
+    const area = p.areaId && getA(p.areaId);
+    const sec = `project:${p.id}:`;
+    return `<section class="bcol${open ? '' : ' closed'}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}">
+      <div class="bcol-h" data-col="p:${p.id}">${pieIc(pr.frac, 'bcol-ic')}<div class="bcol-t"><button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button><div class="bcol-sub">${open ? (area ? esc(aTitle(area)) : 'Project') : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
+      <div class="bcol-body">${boardProjectBody(p)}</div></section>`;
+  }
+  const a = getA(c.id);
+  const todos = S.todos.filter((t) => t.areaId === a.id && !t.projectId && liveTodo(t)).sort(byOrder);
+  const projs = S.projects.filter((p) => p.areaId === a.id && liveProject(p) && !onBoard('p', p.id) && (p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0())))).sort(byOrder);
+  const n = todos.filter((t) => t.status === 'open').length + projs.reduce((s, p) => s + projectProgress(p).open, 0);
+  const sec = `area:${a.id}`;
+  let body = secHTML(sec, todos, { when: true });
+  if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${projs.map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
+  if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
+  return `<section class="bcol" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}">
+    <div class="bcol-h" data-col="a:${a.id}"><span class="ic bcol-ic" style="color:var(--c-area)">${I.area}</span><div class="bcol-t"><button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button><div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
+    <div class="bcol-body">${body}</div></section>`;
+}
+function boardProjectBody(p) {
+  const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged));
+  const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
+  const ctx = { when: true };
+  let html = secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
+  headings.forEach((h) => {
+    html += `<div class="sub-h" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
+  });
+  if (!todos.length) html += `<div class="bcol-empty">No to-dos yet</div>`;
+  return html;
+}
+function boardColMenu(key, el) {
+  const [t, id] = key.split(':');
+  const cols = boardCols(), i = cols.findIndex((c) => c.t === t && c.id === id);
+  const extra = [
+    { header: 'Column' },
+    { label: 'Move Left', icon: 'chevL', disabled: i <= 0, fn: () => boardMove(t, id, -1) },
+    { label: 'Move Right', icon: 'chevR', disabled: i < 0 || i >= cols.length - 1, fn: () => boardMove(t, id, 1) },
+    { label: 'Remove from Board', icon: 'x', fn: () => boardRemove(t, id) },
+    { sep: 1 },
+  ];
+  if (t === 'p') projectMenu(getP(id), el, extra); else areaMenu(getA(id), el, extra);
+}
+/* column of the selected row, else the first one that takes new to-dos */
+function boardNewSec() {
+  const row = ui.anchor && ui.sel.has(ui.anchor) && document.querySelector(`#content .row[data-id="${CSS.escape(ui.anchor)}"]`);
+  const col = (row && row.closest('.bcol[data-newsec]:not([data-newsec=""])')) || document.querySelector('#content .bcol[data-newsec]:not([data-newsec=""])');
+  return col ? col.dataset.newsec : null;
+}
+
+/* ---- picking columns ---- */
+function openBoardPicker(anchor) {
+  const build = (q = '') => {
+    const ql = q.trim().toLowerCase(); const m = (s) => !ql || (s || '').toLowerCase().includes(ql);
+    const chk = (t, id) => (onBoard(t, id) ? `<span class="check">${ic('check')}</span>` : '');
+    const projs = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === areaId).sort(byOrder);
+    const prow = (p, inArea) => `<button class="pick-i p${inArea ? ' in-area' : ''}" data-col="p:${p.id}">${pieIc(projectProgress(p).frac)}<span>${esc(pTitle(p))}</span>${chk('p', p.id)}</button>`;
+    let out = '';
+    projs(null).forEach((p) => { if (m(pTitle(p))) out += prow(p, false); });
+    S.areas.slice().sort(byOrder).forEach((a) => {
+      const am = m(aTitle(a)), pr = projs(a.id).filter((p) => am || m(pTitle(p)));
+      if (am || pr.length) out += `<button class="pick-i a" data-col="a:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span>${chk('a', a.id)}</button>`;
+      pr.forEach((p) => { out += prow(p, true); });
+    });
+    return out || '<p class="note" style="padding:6px 10px">No matching projects or areas.</p>';
+  };
+  const L = openLayer({ anchor, cls: 'move-pop board-pop', html: `<div class="pk-h">Board Columns</div><input class="pk-in" id="bp-in" placeholder="Find a project or area" autocomplete="off" aria-label="Find a project or area"><div class="pick-list" id="bp-list">${build()}</div><div class="pk-foot note">Click to add or remove. Columns stay in this order; move them from each column’s ••• menu.</div>`,
+    onMount: (el) => {
+      const inp = $('#bp-in', el), list = $('#bp-list', el);
+      const nav = listKeys(el, '.pick-i', inp);
+      inp.addEventListener('input', () => { list.innerHTML = build(inp.value); nav.first(); });
+      el.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-col]'); if (!b) return;
+        const [t, id] = b.dataset.col.split(':');
+        if (ui.view.type !== 'board') { closeLayer(L); boardAdd([{ t, id }], { go: true }); return; }
+        boardToggle(t, id);
+        list.innerHTML = build(inp.value);
+        if (!isCoarse()) inp.focus({ preventScroll: true });
+      });
+      if (!isCoarse()) inp.focus({ preventScroll: true });
+    } });
+  return L;
 }
 
 /* ===================== Start ===================== */

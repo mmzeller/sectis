@@ -7,6 +7,7 @@ const LISTS = {
   someday: { title: 'Someday', icon: 'box', color: 'var(--c-someday)' },
   logbook: { title: 'Logbook', icon: 'logbook', color: 'var(--c-logbook)' },
   trash: { title: 'Trash', icon: 'trash', color: 'var(--c-trash)' },
+  board: { title: 'Board', icon: 'columns', color: 'var(--c-board)' },
 };
 const byOrder = (a, b) => a.order - b.order || a.createdAt - b.createdAt;
 const byToday = (a, b) => ((a.type === 'project' ? 0 : 1) - (b.type === 'project' ? 0 : 1)) || a.todayOrder - b.todayOrder || a.createdAt - b.createdAt;
@@ -87,6 +88,7 @@ function renderSidebar() {
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
   html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${item('anytime')}${item('someday')}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
+  html += `<div class="sb-group sb-board-g"><button class="sb-item${on('board')}" data-nav="board" title="Projects and areas side by side (8)"><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">Board</span></button></div>`;
   const loose = sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   S.areas.slice().sort(byOrder).forEach((a) => {
@@ -273,8 +275,10 @@ function renderMain() {
     case 'project': html = viewProject(getP(ui.view.id)); break;
     case 'area': html = viewArea(getA(ui.view.id)); break;
     case 'tag': html = viewTag(getTag(ui.view.id)); break;
+    case 'board': html = viewBoard(); break;
     default: html = viewToday();
   }
+  $('#content').classList.toggle('board-view', ui.view.type === 'board');
   $('#content').innerHTML = mobileBarHTML() + html;
 }
 function viewInbox() {
@@ -525,6 +529,7 @@ function visibleInCurrentView(x) {
     case 'logbook': return x.status !== 'open' && x.logged;
     case 'trash': return !!x.trashed;
     case 'tag': return effectiveTags(x).has(v.id);
+    case 'board': return boardCols().some((c) => (c.t === 'p' ? x.projectId === c.id || x.id === c.id : (areaOf(x) || {}).id === c.id));
     default: return true;
   }
 }

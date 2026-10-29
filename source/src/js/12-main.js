@@ -182,6 +182,7 @@ function restoreView() {
 function init() {
   loadState();
   loadExpanded();
+  loadBoard();
   syncLoadState();
   restoreView();
   ui.mobile = isMobile() && !LISTS[(location.hash || '').slice(1)] ? 'home' : 'list';

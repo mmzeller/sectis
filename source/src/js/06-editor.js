@@ -63,6 +63,15 @@ function nextRowEl(row) { let n = row.nextElementSibling; while (n && !n.matches
 function newTodo(opts = {}) {
   if (['logbook', 'trash'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
   if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) { toast('Reopen the project to add to-dos'); return; } }
+  if (ui.view.type === 'board' && !opts.sec && !opts.place) {
+    // a selected to-do decides the spot below; otherwise its column (or the first column) does
+    const row = ui.anchor && ui.sel.has(ui.anchor) && document.querySelector(`#content .row[data-id="${CSS.escape(ui.anchor)}"]`);
+    if (!(row && row.dataset.kind === 'todo' && row.closest('[data-sec]'))) {
+      const sec = boardNewSec();
+      if (!sec) { openQuickEntry(); return; }
+      opts = Object.assign({}, opts, { sec });
+    }
+  }
   closeEditor({ noRender: true });
   let props = defaultsForView(opts.extra || {});
   const place = Object.assign({}, opts.place || {});
@@ -84,6 +93,7 @@ function newTodo(opts = {}) {
       }
     }
   }
+  if (props._fromInbox && props.start === 'inbox') props.start = props._fromInbox; // filed in a project or area, so not the Inbox
   for (const k of Object.keys(props)) if (k.startsWith('_') || props[k] === undefined) delete props[k];
   let t;
   commit('New To-Do', () => { t = createTodoIn(props, place); }, { render: false });

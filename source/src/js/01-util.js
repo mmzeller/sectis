@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.11.0';
+const APP_VERSION = '1.12.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -154,6 +154,7 @@ const I = {
   search: svg('<circle cx="10.6" cy="10.6" r="6.4"/><path d="m15.4 15.4 5 5"/>'),
   plus: svg('<path d="M12 5v14M5 12h14"/>'),
   more: svg('<circle class="fill" cx="5.5" cy="12" r="1.7"/><circle class="fill" cx="12" cy="12" r="1.7"/><circle class="fill" cx="18.5" cy="12" r="1.7"/>'),
+  columns: svg('<rect x="3.5" y="4" width="7" height="16" rx="2"/><rect x="13.5" y="4" width="7" height="10.5" rx="2"/>'),
   chevL: svg('<path d="m14.5 5.5-6.5 6.5 6.5 6.5"/>'),
   chevR: svg('<path d="m9.5 5.5 6.5 6.5-6.5 6.5"/>'),
   chevD: svg('<path d="m5.5 9.5 6.5 6.5 6.5-6.5"/>'),

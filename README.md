@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.11.0
+Version 1.12.0
 
 ## What's in it
 
@@ -24,6 +24,7 @@ Version 1.11.0
 - **Multi-select** (⌘-click or ⇧-click on a Mac, ••• → Select To-Dos on iPhone). With several selected, use the bar at the bottom, the ••• menu or a right-click to tag, schedule, move, set a deadline, complete or delete them all at once
 - **Undo** for everything (`⌘Z`)
 - **Keyboard shortcuts** for nearly everything. Press `?` in the app to see them all
+- **Board** (Mac): put projects and areas side by side in columns, like a kanban board. Use **Add Column**, **Add to Board** in any project or area's ••• menu (or right-click it in the sidebar), or an area's **Open as Board** to lay out all its projects. Drag to-dos between columns, check them off, or add new ones with each column's +. Press `8` to open it
 - **Light and dark** themes that follow your system, or pick one in Settings
 - **Share and export**: send any list, area, project, selection or single to-do as text (Messages, Mail, Notes), Markdown, or a spreadsheet file, or print it / save as PDF. Use the share button at the top of any list, project or area, or **Share…** in the ••• menus, the selection bar and a to-do's own menu
 - **Backup**: export and import a JSON file. Paste a plain list to add it as to-dos
@@ -136,6 +137,6 @@ The installed app checks for a new version when you bring it to the front (and e
 | Today / This Evening / Anytime / Someday | `T` / `E` / `A` / `O` |
 | When / Deadline / Tags / Move / Repeat | `S` / `D` / `#` / `M` / `R` |
 | Move up or down | `⌘↑` `⌘↓` |
-| Go to Inbox … Trash | `1` … `7` |
+| Go to Inbox … Trash, Board | `1` … `8` |
 | Delete | `⌫` |
 | Undo | `⌘Z` |
