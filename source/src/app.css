@@ -679,8 +679,8 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .board-view .lh .lh-title { flex: 1; }
 .board-add { display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px 6px 9px; }
 .board-add .ic { width: 15px; height: 15px; }
-.board { display: flex; align-items: flex-start; gap: 14px; overflow-x: auto; padding: 16px 2px 28px; scroll-snap-type: x proximity; }
-.bcol { flex: 1 0 300px; min-width: 300px; background: var(--side); border: 1px solid var(--line); border-radius: 12px; padding: 8px 6px 10px; scroll-snap-align: start; scroll-margin-left: 2px; }
+.board { display: flex; align-items: flex-start; gap: 14px; overflow-x: auto; padding: 16px 8px 28px 2px; scroll-snap-type: x proximity; }
+.bcol { position: relative; flex: 1 1 300px; min-width: 260px; background: var(--side); border: 1px solid var(--line); border-radius: 12px; padding: 8px 6px 10px; scroll-snap-align: start; scroll-margin-left: 2px; }
 .bcol.closed { opacity: .75; }
 .bcol-h { display: flex; align-items: center; gap: 8px; padding: 4px 4px 9px 8px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
 .bcol-h > .ib { width: 28px; height: 28px; flex: none; }
@@ -707,3 +707,12 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
   .board { padding: 10px 16px 24px; scroll-snap-type: x mandatory; scroll-padding-left: 16px; }
   .bcol { flex: 0 0 86%; min-width: 0; }
 }
+
+/* column width handle on each column's right edge */
+.bcol-resize { position: absolute; top: 10px; bottom: 10px; right: -7px; width: 11px; cursor: col-resize; z-index: 3; touch-action: none; }
+.bcol-resize::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: transparent; transition: background .12s; }
+.bcol-resize:hover::after, .bcol-resize.on::after { background: var(--accent); }
+body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none !important; -webkit-user-select: none !important; }
+body.col-resizing .board { scroll-snap-type: none; }
+.bcol.sized { min-width: 0; }
+@media (max-width: 760px) { .bcol-resize { display: none; } }

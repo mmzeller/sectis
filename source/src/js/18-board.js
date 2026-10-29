@@ -15,8 +15,13 @@ function onBoard(t, id) { return (ui.board || []).some((c) => c.t === t && c.id 
 function colName(t, id) { return t === 'p' ? pTitle(getP(id)) : aTitle(getA(id)); }
 
 function boardAdd(cols, opts = {}) {
+  const prev = ui.board || [];
   if (opts.replace) ui.board = [];
-  cols.forEach((c) => { if (!onBoard(c.t, c.id)) ui.board.push({ t: c.t, id: c.id }); });
+  cols.forEach((c) => {
+    if (onBoard(c.t, c.id)) return;
+    const old = prev.find((x) => x.t === c.t && x.id === c.id); // a column that comes back keeps its width
+    ui.board.push(old && old.w ? { t: c.t, id: c.id, w: old.w } : { t: c.t, id: c.id });
+  });
   saveBoard();
   if (opts.go) navigate('board');
   else { render(); if (opts.toast) toast(opts.toast, { action: 'Show Board', fn: () => navigate('board') }); }
@@ -37,6 +42,45 @@ function areaAsBoard(a) {
   const cols = (loose || !projs.length ? [{ t: 'a', id: a.id }] : []).concat(projs.map((p) => ({ t: 'p', id: p.id })));
   boardAdd(cols, { replace: true, go: true });
 }
+/* ---- column widths: drag a column's right edge; double-click it to go back to automatic ---- */
+const COL_MIN = 220, COL_MAX = 1200;
+const clampW = (w) => Math.round(Math.max(COL_MIN, Math.min(COL_MAX, w)));
+function colEntry(key) { const [t, id] = key.split(':'); return (ui.board || []).find((c) => c.t === t && c.id === id); }
+function colStyle(c) { return c.w ? ` style="flex:0 0 ${clampW(c.w)}px;width:${clampW(c.w)}px"` : ''; }
+function resizeHandleHTML(c) { return `<div class="bcol-resize" data-colresize="${c.t}:${c.id}" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div>`; }
+function setColWidth(key, w) {
+  const c = colEntry(key); if (!c) return;
+  if (w) c.w = clampW(w); else delete c.w;
+  saveBoard(); render();
+}
+function resetAllWidths() { (ui.board || []).forEach((c) => delete c.w); saveBoard(); render(); }
+document.addEventListener('pointerdown', (e) => {
+  const h = e.target.closest && e.target.closest('#content .bcol-resize');
+  if (!h || e.button !== 0) return;
+  e.preventDefault(); e.stopPropagation();
+  const col = h.closest('.bcol'), key = h.dataset.colresize;
+  const x0 = e.clientX, w0 = col.getBoundingClientRect().width;
+  let moved = false;
+  try { h.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+  document.body.classList.add('col-resizing'); h.classList.add('on');
+  const move = (ev) => {
+    if (Math.abs(ev.clientX - x0) > 2) moved = true;
+    if (!moved) return;
+    const w = clampW(w0 + ev.clientX - x0);
+    col.style.flex = `0 0 ${w}px`; col.style.width = w + 'px';
+  };
+  const up = (ev) => {
+    h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+    document.body.classList.remove('col-resizing'); h.classList.remove('on');
+    if (moved && ev.type === 'pointerup') setColWidth(key, w0 + ev.clientX - x0);
+    else if (moved) render();
+  };
+  h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+}, true);
+document.addEventListener('dblclick', (e) => {
+  const h = e.target.closest && e.target.closest('#content .bcol-resize');
+  if (h) { e.preventDefault(); setColWidth(h.dataset.colresize, 0); }
+});
 const isColMenu = (extra) => extra.some((x) => x.header === 'Column'); // a column's own menu has its own board items
 function boardMenuItems(t, id, fromColumn) {
   if (isMobile() || fromColumn) return [];
@@ -62,9 +106,9 @@ function boardColHTML(c) {
     const p = getP(c.id), pr = projectProgress(p), open = p.status === 'open';
     const area = p.areaId && getA(p.areaId);
     const sec = `project:${p.id}:`;
-    return `<section class="bcol${open ? '' : ' closed'}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}">
+    return `<section class="bcol${open ? '' : ' closed'}${c.w ? ' sized' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colStyle(c)}>
       <div class="bcol-h" data-col="p:${p.id}">${pieIc(pr.frac, 'bcol-ic')}<div class="bcol-t"><button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button><div class="bcol-sub">${open ? (area ? esc(aTitle(area)) : 'Project') : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
-      <div class="bcol-body">${boardProjectBody(p)}</div></section>`;
+      <div class="bcol-body">${boardProjectBody(p)}</div>${resizeHandleHTML(c)}</section>`;
   }
   const a = getA(c.id);
   const todos = S.todos.filter((t) => t.areaId === a.id && !t.projectId && liveTodo(t)).sort(byOrder);
@@ -74,9 +118,9 @@ function boardColHTML(c) {
   let body = secHTML(sec, todos, { when: true });
   if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${projs.map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
-  return `<section class="bcol" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}">
+  return `<section class="bcol${c.w ? ' sized' : ''}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colStyle(c)}>
     <div class="bcol-h" data-col="a:${a.id}"><span class="ic bcol-ic" style="color:var(--c-area)">${I.area}</span><div class="bcol-t"><button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button><div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
-    <div class="bcol-body">${body}</div></section>`;
+    <div class="bcol-body">${body}</div>${resizeHandleHTML(c)}</section>`;
 }
 function boardProjectBody(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged));
@@ -96,6 +140,7 @@ function boardColMenu(key, el) {
     { header: 'Column' },
     { label: 'Move Left', icon: 'chevL', disabled: i <= 0, fn: () => boardMove(t, id, -1) },
     { label: 'Move Right', icon: 'chevR', disabled: i < 0 || i >= cols.length - 1, fn: () => boardMove(t, id, 1) },
+    { label: 'Fit Width Automatically', icon: 'columns', disabled: !(colEntry(key) || {}).w, fn: () => setColWidth(key, 0) },
     { label: 'Remove from Board', icon: 'x', fn: () => boardRemove(t, id) },
     { sep: 1 },
   ];
@@ -124,7 +169,7 @@ function openBoardPicker(anchor) {
     });
     return out || '<p class="note" style="padding:6px 10px">No matching projects or areas.</p>';
   };
-  const L = openLayer({ anchor, cls: 'move-pop board-pop', html: `<div class="pk-h">Board Columns</div><input class="pk-in" id="bp-in" placeholder="Find a project or area" autocomplete="off" aria-label="Find a project or area"><div class="pick-list" id="bp-list">${build()}</div><div class="pk-foot note">Click to add or remove. Columns stay in this order; move them from each column’s ••• menu.</div>`,
+  const L = openLayer({ anchor, cls: 'move-pop board-pop', html: `<div class="pk-h">Board Columns</div><input class="pk-in" id="bp-in" placeholder="Find a project or area" autocomplete="off" aria-label="Find a project or area"><div class="pick-list" id="bp-list">${build()}</div><div class="pk-foot note">Click to add or remove. Move columns from each column’s ••• menu, and drag a column’s right edge to change its width.</div>`,
     onMount: (el) => {
       const inp = $('#bp-in', el), list = $('#bp-list', el);
       const nav = listKeys(el, '.pick-i', inp);
