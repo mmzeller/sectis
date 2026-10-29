@@ -132,12 +132,27 @@ function rowHTML(x, ctx = {}) {
   if (x.linkId && !x.trashed && linkSiblings(x).length) line += `<span class="ic r-ic r-link" title="Also in ${esc(linkSiblings(x).map(placeLabel).join(', '))}">${I.link}</span>`;
   if (x.reminder && x.when) line += ic('bell', 'r-ic');
   if (x.notes && x.notes.trim()) line += ic('notes', 'r-ic');
-  if (x.checklist.length) { const d = x.checklist.filter((c) => c.done).length; line += `<span class="r-ck">${ic('checklist', 'r-ic')}${d}/${x.checklist.length}</span>`; }
+  const canExpand = x.checklist.length && !ctx.tpl && !ctx.static;
+  const ckOpen = canExpand && ui.expanded.has(x.id);
+  if (ckOpen) cls.push('ck-open');
+  if (x.checklist.length) {
+    const d = x.checklist.filter((c) => c.done).length, n = x.checklist.length;
+    line += canExpand
+      ? `<button class="r-ck r-ck-btn${ckOpen ? ' open' : ''}" data-action="ck-expand" data-id="${x.id}" aria-expanded="${!!ckOpen}" aria-label="${ckOpen ? 'Hide' : 'Show'} checklist, ${d} of ${n} done" title="${ckOpen ? 'Hide' : 'Show'} checklist (⌥-click for all)">${ic('checklist', 'r-ic')}${d}/${n}${ic('chevR', 'r-ck-chev')}</button>`
+      : `<span class="r-ck">${ic('checklist', 'r-ic')}${d}/${n}</span>`;
+  }
   line += tagPills(x);
   const parent = ctx.parent ? parentLabel(x) : '';
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(x) + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
-  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${esc(parent)}</div>` : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
+  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
+}
+/* a to-do's checklist shown under its row; items can be ticked here without opening the to-do */
+function ckInlineHTML(t) {
+  const box = (c) => (t.trashed
+    ? `<span class="ck-box${c.done ? ' on' : ''}">${ic('check')}</span>`
+    : `<button class="ck-box${c.done ? ' on' : ''}" data-action="ck-toggle" data-id="${t.id}" data-ck="${c.id}" aria-label="${c.done ? 'Uncheck' : 'Check'} ${esc(c.title || 'item')}">${ic('check')}</button>`);
+  return `<div class="r-cklist">${t.checklist.map((c) => `<div class="r-ckit${c.done ? ' on' : ''}">${box(c)}<span class="r-ckt${c.title ? '' : ' untitled'}">${esc(c.title || 'Untitled item')}</span></div>`).join('')}</div>`;
 }
 function projRowHTML(p, ctx = {}) {
   const pr = projectProgress(p);

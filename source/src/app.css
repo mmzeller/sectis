@@ -648,3 +648,26 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .sb-disc:hover { background: var(--line); color: var(--fg); }
 .sb-item:hover .sb-disc, .sb-disc:not(.open), .sb-disc:focus-visible, .touch .sb-disc { opacity: .75; }
 @media (max-width: 760px) { .sb-disc { width: 30px; height: 30px; margin-right: -6px; } .sb-disc .ic, .sb-area-row .sb-disc .ic { width: 16px; height: 16px; } }
+
+/* a to-do's checklist, opened under its row */
+.r-line > .r-ck-btn { vertical-align: -1px; }
+.r-ck-btn { padding: 1px 3px 1px 4px; margin-left: -4px; border-radius: 5px; position: relative; color: var(--muted); }
+.r-ck-btn::before { content: ""; position: absolute; inset: -6px -4px; }
+.r-ck-btn:hover, .r-ck-btn.open { color: var(--fg); }
+.r-ck-btn:hover { background: var(--hover); }
+.r-ck-btn .r-ck-chev { width: 10px; height: 10px; margin-left: 1px; transition: transform .15s; }
+.r-ck-btn .r-ck-chev svg { stroke-width: 2.6; }
+.r-ck-btn.open .r-ck-chev { transform: rotate(90deg); }
+.r-cklist { margin: 7px 0 1px; display: flex; flex-direction: column; gap: 1px; }
+.r-ckit { display: flex; align-items: flex-start; gap: 9px; padding: 3px 0; font-size: 13px; line-height: 18px; }
+.r-ckit .ck-box { margin-top: 2.5px; }
+.r-ckt { min-width: 0; overflow-wrap: anywhere; }
+.r-ckit.on .r-ckt, .r-ckt.untitled { color: var(--muted); }
+.r-ckit.on .r-ckt { text-decoration: line-through; }
+@media (max-width: 760px) {
+  .r-ck-btn { padding: 2px 5px 2px 6px; }
+  .r-ck-btn .r-ck-chev { width: 12px; height: 12px; }
+  .r-ckit { font-size: 15px; line-height: 21px; padding: 6px 0; gap: 11px; }
+  .r-ckit .ck-box { margin-top: 2px; }
+  .row.ck-open { align-items: flex-start; }
+}

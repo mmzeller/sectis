@@ -60,7 +60,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('dblclick', (e) => {
   if (isMobile()) return;
   const row = e.target.closest('#content .row[data-kind="todo"]');
-  if (row && !e.target.closest('.cb, .card, .restore')) { openEditor(row.dataset.id, { focus: 'title' }); }
+  if (row && !e.target.closest('.cb, .card, .restore, .r-ck-btn, .r-cklist .ck-box')) { openEditor(row.dataset.id, { focus: 'title' }); }
   const prow = e.target.closest('#content .prow[data-expandable]');
   if (prow && !e.target.closest('.disc, .open-proj')) navigate(prow.dataset.open);
 });
@@ -96,6 +96,12 @@ function handleAction(act, el, e) {
     case 'toggle-expand': {
       const on = !ui.expanded.has(id);
       if (e.altKey && ui.view.type === 'area') setExpanded(areaProjectIds(ui.view.id), on); else setExpanded([id], on);
+      return;
+    }
+    case 'ck-expand': {
+      if (e.metaKey || e.ctrlKey || e.shiftKey) { const row = el.closest('.row[data-id]'); if (row) rowClick(row, e); return; } // modifier-clicks select, as anywhere on a row
+      const on = !ui.expanded.has(id);
+      setExpanded(e.altKey ? [...document.querySelectorAll('#content .r-ck-btn')].map((b) => b.dataset.id) : [id], on);
       return;
     }
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
@@ -389,7 +395,7 @@ document.addEventListener('keydown', (e) => {
       newTodo(); return;
     case 'Enter': if (sel.length === 1 && getT(sel[0])) { e.preventDefault(); openEditor(sel[0], { focus: 'title' }); } else if (sel.length === 1 && getP(sel[0])) navigate('project:' + sel[0]); return;
     case 'ArrowDown': case 'ArrowUp': e.preventDefault(); moveSelection(k === 'ArrowDown' ? 1 : -1, e.shiftKey); return;
-    case 'ArrowRight': case 'ArrowLeft': { const r = sel.length === 1 && $(`#content .prow[data-expandable][data-id="${CSS.escape(sel[0])}"]`); if (r) { e.preventDefault(); setExpanded([sel[0]], k === 'ArrowRight'); } return; }
+    case 'ArrowRight': case 'ArrowLeft': { const q = sel.length === 1 && CSS.escape(sel[0]); const r = q && $(`#content .prow[data-expandable][data-id="${q}"], #content .row[data-id="${q}"] .r-ck-btn`); if (r) { e.preventDefault(); setExpanded([sel[0]], k === 'ArrowRight'); } return; }
     case 'Backspace': case 'Delete': if (one.length) { e.preventDefault(); trashItems(one); } return;
   }
   if (!one.length) {

@@ -670,6 +670,29 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .sb-item:hover .sb-disc, .sb-disc:not(.open), .sb-disc:focus-visible, .touch .sb-disc { opacity: .75; }
 @media (max-width: 760px) { .sb-disc { width: 30px; height: 30px; margin-right: -6px; } .sb-disc .ic, .sb-area-row .sb-disc .ic { width: 16px; height: 16px; } }
 
+/* a to-do's checklist, opened under its row */
+.r-line > .r-ck-btn { vertical-align: -1px; }
+.r-ck-btn { padding: 1px 3px 1px 4px; margin-left: -4px; border-radius: 5px; position: relative; color: var(--muted); }
+.r-ck-btn::before { content: ""; position: absolute; inset: -6px -4px; }
+.r-ck-btn:hover, .r-ck-btn.open { color: var(--fg); }
+.r-ck-btn:hover { background: var(--hover); }
+.r-ck-btn .r-ck-chev { width: 10px; height: 10px; margin-left: 1px; transition: transform .15s; }
+.r-ck-btn .r-ck-chev svg { stroke-width: 2.6; }
+.r-ck-btn.open .r-ck-chev { transform: rotate(90deg); }
+.r-cklist { margin: 7px 0 1px; display: flex; flex-direction: column; gap: 1px; }
+.r-ckit { display: flex; align-items: flex-start; gap: 9px; padding: 3px 0; font-size: 13px; line-height: 18px; }
+.r-ckit .ck-box { margin-top: 2.5px; }
+.r-ckt { min-width: 0; overflow-wrap: anywhere; }
+.r-ckit.on .r-ckt, .r-ckt.untitled { color: var(--muted); }
+.r-ckit.on .r-ckt { text-decoration: line-through; }
+@media (max-width: 760px) {
+  .r-ck-btn { padding: 2px 5px 2px 6px; }
+  .r-ck-btn .r-ck-chev { width: 12px; height: 12px; }
+  .r-ckit { font-size: 15px; line-height: 21px; padding: 6px 0; gap: 11px; }
+  .r-ckit .ck-box { margin-top: 2px; }
+  .row.ck-open { align-items: flex-start; }
+}
+
 </style>
 </head>
 <body>
@@ -687,7 +710,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.10.0';
+const APP_VERSION = '1.11.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1793,12 +1816,27 @@ function rowHTML(x, ctx = {}) {
   if (x.linkId && !x.trashed && linkSiblings(x).length) line += `<span class="ic r-ic r-link" title="Also in ${esc(linkSiblings(x).map(placeLabel).join(', '))}">${I.link}</span>`;
   if (x.reminder && x.when) line += ic('bell', 'r-ic');
   if (x.notes && x.notes.trim()) line += ic('notes', 'r-ic');
-  if (x.checklist.length) { const d = x.checklist.filter((c) => c.done).length; line += `<span class="r-ck">${ic('checklist', 'r-ic')}${d}/${x.checklist.length}</span>`; }
+  const canExpand = x.checklist.length && !ctx.tpl && !ctx.static;
+  const ckOpen = canExpand && ui.expanded.has(x.id);
+  if (ckOpen) cls.push('ck-open');
+  if (x.checklist.length) {
+    const d = x.checklist.filter((c) => c.done).length, n = x.checklist.length;
+    line += canExpand
+      ? `<button class="r-ck r-ck-btn${ckOpen ? ' open' : ''}" data-action="ck-expand" data-id="${x.id}" aria-expanded="${!!ckOpen}" aria-label="${ckOpen ? 'Hide' : 'Show'} checklist, ${d} of ${n} done" title="${ckOpen ? 'Hide' : 'Show'} checklist (⌥-click for all)">${ic('checklist', 'r-ic')}${d}/${n}${ic('chevR', 'r-ck-chev')}</button>`
+      : `<span class="r-ck">${ic('checklist', 'r-ic')}${d}/${n}</span>`;
+  }
   line += tagPills(x);
   const parent = ctx.parent ? parentLabel(x) : '';
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(x) + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
-  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${esc(parent)}</div>` : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
+  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
+}
+/* a to-do's checklist shown under its row; items can be ticked here without opening the to-do */
+function ckInlineHTML(t) {
+  const box = (c) => (t.trashed
+    ? `<span class="ck-box${c.done ? ' on' : ''}">${ic('check')}</span>`
+    : `<button class="ck-box${c.done ? ' on' : ''}" data-action="ck-toggle" data-id="${t.id}" data-ck="${c.id}" aria-label="${c.done ? 'Uncheck' : 'Check'} ${esc(c.title || 'item')}">${ic('check')}</button>`);
+  return `<div class="r-cklist">${t.checklist.map((c) => `<div class="r-ckit${c.done ? ' on' : ''}">${box(c)}<span class="r-ckt${c.title ? '' : ' untitled'}">${esc(c.title || 'Untitled item')}</span></div>`).join('')}</div>`;
 }
 function projRowHTML(p, ctx = {}) {
   const pr = projectProgress(p);
@@ -2966,7 +3004,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('dblclick', (e) => {
   if (isMobile()) return;
   const row = e.target.closest('#content .row[data-kind="todo"]');
-  if (row && !e.target.closest('.cb, .card, .restore')) { openEditor(row.dataset.id, { focus: 'title' }); }
+  if (row && !e.target.closest('.cb, .card, .restore, .r-ck-btn, .r-cklist .ck-box')) { openEditor(row.dataset.id, { focus: 'title' }); }
   const prow = e.target.closest('#content .prow[data-expandable]');
   if (prow && !e.target.closest('.disc, .open-proj')) navigate(prow.dataset.open);
 });
@@ -3002,6 +3040,12 @@ function handleAction(act, el, e) {
     case 'toggle-expand': {
       const on = !ui.expanded.has(id);
       if (e.altKey && ui.view.type === 'area') setExpanded(areaProjectIds(ui.view.id), on); else setExpanded([id], on);
+      return;
+    }
+    case 'ck-expand': {
+      if (e.metaKey || e.ctrlKey || e.shiftKey) { const row = el.closest('.row[data-id]'); if (row) rowClick(row, e); return; } // modifier-clicks select, as anywhere on a row
+      const on = !ui.expanded.has(id);
+      setExpanded(e.altKey ? [...document.querySelectorAll('#content .r-ck-btn')].map((b) => b.dataset.id) : [id], on);
       return;
     }
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
@@ -3295,7 +3339,7 @@ document.addEventListener('keydown', (e) => {
       newTodo(); return;
     case 'Enter': if (sel.length === 1 && getT(sel[0])) { e.preventDefault(); openEditor(sel[0], { focus: 'title' }); } else if (sel.length === 1 && getP(sel[0])) navigate('project:' + sel[0]); return;
     case 'ArrowDown': case 'ArrowUp': e.preventDefault(); moveSelection(k === 'ArrowDown' ? 1 : -1, e.shiftKey); return;
-    case 'ArrowRight': case 'ArrowLeft': { const r = sel.length === 1 && $(`#content .prow[data-expandable][data-id="${CSS.escape(sel[0])}"]`); if (r) { e.preventDefault(); setExpanded([sel[0]], k === 'ArrowRight'); } return; }
+    case 'ArrowRight': case 'ArrowLeft': { const q = sel.length === 1 && CSS.escape(sel[0]); const r = q && $(`#content .prow[data-expandable][data-id="${q}"], #content .row[data-id="${q}"] .r-ck-btn`); if (r) { e.preventDefault(); setExpanded([sel[0]], k === 'ArrowRight'); } return; }
     case 'Backspace': case 'Delete': if (one.length) { e.preventDefault(); trashItems(one); } return;
   }
   if (!one.length) {

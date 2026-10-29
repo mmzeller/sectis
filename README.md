@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.10.0
+Version 1.11.0
 
 ## What's in it
 
@@ -11,7 +11,7 @@ Version 1.10.0
 - **Projects** with notes, headings, a progress circle, When dates and deadlines
 - **Areas** to group projects and to-dos (Home, Work…). Click a project in an area to open it in place and see its to-dos; open or close each one, or use Expand All / Collapse All. In the sidebar, the arrow beside an area hides or shows the projects under it (⌥-click for every area)
 - **One to-do in several places**: ••• → **Also Add To…** puts a to-do in another project or area too. The copies share their title, notes, tags and checklist; check it off in one place, or use **Complete Everywhere**
-- **To-dos** with notes, checklists, tags, a When date, a reminder time and a deadline
+- **To-dos** with notes, checklists, tags, a When date, a reminder time and a deadline. Click a to-do's checklist count (like 0/4) to show the checklist under it and tick items off without opening it; ⌥-click shows or hides every checklist in the list, and → / ← do it for the selected to-do
 - **Formatted notes**: links you can click, plus `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, `# headings`, `- bullets`, `1. numbered lists` and `> quotes`. Tap the notes to edit the plain text
 - **Checklists** you can reorder by dragging the grip (or ⌘↑ / ⌘↓), and any item can become its own to-do from its ••• menu
 - **Repeating to-dos and projects**, on a schedule (every weekday, the last Friday of each month…) or a set time after you finish the last one. A repeating project makes a fresh copy with all its headings and to-dos each time
