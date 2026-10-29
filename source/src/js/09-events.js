@@ -116,6 +116,7 @@ function handleAction(act, el, e) {
     case 'b-tags': endSelectAfter(openTagPicker(selectedIds(), el)); return;
     case 'b-deadline': endSelectAfter(openWhen(selectedIds(), el, 'deadline')); return;
     case 'b-complete': completeIds(selectedIds()); ui.sel.clear(); ui.selectMode = false; render(); return;
+    case 'share-view': openShare({ type: 'view' }); return;
     case 'b-share': openShare({ type: 'items', ids: selectedIds() }); return;
     case 'b-delete': trashItems(selectedIds()); ui.selectMode = false; render(); return;
     default: return;

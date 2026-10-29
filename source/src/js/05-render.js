@@ -213,7 +213,7 @@ function cardHTML(t) {
 /* ---------- headers & bars ---------- */
 function headerHTML(key, sub, menu = true) {
   const L = LISTS[key];
-  return `<div class="lh"><span class="ic lh-ic" style="color:${L.color}">${I[L.icon]}</span><h1 class="lh-title">${L.title}</h1>${menu ? `<button class="ib" data-action="view-menu" aria-label="List options" title="List options">${ic('more')}</button>` : ''}</div>${sub ? `<div class="lh-sub">${sub}</div>` : ''}`;
+  return `<div class="lh"><span class="ic lh-ic" style="color:${L.color}">${I[L.icon]}</span><h1 class="lh-title">${L.title}</h1>${menu && key !== 'trash' ? `<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button>` : ''}${menu ? `<button class="ib" data-action="view-menu" aria-label="List options" title="List options">${ic('more')}</button>` : ''}</div>${sub ? `<div class="lh-sub">${sub}</div>` : ''}`;
 }
 function tagBarHTML(items) {
   const present = new Set();
@@ -228,7 +228,7 @@ function emptyHTML(icon, title, text) {
 }
 function mobileBarHTML() {
   if (ui.selectMode) return `<div class="m-bar"><button class="m-back" data-action="select-all">Select All</button><span class="sel-count">${ui.sel.size ? ui.sel.size + ' Selected' : ''}</span><button class="m-back" data-action="select-done">Done</button></div>`;
-  return `<div class="m-bar"><button class="m-back" data-action="m-back">${ic('chevL')}Lists</button><span class="spacer"></span><button class="ib" data-action="find" aria-label="Quick Find">${ic('search')}</button><button class="ib" data-action="view-menu" aria-label="List options">${ic('more')}</button></div>`;
+  return `<div class="m-bar"><button class="m-back" data-action="m-back">${ic('chevL')}Lists</button><span class="spacer"></span><button class="ib" data-action="find" aria-label="Quick Find">${ic('search')}</button>${ui.view.type !== 'trash' ? `<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button>` : ''}<button class="ib" data-action="view-menu" aria-label="List options">${ic('more')}</button></div>`;
 }
 
 /* ---------- main views ---------- */
@@ -411,7 +411,7 @@ function viewProject(p) {
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag')}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh"><span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span><textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
+  let html = `<div class="lh"><span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span><textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.isTemplate) html += `<div class="lh-banner rp-banner">${ic('repeat')}<span><b>Repeating project.</b> ${esc(ruleSummary(p.repeat))}${p.next ? `. Next copy ${esc(fmtRel(p.next))}` : p.repeat && p.repeat.mode === 'after' ? '. The next copy comes after you complete the current one' : '. This repeat has ended'}. Changes here apply to future copies.</span><button class="link-btn" data-action="repeat" data-id="${p.id}">Change</button></div>`;
   else if (p.status !== 'open') html += `<div class="lh-banner"><b>${p.status === 'done' ? 'Completed' : 'Canceled'}</b> ${p.completedAt ? 'on ' + esc(fmtDate(stampDay(p.completedAt))) : ''} <button class="link-btn" data-action="reopen-project" data-id="${p.id}">Reopen</button></div>`;
@@ -441,7 +441,7 @@ function viewArea(a) {
   const active = projAll.filter((p) => p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const later = projAll.filter((p) => p.status === 'open' && (p.start === 'someday' || (p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const meta = a.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="area-tags" data-id="${a.id}">${ic('tag')}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${a.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
   html += `<div class="list">${secHTML(`area:${a.id}`, items, { when: true })}`;
@@ -467,7 +467,7 @@ function viewTag(tag) {
     ['Inbox', todos.filter((t) => isInbox(t) && !isTodayItem(t)).sort(byOrder)],
     ['Someday', todos.filter((t) => t.start === 'someday' && !isTodayItem(t)).sort(byOrder)],
   ];
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--muted)">${I.tag}</span><h1 class="lh-title">${esc(tag.title)}</h1></div><div class="lh-sub">${plural(todos.filter((t) => t.status === 'open').length, 'open to-do')}</div><div class="list">`;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--muted)">${I.tag}</span><h1 class="lh-title">${esc(tag.title)}</h1><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button></div><div class="lh-sub">${plural(todos.filter((t) => t.status === 'open').length, 'open to-do')}</div><div class="list">`;
   groups.forEach(([label, list]) => { if (list.length) html += `<div class="sec-h"><span>${label}</span></div>` + secHTML('tag', list, { parent: true, when: true }); });
   html += '</div>';
   if (!todos.length) html += emptyHTML('tag', 'Nothing tagged yet', `Add the “${esc(tag.title)}” tag to a to-do and it shows up here.`);
