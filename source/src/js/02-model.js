@@ -4,7 +4,7 @@ const idx = { todo: new Map(), project: new Map(), heading: new Map(), area: new
 const ui = {
   today: todayStr(), view: { type: 'today' }, sel: new Set(), anchor: null, editing: null, newId: null,
   tagFilter: null, mobile: 'home', selectMode: false, showLogged: {}, laterOpen: {}, tplModal: null,
-  lastEditKey: null, logbookLimit: 150, focusAfter: null, scrollToEditor: false,
+  lastEditKey: null, logbookLimit: 150, focusAfter: null, scrollToEditor: false, expanded: new Set(),
 };
 
 function defaultSettings() {
@@ -50,6 +50,7 @@ function loadState() {
 let saveFailedOnce = false;
 function saveNow() {
   if (!S) return;
+  propagateLinks();
   S.savedAt = Date.now();
   const json = JSON.stringify(S);
   if (!lsSet(STORE_KEY, json) && !saveFailedOnce) { saveFailedOnce = true; toast('Couldn’t save in this browser. Export a backup from Settings.'); }
@@ -79,6 +80,7 @@ function undo() {
 function commit(label, fn, opts = {}) {
   snapshot(label); ui.lastEditKey = null;
   const r = fn();
+  propagateLinks();
   reindex(); saveSoon();
   if (opts.render !== false) render();
   return r;
@@ -89,7 +91,7 @@ function touch(x) { x.modifiedAt = Date.now(); }
 function newTodoShape() {
   return { id: '', type: 'todo', title: '', notes: '', status: 'open', start: 'inbox', when: null, evening: false, deadline: null, reminder: null,
     projectId: null, areaId: null, headingId: null, tags: [], checklist: [], order: 0, todayOrder: 0, createdAt: 0, modifiedAt: 0,
-    completedAt: null, logged: false, trashed: false, isTemplate: false, repeat: null, next: null, templateId: null, sample: false };
+    completedAt: null, logged: false, trashed: false, isTemplate: false, repeat: null, next: null, templateId: null, sample: false, linkId: null };
 }
 function newProjectShape() {
   return { id: '', type: 'project', title: '', notes: '', status: 'open', start: 'anytime', when: null, evening: false, deadline: null, reminder: null,

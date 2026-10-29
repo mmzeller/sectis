@@ -2,13 +2,14 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.5.0
+Version 1.6.0
 
 ## What's in it
 
 - **Inbox, Today, This Evening, Upcoming, Anytime, Someday, Logbook and Trash**
 - **Projects** with notes, headings, a progress circle, When dates and deadlines
-- **Areas** to group projects and to-dos (Home, Work…)
+- **Areas** to group projects and to-dos (Home, Work…). Click a project in an area to open it in place and see its to-dos; open or close each one, or use Expand All / Collapse All
+- **One to-do in several places**: ••• → **Also Add To…** puts a to-do in another project or area too. The copies share their title, notes, tags and checklist; check it off in one place, or use **Complete Everywhere**
 - **To-dos** with notes, checklists, tags, a When date, a reminder time and a deadline
 - **Formatted notes**: links you can click, plus `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, `# headings`, `- bullets`, `1. numbered lists` and `> quotes`. Tap the notes to edit the plain text
 - **Checklists** you can reorder by dragging the grip (or ⌘↑ / ⌘↓), and any item can become its own to-do from its ••• menu

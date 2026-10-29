@@ -118,6 +118,7 @@ function rowHTML(x, ctx = {}) {
   if (ctx.when && isScheduledToday(x) && !ctx.star) line += isEveningItem(x) ? ic('moon', 'r-moon') : ic('star', 'r-star');
   line += `<span class="r-title${x.title ? '' : ' untitled'}">${esc(x.title || 'New To-Do')}</span>`;
   if (x.templateId) line += ic('repeat', 'r-ic');
+  if (x.linkId && !x.trashed && linkSiblings(x).length) line += `<span class="ic r-ic r-link" title="Also in ${esc(linkSiblings(x).map(placeLabel).join(', '))}">${I.link}</span>`;
   if (x.reminder && x.when) line += ic('bell', 'r-ic');
   if (x.notes && x.notes.trim()) line += ic('notes', 'r-ic');
   if (x.checklist.length) { const d = x.checklist.filter((c) => c.done).length; line += `<span class="r-ck">${ic('checklist', 'r-ic')}${d}/${x.checklist.length}</span>`; }
@@ -129,6 +130,7 @@ function rowHTML(x, ctx = {}) {
 }
 function projRowHTML(p, ctx = {}) {
   const pr = projectProgress(p);
+  const exp = ctx.expandable && ui.expanded.has(p.id);
   const cls = ['row', 'prow']; if (ui.sel.has(p.id)) cls.push('selected'); if (p.status !== 'open') cls.push(p.status); if (p.trashed) cls.push('trashed-row');
   let line = '';
   if (ctx.star && isScheduledToday(p)) line += isEveningItem(p) ? ic('moon', 'r-moon') : ic('star', 'r-star');
@@ -137,7 +139,9 @@ function projRowHTML(p, ctx = {}) {
   const sub = [ctx.parent ? parentLabel(p) : '', pr.open ? plural(pr.open, 'to-do') : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(p) + (p.trashed ? `<button class="restore" data-action="restore" data-id="${p.id}">Put Back</button>` : '');
-  return `<div class="${cls.join(' ')}" data-id="${p.id}" data-kind="project" data-drag="project" data-open="project:${p.id}">${lead}${pieIc(pr.frac, 'pie-ic')}<div class="r-main"><div class="r-line">${line}</div>${sub ? `<div class="r-sub">${esc(sub)}</div>` : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
+  const disc = ctx.expandable ? `<button class="disc${exp ? ' open' : ''}" data-action="toggle-expand" data-id="${p.id}" aria-label="${exp ? 'Collapse' : 'Expand'} ${esc(pTitle(p))}" aria-expanded="${exp}" title="${exp ? 'Collapse' : 'Expand'} (⌥-click for all)">${ic('chevR')}</button>` : '';
+  const openBtn = ctx.expandable ? `<button class="ib open-proj" data-nav="project:${p.id}" title="Open project" aria-label="Open ${esc(pTitle(p))}">${ic('move')}</button>` : '';
+  return `<div class="${cls.join(' ')}${ctx.expandable ? ' expandable' : ''}${exp ? ' expanded' : ''}" data-id="${p.id}" data-kind="project" data-drag="project" data-open="project:${p.id}"${ctx.expandable ? ' data-expandable="1"' : ''}>${lead}${disc}${pieIc(pr.frac, 'pie-ic')}<div class="r-main"><div class="r-line">${line}</div>${sub ? `<div class="r-sub">${esc(sub)}</div>` : ''}</div>${right || openBtn ? `<div class="r-right">${right}${openBtn}</div>` : ''}</div>${exp ? projectChildrenHTML(p) : ''}`;
 }
 function ghostRowHTML(tpl, date) {
   if (tpl.type === 'project') return ghostProjRowHTML(tpl, date);
@@ -190,7 +194,8 @@ function cardHTML(t) {
   const ckOpen = t.checklist.length || ui.ckOpen === t.id;
   const ck = ckOpen ? `<div class="ck">${t.checklist.map((c) => checklistItemHTML(t, c, tpl)).join('')}<div class="ck-item"><span class="ck-box" style="opacity:.4"></span><textarea class="ck-input" data-edit="ck-new" data-id="${t.id}" data-fkey="cknew-${t.id}" placeholder="Add item" enterkeyhint="next" aria-label="New checklist item" rows="1" data-autosize data-oneline></textarea></div></div>` : '';
   const tags = t.tags.length ? `<div class="c-tags">${t.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
-  const chips = whenChipHTML(t) + repeatChipHTML(t) + deadlineChipHTML(t);
+  const links = linkSiblings(t).map((s) => `<span class="chip linkc${s.status !== 'open' ? ' done' : ''}"><button class="chip-main" data-action="reveal" data-id="${s.id}" title="Go to this copy">${ic('link')}<span>${s.status === 'open' ? 'Also in' : s.status === 'done' ? 'Done in' : 'Canceled in'} ${esc(placeLabel(s))}</span></button></span>`).join('');
+  const chips = whenChipHTML(t) + repeatChipHTML(t) + deadlineChipHTML(t) + links;
   const tools = [
     `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>`,
     !ckOpen ? `<button class="ib" data-action="ck-open" data-id="${t.id}" title="Checklist" aria-label="Checklist">${ic('checklist')}</button>` : '',
@@ -440,11 +445,12 @@ function viewArea(a) {
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
   html += `<div class="list">${secHTML(`area:${a.id}`, items, { when: true })}`;
-  html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${active.map((p) => projRowHTML(p, { star: true, when: true })).join('')}</div>`;
+  if (projAll.length) { const allOpen = projAll.every((p) => ui.expanded.has(p.id)), noneOpen = !projAll.some((p) => ui.expanded.has(p.id)); html += `<div class="exp-bar"><span>${plural(projAll.length, 'project')}</span><button class="link-btn" data-action="expand-all" data-id="${a.id}"${allOpen ? ' disabled' : ''}>Expand All</button><button class="link-btn" data-action="collapse-all" data-id="${a.id}"${noneOpen ? ' disabled' : ''}>Collapse All</button></div>`; }
+  html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${active.map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (later.length) {
     const open = ui.laterOpen[a.id];
     html += `<button class="show-more" data-action="toggle-later" data-id="${a.id}">${open ? 'Hide' : 'Show'} ${plural(later.length, 'later project')}</button>`;
-    if (open) html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${later.map((p) => projRowHTML(p, { when: true })).join('')}</div>`;
+    if (open) html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${later.map((p) => projRowHTML(p, { when: true, expandable: true })).join('')}</div>`;
   }
   html += '</div>' + repeatingSectionHTML([...projectTemplatesIn((p) => p.areaId === a.id), ...templatesIn((t) => t.areaId === a.id && !t.projectId)]);
   if (!todosAll.length && !projAll.length) html += emptyHTML('area', 'This area is empty', 'Areas hold the ongoing parts of your life, like Home or Work. Add to-dos here, or create a project inside it from the ••• menu.');

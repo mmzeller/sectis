@@ -227,7 +227,7 @@ function openMove(ids, anchor, opts = {}) {
       }
       return r;
     }).join('');
-    if (!headingMode && m('inbox')) out += `<button class="pick-i inbox" data-to="inbox">${ic('inbox')}<span>Inbox</span></button>`;
+    if (!headingMode && !opts.noInbox && m('inbox')) out += `<button class="pick-i inbox" data-to="inbox">${ic('inbox')}<span>Inbox</span></button>`;
     out += projRows(null);
     S.areas.slice().sort(byOrder).forEach((a) => {
       const pr = projRows(a.id);
@@ -237,7 +237,7 @@ function openMove(ids, anchor, opts = {}) {
     });
     return out || '<p class="note" style="padding:6px 10px">No matching lists.</p>';
   };
-  const L = openLayer({ anchor, cls: 'move-pop', html: `<div class="pk-h">${headingMode ? 'Move Heading' : 'Move'}</div><input class="pk-in" id="mv-in" placeholder="Find a list" autocomplete="off" aria-label="Find a list"><div class="pick-list" id="mv-list">${build()}</div>`,
+  const L = openLayer({ anchor, cls: 'move-pop', html: `<div class="pk-h">${esc(opts.title || (headingMode ? 'Move Heading' : 'Move'))}</div><input class="pk-in" id="mv-in" placeholder="Find a list" autocomplete="off" aria-label="Find a list"><div class="pick-list" id="mv-list">${build()}</div>`,
     onMount: (el) => {
       const inp = $('#mv-in', el), list = $('#mv-list', el);
       const nav = listKeys(el, '.pick-i', inp);

@@ -201,7 +201,7 @@ function setRepeat(id, rule) {
     let tpl = t.isTemplate ? t : (t.templateId && itemById(t.templateId)) || null;
     if (!tpl) {
       // the selected item becomes the template; the first copy is generated from it
-      tpl = t; tpl.isTemplate = true; tpl.status = 'open'; tpl.completedAt = null; tpl.logged = false;
+      tpl = t; tpl.isTemplate = true; if (tpl.type === 'todo') tpl.linkId = null; tpl.status = 'open'; tpl.completedAt = null; tpl.logged = false;
       tpl.when = null; tpl.evening = false; tpl.reminder = null; tpl.deadline = null;
       if (tpl.start !== 'anytime') tpl.start = 'anytime';
     }

@@ -78,6 +78,7 @@ function toggleComplete(ids, status = 'done') {
   if (projects.length) { completeProjectFlow(projects[0], status); return; }
   const allDone = items.every((x) => x.status === status);
   commit(status === 'canceled' ? 'Cancel' : 'Complete', () => items.forEach((x) => setStatus(x, allDone ? 'open' : status)));
+  if (!allDone) afterLinkedComplete(items);
   if (!allDone && S.settings.logMode === 'immediate') setTimeout(() => { if (autoLog()) render(); }, 1300);
 }
 async function completeProjectFlow(p, status = 'done') {
@@ -153,7 +154,7 @@ function duplicateItems(ids) {
     c.checklist = (t.checklist || []).map((i) => ({ id: uid(), title: i.title, done: i.done }));
     c.order = t.order + 0.001; c.todayOrder = t.todayOrder + 0.001;
     if (c.isTemplate) { c.isTemplate = false; c.repeat = null; c.next = null; c.start = 'anytime'; }
-    c.templateId = null;
+    c.templateId = null; c.linkId = null;
     S.todos.push(c); last = c;
   }));
   if (last) { ui.sel = new Set([last.id]); render(); }

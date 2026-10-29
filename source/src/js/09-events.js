@@ -16,7 +16,11 @@ function paintSelection() { $$('#content .row[data-id]').forEach((r) => r.classL
 function rowClick(row, e) {
   const id = row.dataset.id, kind = row.dataset.kind;
   if (ui.selectMode) { ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); paintSelection(); return; }
-  if (kind === 'project') { if (e.metaKey || e.ctrlKey || e.shiftKey) { ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); paintSelection(); return; } navigate(row.dataset.open); return; }
+  if (kind === 'project') {
+    if (e.metaKey || e.ctrlKey || e.shiftKey) { ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); paintSelection(); return; }
+    if (row.dataset.expandable) { if (ui.editing) closeEditor({ noRender: true }); ui.sel = new Set([id]); ui.anchor = id; setExpanded([id], !ui.expanded.has(id)); return; }
+    navigate(row.dataset.open); return;
+  }
   const multi = e.metaKey || e.ctrlKey || e.shiftKey;
   if (!multi && (isMobile() || isCoarse())) { openEditor(id); return; }
   if (ui.editing && ui.editing !== id) closeEditor({ noRender: true });
@@ -55,6 +59,8 @@ document.addEventListener('dblclick', (e) => {
   if (isMobile()) return;
   const row = e.target.closest('#content .row[data-kind="todo"]');
   if (row && !e.target.closest('.cb, .card, .restore')) { openEditor(row.dataset.id, { focus: 'title' }); }
+  const prow = e.target.closest('#content .prow[data-expandable]');
+  if (prow && !e.target.closest('.disc, .open-proj')) navigate(prow.dataset.open);
 });
 
 function anchorFor(id) { return document.querySelector(`#content .row[data-id="${CSS.escape(id)}"], #content .card[data-id="${CSS.escape(id)}"]`) || $('#content .lh') || $('#content'); }
@@ -85,6 +91,14 @@ function handleAction(act, el, e) {
     case 'heading-menu': headingMenu(getH(id), el); return;
     case 'view-menu': viewMenu(el); return;
     case 'reopen-project': reopenProject(getP(id)); return;
+    case 'toggle-expand': {
+      const on = !ui.expanded.has(id);
+      if (e.altKey && ui.view.type === 'area') setExpanded(areaProjectIds(ui.view.id), on); else setExpanded([id], on);
+      return;
+    }
+    case 'expand-all': setExpanded(areaProjectIds(id), true); return;
+    case 'collapse-all': setExpanded(areaProjectIds(id), false); return;
+    case 'reveal': revealTodo(id); return;
     case 'toggle-logged': ui.showLogged[id] = !ui.showLogged[id]; render(); return;
     case 'toggle-later': ui.laterOpen[id] = !ui.laterOpen[id]; render(); return;
     case 'logbook-more': ui.logbookLimit += 150; render(); return;
@@ -132,6 +146,9 @@ function todoMenu(id, el) {
     items.push({ label: 'When…', icon: 'calendar', hint: 'S', fn: () => openWhen([id], el) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
+    if (!t.templateId) items.push({ label: 'Also Add To…', icon: 'link', fn: () => openAlsoAddTo([id], el) });
+    if (linkSiblings(t).some((x) => x.status === 'open') || (t.status === 'open' && linkSiblings(t).length)) items.push({ label: 'Complete Everywhere', icon: 'check', fn: () => completeEverywhere(id) });
+    if (linkSiblings(t).length) items.push({ label: 'Unlink This Copy', icon: 'x', fn: () => unlinkTodo(id) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ label: 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
@@ -176,6 +193,8 @@ function areaMenu(a, el, extra = []) {
     ...extra,
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
+    { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
+    { label: 'Collapse All Projects', icon: 'chevR', fn: () => setExpanded(areaProjectIds(a.id), false) },
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
     { label: 'Rename', icon: 'edit', fn: () => { const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
@@ -204,6 +223,7 @@ function batchMenuItems(anchor) {
     { label: 'Tags…', icon: 'tag', hint: '#', fn: () => endSelectAfter(openTagPicker(ids, anchor)) },
     { label: 'When…', icon: 'calendar', hint: 'S', fn: () => endSelectAfter(openWhen(ids, anchor)) },
     { label: 'Move…', icon: 'move', hint: 'M', disabled: !todos.length, fn: () => endSelectAfter(openMove(todos, anchor)) },
+    { label: 'Also Add To…', icon: 'link', disabled: !todos.length, fn: () => endSelectAfter(openAlsoAddTo(todos, anchor)) },
     { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
     { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
@@ -359,6 +379,7 @@ document.addEventListener('keydown', (e) => {
       newTodo(); return;
     case 'Enter': if (sel.length === 1 && getT(sel[0])) { e.preventDefault(); openEditor(sel[0], { focus: 'title' }); } else if (sel.length === 1 && getP(sel[0])) navigate('project:' + sel[0]); return;
     case 'ArrowDown': case 'ArrowUp': e.preventDefault(); moveSelection(k === 'ArrowDown' ? 1 : -1, e.shiftKey); return;
+    case 'ArrowRight': case 'ArrowLeft': { const r = sel.length === 1 && $(`#content .prow[data-expandable][data-id="${CSS.escape(sel[0])}"]`); if (r) { e.preventDefault(); setExpanded([sel[0]], k === 'ArrowRight'); } return; }
     case 'Backspace': case 'Delete': if (one.length) { e.preventDefault(); trashItems(one); } return;
   }
   if (!one.length) {

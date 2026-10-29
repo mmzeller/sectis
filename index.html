@@ -632,6 +632,34 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
   .share-modal .modal-f .btn.primary { order: -1; flex-basis: 100%; padding-block: 11px; }
 }
 
+/* expandable projects in an area */
+.exp-bar { display: flex; align-items: center; gap: 14px; margin: 18px 10px 2px; padding-bottom: 4px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; }
+.exp-bar span { flex: 1; }
+.exp-bar .link-btn { text-transform: none; letter-spacing: 0; font-size: 12.5px; font-weight: 600; }
+.exp-bar .link-btn:disabled { color: var(--faint); text-decoration: none; cursor: default; }
+.disc { flex: none; width: 20px; height: 20px; margin: 0 -4px 0 -6px; border-radius: 5px; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; transition: transform .15s; }
+.disc:hover { background: var(--hover); color: var(--fg); }
+.disc .ic { width: 14px; height: 14px; }
+.disc .ic svg { stroke-width: 2.4; }
+.disc.open { transform: rotate(90deg); }
+.prow.expandable { cursor: pointer; }
+.prow .open-proj { width: 26px; height: 26px; opacity: 0; }
+.prow:hover .open-proj, .prow.selected .open-proj, .touch .prow .open-proj { opacity: .8; }
+.prow.expanded { margin-top: 6px; }
+.pchildren { margin: 0 0 10px 34px; padding-left: 8px; border-left: 2px solid var(--line); }
+.pchildren .sec { min-height: 4px; }
+.sub-h { margin: 10px 10px 2px; font-size: 12.5px; font-weight: 650; color: var(--accent); }
+.pchildren-empty { color: var(--faint); font-size: 13px; padding: 4px 10px 6px; }
+.r-link { color: var(--accent); opacity: .75; }
+.chip.linkc .chip-main .ic { color: var(--accent); }
+.chip.linkc.done { color: var(--muted); }
+@media (max-width: 760px) {
+  .disc { width: 28px; height: 28px; margin: 0 -2px 0 -8px; }
+  .disc .ic { width: 16px; height: 16px; }
+  .pchildren { margin-left: 18px; padding-left: 6px; }
+  .prow .open-proj { width: 34px; height: 34px; }
+}
+
 </style>
 </head>
 <body>
@@ -649,7 +677,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -827,6 +855,7 @@ const I = {
   cloud: svg('<path d="M7.2 18.5h10.1a4 4 0 0 0 .5-7.97A5.6 5.6 0 0 0 7 9.6a4.45 4.45 0 0 0 .2 8.9z"/>'),
   grip: svg('<circle class="fill" cx="9" cy="6.5" r="1.5"/><circle class="fill" cx="15" cy="6.5" r="1.5"/><circle class="fill" cx="9" cy="12" r="1.5"/><circle class="fill" cx="15" cy="12" r="1.5"/><circle class="fill" cx="9" cy="17.5" r="1.5"/><circle class="fill" cx="15" cy="17.5" r="1.5"/>'),
   share: svg('<path d="M12 3.5v11M8 7.2 12 3.5l4 3.7"/><path d="M8.5 10H7a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2h-1.5"/>'),
+  link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1.1 1.1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1"/>'),
   bolt: svg('<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>'),
 };
 const ic = (name, cls = '') => `<span class="ic ${cls}">${I[name] || ''}</span>`;
@@ -847,7 +876,7 @@ const idx = { todo: new Map(), project: new Map(), heading: new Map(), area: new
 const ui = {
   today: todayStr(), view: { type: 'today' }, sel: new Set(), anchor: null, editing: null, newId: null,
   tagFilter: null, mobile: 'home', selectMode: false, showLogged: {}, laterOpen: {}, tplModal: null,
-  lastEditKey: null, logbookLimit: 150, focusAfter: null, scrollToEditor: false,
+  lastEditKey: null, logbookLimit: 150, focusAfter: null, scrollToEditor: false, expanded: new Set(),
 };
 
 function defaultSettings() {
@@ -893,6 +922,7 @@ function loadState() {
 let saveFailedOnce = false;
 function saveNow() {
   if (!S) return;
+  propagateLinks();
   S.savedAt = Date.now();
   const json = JSON.stringify(S);
   if (!lsSet(STORE_KEY, json) && !saveFailedOnce) { saveFailedOnce = true; toast('Couldn’t save in this browser. Export a backup from Settings.'); }
@@ -922,6 +952,7 @@ function undo() {
 function commit(label, fn, opts = {}) {
   snapshot(label); ui.lastEditKey = null;
   const r = fn();
+  propagateLinks();
   reindex(); saveSoon();
   if (opts.render !== false) render();
   return r;
@@ -932,7 +963,7 @@ function touch(x) { x.modifiedAt = Date.now(); }
 function newTodoShape() {
   return { id: '', type: 'todo', title: '', notes: '', status: 'open', start: 'inbox', when: null, evening: false, deadline: null, reminder: null,
     projectId: null, areaId: null, headingId: null, tags: [], checklist: [], order: 0, todayOrder: 0, createdAt: 0, modifiedAt: 0,
-    completedAt: null, logged: false, trashed: false, isTemplate: false, repeat: null, next: null, templateId: null, sample: false };
+    completedAt: null, logged: false, trashed: false, isTemplate: false, repeat: null, next: null, templateId: null, sample: false, linkId: null };
 }
 function newProjectShape() {
   return { id: '', type: 'project', title: '', notes: '', status: 'open', start: 'anytime', when: null, evening: false, deadline: null, reminder: null,
@@ -1149,6 +1180,7 @@ function toggleComplete(ids, status = 'done') {
   if (projects.length) { completeProjectFlow(projects[0], status); return; }
   const allDone = items.every((x) => x.status === status);
   commit(status === 'canceled' ? 'Cancel' : 'Complete', () => items.forEach((x) => setStatus(x, allDone ? 'open' : status)));
+  if (!allDone) afterLinkedComplete(items);
   if (!allDone && S.settings.logMode === 'immediate') setTimeout(() => { if (autoLog()) render(); }, 1300);
 }
 async function completeProjectFlow(p, status = 'done') {
@@ -1224,7 +1256,7 @@ function duplicateItems(ids) {
     c.checklist = (t.checklist || []).map((i) => ({ id: uid(), title: i.title, done: i.done }));
     c.order = t.order + 0.001; c.todayOrder = t.todayOrder + 0.001;
     if (c.isTemplate) { c.isTemplate = false; c.repeat = null; c.next = null; c.start = 'anytime'; }
-    c.templateId = null;
+    c.templateId = null; c.linkId = null;
     S.todos.push(c); last = c;
   }));
   if (last) { ui.sel = new Set([last.id]); render(); }
@@ -1558,7 +1590,7 @@ function setRepeat(id, rule) {
     let tpl = t.isTemplate ? t : (t.templateId && itemById(t.templateId)) || null;
     if (!tpl) {
       // the selected item becomes the template; the first copy is generated from it
-      tpl = t; tpl.isTemplate = true; tpl.status = 'open'; tpl.completedAt = null; tpl.logged = false;
+      tpl = t; tpl.isTemplate = true; if (tpl.type === 'todo') tpl.linkId = null; tpl.status = 'open'; tpl.completedAt = null; tpl.logged = false;
       tpl.when = null; tpl.evening = false; tpl.reminder = null; tpl.deadline = null;
       if (tpl.start !== 'anytime') tpl.start = 'anytime';
     }
@@ -1704,6 +1736,7 @@ function rowHTML(x, ctx = {}) {
   if (ctx.when && isScheduledToday(x) && !ctx.star) line += isEveningItem(x) ? ic('moon', 'r-moon') : ic('star', 'r-star');
   line += `<span class="r-title${x.title ? '' : ' untitled'}">${esc(x.title || 'New To-Do')}</span>`;
   if (x.templateId) line += ic('repeat', 'r-ic');
+  if (x.linkId && !x.trashed && linkSiblings(x).length) line += `<span class="ic r-ic r-link" title="Also in ${esc(linkSiblings(x).map(placeLabel).join(', '))}">${I.link}</span>`;
   if (x.reminder && x.when) line += ic('bell', 'r-ic');
   if (x.notes && x.notes.trim()) line += ic('notes', 'r-ic');
   if (x.checklist.length) { const d = x.checklist.filter((c) => c.done).length; line += `<span class="r-ck">${ic('checklist', 'r-ic')}${d}/${x.checklist.length}</span>`; }
@@ -1715,6 +1748,7 @@ function rowHTML(x, ctx = {}) {
 }
 function projRowHTML(p, ctx = {}) {
   const pr = projectProgress(p);
+  const exp = ctx.expandable && ui.expanded.has(p.id);
   const cls = ['row', 'prow']; if (ui.sel.has(p.id)) cls.push('selected'); if (p.status !== 'open') cls.push(p.status); if (p.trashed) cls.push('trashed-row');
   let line = '';
   if (ctx.star && isScheduledToday(p)) line += isEveningItem(p) ? ic('moon', 'r-moon') : ic('star', 'r-star');
@@ -1723,7 +1757,9 @@ function projRowHTML(p, ctx = {}) {
   const sub = [ctx.parent ? parentLabel(p) : '', pr.open ? plural(pr.open, 'to-do') : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(p) + (p.trashed ? `<button class="restore" data-action="restore" data-id="${p.id}">Put Back</button>` : '');
-  return `<div class="${cls.join(' ')}" data-id="${p.id}" data-kind="project" data-drag="project" data-open="project:${p.id}">${lead}${pieIc(pr.frac, 'pie-ic')}<div class="r-main"><div class="r-line">${line}</div>${sub ? `<div class="r-sub">${esc(sub)}</div>` : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
+  const disc = ctx.expandable ? `<button class="disc${exp ? ' open' : ''}" data-action="toggle-expand" data-id="${p.id}" aria-label="${exp ? 'Collapse' : 'Expand'} ${esc(pTitle(p))}" aria-expanded="${exp}" title="${exp ? 'Collapse' : 'Expand'} (⌥-click for all)">${ic('chevR')}</button>` : '';
+  const openBtn = ctx.expandable ? `<button class="ib open-proj" data-nav="project:${p.id}" title="Open project" aria-label="Open ${esc(pTitle(p))}">${ic('move')}</button>` : '';
+  return `<div class="${cls.join(' ')}${ctx.expandable ? ' expandable' : ''}${exp ? ' expanded' : ''}" data-id="${p.id}" data-kind="project" data-drag="project" data-open="project:${p.id}"${ctx.expandable ? ' data-expandable="1"' : ''}>${lead}${disc}${pieIc(pr.frac, 'pie-ic')}<div class="r-main"><div class="r-line">${line}</div>${sub ? `<div class="r-sub">${esc(sub)}</div>` : ''}</div>${right || openBtn ? `<div class="r-right">${right}${openBtn}</div>` : ''}</div>${exp ? projectChildrenHTML(p) : ''}`;
 }
 function ghostRowHTML(tpl, date) {
   if (tpl.type === 'project') return ghostProjRowHTML(tpl, date);
@@ -1776,7 +1812,8 @@ function cardHTML(t) {
   const ckOpen = t.checklist.length || ui.ckOpen === t.id;
   const ck = ckOpen ? `<div class="ck">${t.checklist.map((c) => checklistItemHTML(t, c, tpl)).join('')}<div class="ck-item"><span class="ck-box" style="opacity:.4"></span><textarea class="ck-input" data-edit="ck-new" data-id="${t.id}" data-fkey="cknew-${t.id}" placeholder="Add item" enterkeyhint="next" aria-label="New checklist item" rows="1" data-autosize data-oneline></textarea></div></div>` : '';
   const tags = t.tags.length ? `<div class="c-tags">${t.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
-  const chips = whenChipHTML(t) + repeatChipHTML(t) + deadlineChipHTML(t);
+  const links = linkSiblings(t).map((s) => `<span class="chip linkc${s.status !== 'open' ? ' done' : ''}"><button class="chip-main" data-action="reveal" data-id="${s.id}" title="Go to this copy">${ic('link')}<span>${s.status === 'open' ? 'Also in' : s.status === 'done' ? 'Done in' : 'Canceled in'} ${esc(placeLabel(s))}</span></button></span>`).join('');
+  const chips = whenChipHTML(t) + repeatChipHTML(t) + deadlineChipHTML(t) + links;
   const tools = [
     `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>`,
     !ckOpen ? `<button class="ib" data-action="ck-open" data-id="${t.id}" title="Checklist" aria-label="Checklist">${ic('checklist')}</button>` : '',
@@ -2026,11 +2063,12 @@ function viewArea(a) {
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
   html += `<div class="list">${secHTML(`area:${a.id}`, items, { when: true })}`;
-  html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${active.map((p) => projRowHTML(p, { star: true, when: true })).join('')}</div>`;
+  if (projAll.length) { const allOpen = projAll.every((p) => ui.expanded.has(p.id)), noneOpen = !projAll.some((p) => ui.expanded.has(p.id)); html += `<div class="exp-bar"><span>${plural(projAll.length, 'project')}</span><button class="link-btn" data-action="expand-all" data-id="${a.id}"${allOpen ? ' disabled' : ''}>Expand All</button><button class="link-btn" data-action="collapse-all" data-id="${a.id}"${noneOpen ? ' disabled' : ''}>Collapse All</button></div>`; }
+  html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${active.map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (later.length) {
     const open = ui.laterOpen[a.id];
     html += `<button class="show-more" data-action="toggle-later" data-id="${a.id}">${open ? 'Hide' : 'Show'} ${plural(later.length, 'later project')}</button>`;
-    if (open) html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${later.map((p) => projRowHTML(p, { when: true })).join('')}</div>`;
+    if (open) html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${later.map((p) => projRowHTML(p, { when: true, expandable: true })).join('')}</div>`;
   }
   html += '</div>' + repeatingSectionHTML([...projectTemplatesIn((p) => p.areaId === a.id), ...templatesIn((t) => t.areaId === a.id && !t.projectId)]);
   if (!todosAll.length && !projAll.length) html += emptyHTML('area', 'This area is empty', 'Areas hold the ongoing parts of your life, like Home or Work. Add to-dos here, or create a project inside it from the ••• menu.');
@@ -2464,7 +2502,7 @@ function openMove(ids, anchor, opts = {}) {
       }
       return r;
     }).join('');
-    if (!headingMode && m('inbox')) out += `<button class="pick-i inbox" data-to="inbox">${ic('inbox')}<span>Inbox</span></button>`;
+    if (!headingMode && !opts.noInbox && m('inbox')) out += `<button class="pick-i inbox" data-to="inbox">${ic('inbox')}<span>Inbox</span></button>`;
     out += projRows(null);
     S.areas.slice().sort(byOrder).forEach((a) => {
       const pr = projRows(a.id);
@@ -2474,7 +2512,7 @@ function openMove(ids, anchor, opts = {}) {
     });
     return out || '<p class="note" style="padding:6px 10px">No matching lists.</p>';
   };
-  const L = openLayer({ anchor, cls: 'move-pop', html: `<div class="pk-h">${headingMode ? 'Move Heading' : 'Move'}</div><input class="pk-in" id="mv-in" placeholder="Find a list" autocomplete="off" aria-label="Find a list"><div class="pick-list" id="mv-list">${build()}</div>`,
+  const L = openLayer({ anchor, cls: 'move-pop', html: `<div class="pk-h">${esc(opts.title || (headingMode ? 'Move Heading' : 'Move'))}</div><input class="pk-in" id="mv-in" placeholder="Find a list" autocomplete="off" aria-label="Find a list"><div class="pick-list" id="mv-list">${build()}</div>`,
     onMount: (el) => {
       const inp = $('#mv-in', el), list = $('#mv-list', el);
       const nav = listKeys(el, '.pick-i', inp);
@@ -2829,7 +2867,11 @@ function paintSelection() { $$('#content .row[data-id]').forEach((r) => r.classL
 function rowClick(row, e) {
   const id = row.dataset.id, kind = row.dataset.kind;
   if (ui.selectMode) { ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); paintSelection(); return; }
-  if (kind === 'project') { if (e.metaKey || e.ctrlKey || e.shiftKey) { ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); paintSelection(); return; } navigate(row.dataset.open); return; }
+  if (kind === 'project') {
+    if (e.metaKey || e.ctrlKey || e.shiftKey) { ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); paintSelection(); return; }
+    if (row.dataset.expandable) { if (ui.editing) closeEditor({ noRender: true }); ui.sel = new Set([id]); ui.anchor = id; setExpanded([id], !ui.expanded.has(id)); return; }
+    navigate(row.dataset.open); return;
+  }
   const multi = e.metaKey || e.ctrlKey || e.shiftKey;
   if (!multi && (isMobile() || isCoarse())) { openEditor(id); return; }
   if (ui.editing && ui.editing !== id) closeEditor({ noRender: true });
@@ -2868,6 +2910,8 @@ document.addEventListener('dblclick', (e) => {
   if (isMobile()) return;
   const row = e.target.closest('#content .row[data-kind="todo"]');
   if (row && !e.target.closest('.cb, .card, .restore')) { openEditor(row.dataset.id, { focus: 'title' }); }
+  const prow = e.target.closest('#content .prow[data-expandable]');
+  if (prow && !e.target.closest('.disc, .open-proj')) navigate(prow.dataset.open);
 });
 
 function anchorFor(id) { return document.querySelector(`#content .row[data-id="${CSS.escape(id)}"], #content .card[data-id="${CSS.escape(id)}"]`) || $('#content .lh') || $('#content'); }
@@ -2898,6 +2942,14 @@ function handleAction(act, el, e) {
     case 'heading-menu': headingMenu(getH(id), el); return;
     case 'view-menu': viewMenu(el); return;
     case 'reopen-project': reopenProject(getP(id)); return;
+    case 'toggle-expand': {
+      const on = !ui.expanded.has(id);
+      if (e.altKey && ui.view.type === 'area') setExpanded(areaProjectIds(ui.view.id), on); else setExpanded([id], on);
+      return;
+    }
+    case 'expand-all': setExpanded(areaProjectIds(id), true); return;
+    case 'collapse-all': setExpanded(areaProjectIds(id), false); return;
+    case 'reveal': revealTodo(id); return;
     case 'toggle-logged': ui.showLogged[id] = !ui.showLogged[id]; render(); return;
     case 'toggle-later': ui.laterOpen[id] = !ui.laterOpen[id]; render(); return;
     case 'logbook-more': ui.logbookLimit += 150; render(); return;
@@ -2945,6 +2997,9 @@ function todoMenu(id, el) {
     items.push({ label: 'When…', icon: 'calendar', hint: 'S', fn: () => openWhen([id], el) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
+    if (!t.templateId) items.push({ label: 'Also Add To…', icon: 'link', fn: () => openAlsoAddTo([id], el) });
+    if (linkSiblings(t).some((x) => x.status === 'open') || (t.status === 'open' && linkSiblings(t).length)) items.push({ label: 'Complete Everywhere', icon: 'check', fn: () => completeEverywhere(id) });
+    if (linkSiblings(t).length) items.push({ label: 'Unlink This Copy', icon: 'x', fn: () => unlinkTodo(id) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ label: 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
@@ -2989,6 +3044,8 @@ function areaMenu(a, el, extra = []) {
     ...extra,
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
+    { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
+    { label: 'Collapse All Projects', icon: 'chevR', fn: () => setExpanded(areaProjectIds(a.id), false) },
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
     { label: 'Rename', icon: 'edit', fn: () => { const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
@@ -3017,6 +3074,7 @@ function batchMenuItems(anchor) {
     { label: 'Tags…', icon: 'tag', hint: '#', fn: () => endSelectAfter(openTagPicker(ids, anchor)) },
     { label: 'When…', icon: 'calendar', hint: 'S', fn: () => endSelectAfter(openWhen(ids, anchor)) },
     { label: 'Move…', icon: 'move', hint: 'M', disabled: !todos.length, fn: () => endSelectAfter(openMove(todos, anchor)) },
+    { label: 'Also Add To…', icon: 'link', disabled: !todos.length, fn: () => endSelectAfter(openAlsoAddTo(todos, anchor)) },
     { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
     { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
@@ -3172,6 +3230,7 @@ document.addEventListener('keydown', (e) => {
       newTodo(); return;
     case 'Enter': if (sel.length === 1 && getT(sel[0])) { e.preventDefault(); openEditor(sel[0], { focus: 'title' }); } else if (sel.length === 1 && getP(sel[0])) navigate('project:' + sel[0]); return;
     case 'ArrowDown': case 'ArrowUp': e.preventDefault(); moveSelection(k === 'ArrowDown' ? 1 : -1, e.shiftKey); return;
+    case 'ArrowRight': case 'ArrowLeft': { const r = sel.length === 1 && $(`#content .prow[data-expandable][data-id="${CSS.escape(sel[0])}"]`); if (r) { e.preventDefault(); setExpanded([sel[0]], k === 'ArrowRight'); } return; }
     case 'Backspace': case 'Delete': if (one.length) { e.preventDefault(); trashItems(one); } return;
   }
   if (!one.length) {
@@ -4165,6 +4224,7 @@ function restoreView() {
 }
 function init() {
   loadState();
+  loadExpanded();
   syncLoadState();
   restoreView();
   ui.mobile = isMobile() && !LISTS[(location.hash || '').slice(1)] ? 'home' : 'list';
@@ -4743,6 +4803,120 @@ function openShare(scope) {
         }
       });
     } });
+}
+
+/* ===================== One to-do in several places =====================
+   "Also Add To…" makes a linked copy in another project or area. Linked copies
+   share their title, notes, tags and checklist items; each place keeps its own
+   checkbox (and checklist ticks, dates and position), so it can be checked off
+   in one place or everywhere. */
+function linkSiblings(t) {
+  if (!t || !t.linkId) return [];
+  return S.todos.filter((x) => x !== t && x.linkId === t.linkId && !x.trashed && !x.isDraft && !x.isTemplate);
+}
+function placeLabel(t) {
+  const p = projectOf(t);
+  if (p) { const h = t.headingId && getH(t.headingId); return pTitle(p) + (h && h.title ? ` › ${h.title}` : ''); }
+  const a = areaOf(t); if (a) return aTitle(a);
+  return isInbox(t) ? 'Inbox' : 'No list';
+}
+function samePlace(t, target) {
+  if (target.type === 'project') return t.projectId === target.id;
+  if (target.type === 'area') return !t.projectId && t.areaId === target.id;
+  return false;
+}
+/* the most recently edited copy wins for the shared parts */
+function propagateLinks() {
+  const groups = new Map();
+  for (const t of S.todos) if (t.linkId && !t.trashed && !t.isDraft && !t.isTemplate) { if (!groups.has(t.linkId)) groups.set(t.linkId, []); groups.get(t.linkId).push(t); }
+  let changed = false;
+  for (const g of groups.values()) {
+    if (g.length < 2) continue;
+    const src = g.reduce((a, b) => ((b.modifiedAt || 0) > (a.modifiedAt || 0) ? b : a));
+    const ckKey = (list) => list.map((c) => c.id + '\u0000' + c.title).join('\u0001');
+    for (const t of g) {
+      if (t === src) continue;
+      if (t.title !== src.title) { t.title = src.title; changed = true; }
+      if (t.notes !== src.notes) { t.notes = src.notes; changed = true; }
+      if (t.tags.join() !== src.tags.join()) { t.tags = src.tags.slice(); changed = true; }
+      if (ckKey(t.checklist) !== ckKey(src.checklist)) {
+        const done = new Map(t.checklist.map((c) => [c.id, c.done]));
+        t.checklist = src.checklist.map((c) => ({ id: c.id, title: c.title, done: done.get(c.id) || false }));
+        changed = true;
+      }
+    }
+  }
+  return changed;
+}
+function alsoAddTo(ids, target) {
+  if (target.type === 'inbox' || target.type === 'none') { toast('Pick a project or an area'); return; }
+  let added = 0, skipped = 0;
+  commit('Also Add To', () => ids.forEach((id) => {
+    const t = getT(id);
+    if (!t || t.isTemplate || isTplChild(t) || t.templateId) { skipped++; return; }
+    if ([t, ...linkSiblings(t)].some((x) => samePlace(x, target))) { skipped++; return; }
+    if (!t.linkId) t.linkId = t.id;
+    const c = makeTodo({
+      title: t.title, notes: t.notes, tags: t.tags.slice(), linkId: t.linkId,
+      checklist: t.checklist.map((k) => ({ id: k.id, title: k.title, done: false })),
+      start: t.start === 'inbox' ? 'anytime' : t.start, when: t.when, evening: t.evening, deadline: t.deadline, reminder: t.reminder,
+      projectId: target.type === 'project' ? target.id : null, headingId: target.type === 'project' ? target.headingId || null : null,
+      areaId: target.type === 'area' ? target.id : null, modifiedAt: t.modifiedAt,
+    });
+    c.order = endOrder(S.todos.filter((x) => !x.trashed && containerKey(x) === containerKey(c)));
+    c.todayOrder = orderBetween(t.todayOrder, null)[0];
+    S.todos.push(c); added++;
+  }));
+  const name = target.type === 'project' ? pTitle(getP(target.id)) : aTitle(getA(target.id));
+  if (added) toast(`${added > 1 ? plural(added, 'to-do') + ' are' : 'Also'} in ${name}${added > 1 ? ' too' : ''}`, { undo: true });
+  else if (skipped) toast(ids.length > 1 ? `Those to-dos are already in ${name}` : `Already in ${name}`);
+}
+function openAlsoAddTo(ids, anchor) {
+  ids = ids.filter((id) => { const t = getT(id); return t && !t.isTemplate && !isTplChild(t) && !t.templateId; });
+  if (!ids.length) { toast('Repeating to-dos can’t be in more than one place'); return null; }
+  return openMove(ids, anchor, { title: 'Also Add To', noInbox: true, onPick: (target) => alsoAddTo(ids, target) });
+}
+function completeEverywhere(id) {
+  const t = getT(id); if (!t) return;
+  const all = [t, ...linkSiblings(t)].filter((x) => x.status === 'open');
+  if (!all.length) return;
+  commit('Complete Everywhere', () => all.forEach((x) => setStatus(x, 'done')));
+  toast(`Completed in ${plural([t, ...linkSiblings(t)].length, 'place')}`, { undo: true });
+}
+function unlinkTodo(id) {
+  const t = getT(id); if (!t) return;
+  commit('Unlink', () => { t.linkId = null; touch(t); });
+  toast('This copy is now separate', { undo: true });
+}
+/* after checking one copy off, offer the others */
+function afterLinkedComplete(items) {
+  if (items.length !== 1) return;
+  const t = items[0]; if (t.status !== 'done') return;
+  const open = linkSiblings(t).filter((x) => x.status === 'open');
+  if (!open.length) return;
+  toast(`Done in ${placeLabel(t)}. Still open in ${open.length > 1 ? plural(open.length, 'other place') : placeLabel(open[0])}.`, { action: 'Complete Everywhere', fn: () => completeEverywhere(t.id), ms: 7000 });
+}
+
+/* ---- expandable projects inside an area ---- */
+function loadExpanded() { try { ui.expanded = new Set(JSON.parse(lsGet('sectis.expanded') || '[]')); } catch (e) { ui.expanded = new Set(); } }
+function setExpanded(ids, on) {
+  ids.forEach((id) => (on ? ui.expanded.add(id) : ui.expanded.delete(id)));
+  lsSet('sectis.expanded', JSON.stringify([...ui.expanded]));
+  render();
+}
+function areaProjectIds(areaId) { return S.projects.filter((p) => p.areaId === areaId && liveProject(p)).map((p) => p.id); }
+function projectChildrenHTML(p) {
+  const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged)).filter(matchesTagFilter);
+  const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
+  const ctx = { when: true };
+  let html = `<div class="pchildren" data-children="${p.id}">`;
+  html += secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
+  headings.forEach((h) => {
+    const ts = todos.filter((t) => t.headingId === h.id).sort(byOrder);
+    html += `<div class="sub-h" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
+  });
+  if (!todos.length) html += `<div class="pchildren-empty">No to-dos yet</div>`;
+  return html + '</div>';
 }
 
 /* ===================== Start ===================== */
