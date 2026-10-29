@@ -102,6 +102,7 @@ function handleAction(act, el, e) {
     case 'b-tags': endSelectAfter(openTagPicker(selectedIds(), el)); return;
     case 'b-deadline': endSelectAfter(openWhen(selectedIds(), el, 'deadline')); return;
     case 'b-complete': completeIds(selectedIds()); ui.sel.clear(); ui.selectMode = false; render(); return;
+    case 'b-share': openShare({ type: 'items', ids: selectedIds() }); return;
     case 'b-delete': trashItems(selectedIds()); ui.selectMode = false; render(); return;
     default: return;
   }
@@ -121,6 +122,7 @@ function todoMenu(id, el) {
   if (isTplChild(t)) {
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
+    items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ sep: 1 }, { label: 'Delete To-Do', icon: 'trash', danger: true, fn: () => trashItems([id]) });
   } else if (t.isTemplate) {
     items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(id, el) });
@@ -131,6 +133,7 @@ function todoMenu(id, el) {
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
+    items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ label: 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
     items.push({ sep: 1 });
     items.push(t.status === 'canceled' ? { label: 'Mark as Open', icon: 'reopen', fn: () => toggleComplete([id], 'canceled') } : { label: 'Mark as Canceled', icon: 'cancel', fn: () => toggleComplete([id], 'canceled') });
@@ -159,6 +162,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => newHeading(p.id) });
+    items.push({ label: 'Share Project…', icon: 'share', fn: () => openShare({ type: 'items', ids: [p.id] }) });
     items.push(src ? { label: 'Edit Repeating Project', icon: 'repeat', fn: () => navigate('project:' + src.id) } : { label: 'Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
@@ -172,6 +176,7 @@ function areaMenu(a, el, extra = []) {
     ...extra,
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
+    { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
     { label: 'Rename', icon: 'edit', fn: () => { const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
     { sep: 1 }, { label: 'Delete Area…', icon: 'trash', danger: true, fn: () => deleteArea(a) },
@@ -203,6 +208,7 @@ function batchMenuItems(anchor) {
     { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: 'Delete', icon: 'trash', danger: true, fn: () => { trashItems(ids); ui.selectMode = false; render(); } },
+    { label: 'Share…', icon: 'share', fn: () => openShare({ type: 'items', ids }) },
     { label: 'Clear Selection', icon: 'x', fn: () => { ui.sel.clear(); ui.selectMode = false; render(); } },
     { sep: 1 },
   ];
@@ -225,6 +231,7 @@ function viewMenu(el) {
   if (isMobile() && !['logbook', 'trash', 'tag'].includes(v)) items.push(selectModeItem());
   if (v === 'today') items.push({ label: S.settings.groupToday ? 'Don’t Group by Project' : 'Group by Project & Area', icon: 'layers', fn: () => { S.settings.groupToday = !S.settings.groupToday; saveSoon(); render(); } });
   const unlogged = S.todos.concat(S.projects).some((x) => x.status !== 'open' && !x.logged);
+  if (v !== 'trash') items.push({ label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) });
   items.push({ label: 'Log Completed Now', icon: 'logbook', disabled: !unlogged, fn: logCompletedNow });
   if (v === 'trash') items.push({ label: 'Empty Trash…', icon: 'trash', danger: true, fn: emptyTrash });
   items.push({ sep: 1 }, { label: 'Keyboard Shortcuts', icon: 'key', fn: openShortcuts }, { label: 'Settings', icon: 'gear', fn: openSettings });

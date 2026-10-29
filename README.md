@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.4.0
+Version 1.5.0
 
 ## What's in it
 
@@ -23,6 +23,7 @@ Version 1.4.0
 - **Undo** for everything (`⌘Z`)
 - **Keyboard shortcuts** for nearly everything. Press `?` in the app to see them all
 - **Light and dark** themes that follow your system, or pick one in Settings
+- **Share and export**: send any list, area, project, selection or single to-do as text (Messages, Mail, Notes), Markdown, or a spreadsheet file, or print it / save as PDF. Find **Share…** in the ••• menus, the selection bar, and a to-do's own menu
 - **Backup**: export and import a JSON file. Paste a plain list to add it as to-dos
 - **Sync** between your Mac and iPhone through your own Firebase project, encrypted on your device before upload
 

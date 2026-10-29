@@ -594,3 +594,19 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 }
 
 .pop:focus, .pop:focus-visible { outline: none; }
+
+/* share */
+.share-modal .sh-fmt { margin-bottom: 4px; }
+.sh-opts { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 6px 0 10px; }
+.sh-opt { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.share-modal #sh-out { min-height: 220px; white-space: pre-wrap; overflow: auto; }
+#print-root { display: none; }
+@media print {
+  html.printing, html.printing body { height: auto !important; overflow: visible !important; background: #fff !important; padding: 0 !important; }
+  html.printing body > *:not(#print-root) { display: none !important; }
+  html.printing #print-root { display: block !important; }
+}
+@media (max-width: 760px) {
+  .share-modal .modal-f .btn { flex: 1 1 0; margin-right: 0 !important; white-space: nowrap; }
+  .share-modal .modal-f .btn.primary { order: -1; flex-basis: 100%; padding-block: 11px; }
+}

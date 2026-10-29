@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.4.0';
+const APP_VERSION = '1.5.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -176,6 +176,7 @@ const I = {
   edit: svg('<path d="M4 20h4.5L19.3 9.2a2 2 0 0 0 0-2.8l-1.7-1.7a2 2 0 0 0-2.8 0L4 15.5z"/>'),
   cloud: svg('<path d="M7.2 18.5h10.1a4 4 0 0 0 .5-7.97A5.6 5.6 0 0 0 7 9.6a4.45 4.45 0 0 0 .2 8.9z"/>'),
   grip: svg('<circle class="fill" cx="9" cy="6.5" r="1.5"/><circle class="fill" cx="15" cy="6.5" r="1.5"/><circle class="fill" cx="9" cy="12" r="1.5"/><circle class="fill" cx="15" cy="12" r="1.5"/><circle class="fill" cx="9" cy="17.5" r="1.5"/><circle class="fill" cx="15" cy="17.5" r="1.5"/>'),
+  share: svg('<path d="M12 3.5v11M8 7.2 12 3.5l4 3.7"/><path d="M8.5 10H7a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2h-1.5"/>'),
   bolt: svg('<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>'),
 };
 const ic = (name, cls = '') => `<span class="ic ${cls}">${I[name] || ''}</span>`;

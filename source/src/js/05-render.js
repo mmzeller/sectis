@@ -477,7 +477,7 @@ function renderBatch() {
   el.innerHTML = `<div class="batch" role="toolbar" aria-label="Selected to-dos"><span class="bcount">${n} selected</span>
     <button data-action="b-when" ${n ? '' : 'disabled'}>${ic('calendar')}When</button><button data-action="b-move" ${n ? '' : 'disabled'}>${ic('move')}Move</button>
     <button data-action="b-tags" ${n ? '' : 'disabled'}>${ic('tag')}Tags</button><button data-action="b-deadline" ${n ? '' : 'disabled'}>${ic('flag')}Deadline</button>
-    <button data-action="b-complete" ${n ? '' : 'disabled'}>${ic('check')}Complete</button><button data-action="b-delete" ${n ? '' : 'disabled'}>${ic('trash')}Delete</button></div>`;
+    <button data-action="b-complete" ${n ? '' : 'disabled'}>${ic('check')}Complete</button><button data-action="b-share" ${n ? '' : 'disabled'}>${ic('share')}Share</button><button data-action="b-delete" ${n ? '' : 'disabled'}>${ic('trash')}Delete</button></div>`;
 }
 
 function visibleInCurrentView(x) {
