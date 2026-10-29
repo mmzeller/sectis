@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.15.0
+Version 1.16.0
 
 ## What's in it
 
@@ -29,6 +29,8 @@ Version 1.15.0
 - **Undo** for everything (`⌘Z`)
 - **Keyboard shortcuts** for nearly everything. Press `?` in the app to see them all
 - **Board** (Mac): put projects and areas side by side in columns, like a kanban board. Use **Add Column**, **Add to Board** in any project or area's ••• menu (or right-click it in the sidebar), or an area's **Open as Board** to lay out all its projects. Drag to-dos between columns, check them off, or add new ones with each column's +. Drag a column's right edge to make it wider or narrower (double-click the edge to fit automatically). Press `8` to open it
+- **Sort any list** by deadline, date, title or recently added from its ••• menu (**Sort By…**), or keep your own manual order. Each list remembers its sort on each device
+- **Compact rows** (Settings → Row spacing, or the Board's ••• menu) fit more to-dos on screen
 - **Light and dark** themes that follow your system, or pick one in Settings
 - **Share and export**: send any list, area, project, selection or single to-do as text (Messages, Mail, Notes), Markdown, or a spreadsheet file, or print it / save as PDF. Use the share button at the top of any list, project or area, or **Share…** in the ••• menus, the selection bar and a to-do's own menu
 - **Backup**: export and import a JSON file. Paste a plain list to add it as to-dos

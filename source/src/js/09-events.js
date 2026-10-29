@@ -105,6 +105,7 @@ function handleAction(act, el, e) {
       return;
     }
     case 'board-add': openBoardPicker(el); return;
+    case 'sort-menu': openSortMenu(el); return;
     case 'waiting': openWaiting([id], el); return;
     case 'stop-waiting': stopWaiting([id]); return;
     case 'proj-board': setProjectBoard(id, !ui.projBoard.has(id)); return;
@@ -218,6 +219,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
     items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
     if (!isMobile()) items.push({ label: ui.projBoard.has(p.id) ? 'Show as List' : 'Show Headings as Board', icon: 'columns', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); setProjectBoard(p.id, !ui.projBoard.has(p.id)); } });
+    if (ui.view.type === 'project' && ui.view.id === p.id && !isColMenu(extra)) items.push(sortMenuItem(el));
     items.push({ label: 'Add To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'], sec: `project:${p.id}:` }) });
     items.push({ label: 'Save as Template', icon: 'template', fn: () => saveProjectAsTemplate(p) });
     items.push({ label: 'Share Project…', icon: 'share', fn: () => openShare({ type: 'items', ids: [p.id] }) });
@@ -246,6 +248,7 @@ function areaMenu(a, el, extra = []) {
     { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
     { label: ui.sbCollapsed.size ? 'Show All Projects in Sidebar' : 'Hide All Projects in Sidebar', icon: 'layers', fn: () => setSidebarAreas(!ui.sbCollapsed.size) },
     { label: 'Collapse All Projects', icon: 'chevR', fn: () => setExpanded(areaProjectIds(a.id), false) },
+    ...(ui.view.type === 'area' && ui.view.id === a.id && !isColMenu(extra) ? [sortMenuItem(el)] : []),
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
     { label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
@@ -318,6 +321,8 @@ function viewMenu(el) {
     openMenu(el, [...batch,
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
       { label: 'Fit All Widths Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w), fn: resetAllWidths },
+      sortMenuItem(el),
+      { label: S.settings.density === 'compact' ? 'Comfortable Rows' : 'Compact Rows', icon: 'layers', fn: toggleCompact },
       { label: 'Status Report…', icon: 'report', disabled: !n, fn: () => openReport({ type: 'board' }) },
       { label: 'Remove All Columns', icon: 'x', disabled: !n, fn: () => { const prev = ui.board.slice(); ui.board = []; saveBoard(); render(); toast('Board cleared', { action: 'Undo', fn: () => { ui.board = prev; saveBoard(); render(); } }); } },
     ]);
@@ -327,6 +332,7 @@ function viewMenu(el) {
   if (v === 'today') items.push({ label: S.settings.groupToday ? 'Don’t Group by Project' : 'Group by Project & Area', icon: 'layers', fn: () => { S.settings.groupToday = !S.settings.groupToday; saveSoon(); render(); } });
   const unlogged = S.todos.concat(S.projects).some((x) => x.status !== 'open' && !x.logged);
   if (['inbox', 'today', 'upcoming', 'anytime', 'someday', 'tag'].includes(v)) items.push({ label: 'New To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'] }) });
+  if (sortableView()) items.push(sortMenuItem(el));
   if (v !== 'trash') items.push({ label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) });
   if (v !== 'trash') items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'all' }) });
   items.push({ label: 'Log Completed Now', icon: 'logbook', disabled: !unlogged, fn: logCompletedNow });
@@ -491,6 +497,7 @@ function moveSelection(dir, extend) {
 }
 function nudge(ids, dir) {
   if (ids.length !== 1) return;
+  if (currentSort() !== 'manual') { sortedHint(); return; }
   const row = $(`#content .row[data-id="${CSS.escape(ids[0])}"]`); if (!row) return;
   const sec = row.closest('[data-sec]'); if (!sec || !sectionAccepts(sec.dataset.sec, 'todo')) return;
   const ok = sec.dataset.ok || 'order';

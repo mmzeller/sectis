@@ -787,6 +787,30 @@ body.col-resizing .board { scroll-snap-type: none; }
 .report-modal .ta { min-height: 280px; }
 .report-modal a.btn { display: inline-flex; align-items: center; text-decoration: none; color: inherit; }
 
+/* sorted lists */
+.sort-pill { flex: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 3px 10px 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-tint); white-space: nowrap; }
+.sort-pill .ic { width: 13px; height: 13px; }
+.sort-pill:hover { filter: brightness(1.05); }
+@media (max-width: 760px) { .sort-pill { margin-top: 8px; } }
+
+/* compact rows */
+#app.compact { --row-h: 26px; }
+#app.compact .row { padding-top: 3px; padding-bottom: 3px; }
+#app.compact .r-sub { margin-top: 0; font-size: 11.5px; }
+#app.compact .sec-h { margin-top: 14px; }
+#app.compact .sub-h { margin-top: 8px; }
+#app.compact .hrow { margin-top: 12px; }
+#app.compact .bcol { padding-top: 6px; padding-bottom: 6px; }
+#app.compact .bcol-h { padding-bottom: 6px; margin-bottom: 2px; }
+#app.compact .board { gap: 10px; }
+#app.compact .r-cklist { margin-top: 3px; }
+#app.compact .r-ckit { padding: 1px 0; }
+@media (max-width: 760px) {
+  #app.compact { --row-h: 36px; }
+  #app.compact .row { padding-top: 6px; padding-bottom: 6px; }
+  #app.compact .r-ckit { padding: 4px 0; }
+}
+
 </style>
 </head>
 <body>
@@ -804,7 +828,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.15.0';
+const APP_VERSION = '1.16.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -959,6 +983,8 @@ const I = {
   search: svg('<circle cx="10.6" cy="10.6" r="6.4"/><path d="m15.4 15.4 5 5"/>'),
   plus: svg('<path d="M12 5v14M5 12h14"/>'),
   more: svg('<circle class="fill" cx="5.5" cy="12" r="1.7"/><circle class="fill" cx="12" cy="12" r="1.7"/><circle class="fill" cx="18.5" cy="12" r="1.7"/>'),
+  sort: svg('<path d="M7.5 4.5v15M4.3 16.3l3.2 3.2 3.2-3.2M16.5 19.5v-15M13.3 7.7l3.2-3.2 3.2 3.2"/>'),
+  blank: svg(''),
   report: svg('<rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8.5 15.5v-3M12 15.5v-6M15.5 15.5v-4.5"/>'),
   hourglass: svg('<path d="M6.5 3.5h11M6.5 20.5h11M8 3.5v2.4c0 2.3 1.7 3.7 4 6.1-2.3 2.4-4 3.8-4 6.1v2.4M16 3.5v2.4c0 2.3-1.7 3.7-4 6.1 2.3 2.4 4 3.8 4 6.1v2.4"/>'),
   template: svg('<rect x="4.5" y="3.5" width="15" height="17" rx="2.5" stroke-dasharray="3.2 2.4"/><path d="M8.5 9.5h7M8.5 13h7M8.5 16.5h4"/>'),
@@ -1011,7 +1037,7 @@ const ui = {
 };
 
 function defaultSettings() {
-  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own' };
+  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable' };
 }
 function emptyState() {
   return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
@@ -1838,6 +1864,7 @@ function renderShell() {
   app.classList.toggle('m-list', ui.mobile !== 'home');
   app.classList.toggle('sel-mode', ui.selectMode);
   app.classList.toggle('touch', isCoarse());
+  app.classList.toggle('compact', S.settings.density === 'compact');
   const magic = $('#magic');
   const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash', 'templates'].includes(ui.view.type));
   magic.classList.toggle('hidden-in', hide);
@@ -1985,6 +2012,8 @@ function ghostProjRowHTML(p, date) {
   return `<div class="row ghost" data-nav="project:${p.id}" title="Repeating project — click to edit">${ic('repeat', 'r-ic')}<div class="r-main"><div class="r-line">${date ? `<span class="r-when">${esc(fmtRel(date))}</span>` : ''}<span class="r-title" style="font-weight:600">${esc(pTitle(p))}</span>${tagPills(p)}</div><div class="r-sub">${esc(ruleSummary(p.repeat))}${n ? ' · ' + plural(n, 'to-do') : ''}${p.areaId && getA(p.areaId) ? ' · ' + esc(aTitle(getA(p.areaId))) : ''}</div></div></div>`;
 }
 function secHTML(sec, items, ctx = {}, okey = 'order') {
+  const mode = currentSort();
+  if (mode !== 'manual' && SORT_SEC.test(sec)) items = sortItems(items, mode);
   return `<div class="sec" data-sec="${sec}" data-ok="${okey}">${items.map((x) => rowHTML(x, ctx)).join('')}</div>`;
 }
 
@@ -2088,6 +2117,7 @@ function renderMain() {
   }
   $('#content').classList.toggle('board-view', ui.view.type === 'board' || (ui.view.type === 'project' && projectBoardOn(getP(ui.view.id))));
   $('#content').innerHTML = mobileBarHTML() + html;
+  addSortPill();
 }
 function viewInbox() {
   const all = inboxItems();
@@ -3029,6 +3059,7 @@ function performDrop(st, t) {
   const ids = st.ids;
   if (t.type === 'list') return dropOnList(ids, t.key, st.kind, t.el);
   if (t.type === 'sec') {
+    if (st.kind !== 'magic' && currentSort() !== 'manual' && SORT_SEC.test(t.sec) && st.src && st.src.closest('[data-sec]') === t.secEl) { sortedHint(); return; } // can't hand-arrange a sorted list
     const secEl = t.secEl, ok = secEl.dataset.ok || 'order';
     const rows = $$(':scope > .row[data-id]', secEl).filter((r) => !ids.includes(r.dataset.id));
     const prev = rowItem(rows[t.index - 1]), next = rowItem(rows[t.index]);
@@ -3203,6 +3234,7 @@ function handleAction(act, el, e) {
       return;
     }
     case 'board-add': openBoardPicker(el); return;
+    case 'sort-menu': openSortMenu(el); return;
     case 'waiting': openWaiting([id], el); return;
     case 'stop-waiting': stopWaiting([id]); return;
     case 'proj-board': setProjectBoard(id, !ui.projBoard.has(id)); return;
@@ -3316,6 +3348,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
     items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
     if (!isMobile()) items.push({ label: ui.projBoard.has(p.id) ? 'Show as List' : 'Show Headings as Board', icon: 'columns', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); setProjectBoard(p.id, !ui.projBoard.has(p.id)); } });
+    if (ui.view.type === 'project' && ui.view.id === p.id && !isColMenu(extra)) items.push(sortMenuItem(el));
     items.push({ label: 'Add To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'], sec: `project:${p.id}:` }) });
     items.push({ label: 'Save as Template', icon: 'template', fn: () => saveProjectAsTemplate(p) });
     items.push({ label: 'Share Project…', icon: 'share', fn: () => openShare({ type: 'items', ids: [p.id] }) });
@@ -3344,6 +3377,7 @@ function areaMenu(a, el, extra = []) {
     { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
     { label: ui.sbCollapsed.size ? 'Show All Projects in Sidebar' : 'Hide All Projects in Sidebar', icon: 'layers', fn: () => setSidebarAreas(!ui.sbCollapsed.size) },
     { label: 'Collapse All Projects', icon: 'chevR', fn: () => setExpanded(areaProjectIds(a.id), false) },
+    ...(ui.view.type === 'area' && ui.view.id === a.id && !isColMenu(extra) ? [sortMenuItem(el)] : []),
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
     { label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
@@ -3416,6 +3450,8 @@ function viewMenu(el) {
     openMenu(el, [...batch,
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
       { label: 'Fit All Widths Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w), fn: resetAllWidths },
+      sortMenuItem(el),
+      { label: S.settings.density === 'compact' ? 'Comfortable Rows' : 'Compact Rows', icon: 'layers', fn: toggleCompact },
       { label: 'Status Report…', icon: 'report', disabled: !n, fn: () => openReport({ type: 'board' }) },
       { label: 'Remove All Columns', icon: 'x', disabled: !n, fn: () => { const prev = ui.board.slice(); ui.board = []; saveBoard(); render(); toast('Board cleared', { action: 'Undo', fn: () => { ui.board = prev; saveBoard(); render(); } }); } },
     ]);
@@ -3425,6 +3461,7 @@ function viewMenu(el) {
   if (v === 'today') items.push({ label: S.settings.groupToday ? 'Don’t Group by Project' : 'Group by Project & Area', icon: 'layers', fn: () => { S.settings.groupToday = !S.settings.groupToday; saveSoon(); render(); } });
   const unlogged = S.todos.concat(S.projects).some((x) => x.status !== 'open' && !x.logged);
   if (['inbox', 'today', 'upcoming', 'anytime', 'someday', 'tag'].includes(v)) items.push({ label: 'New To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'] }) });
+  if (sortableView()) items.push(sortMenuItem(el));
   if (v !== 'trash') items.push({ label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) });
   if (v !== 'trash') items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'all' }) });
   items.push({ label: 'Log Completed Now', icon: 'logbook', disabled: !unlogged, fn: logCompletedNow });
@@ -3589,6 +3626,7 @@ function moveSelection(dir, extend) {
 }
 function nudge(ids, dir) {
   if (ids.length !== 1) return;
+  if (currentSort() !== 'manual') { sortedHint(); return; }
   const row = $(`#content .row[data-id="${CSS.escape(ids[0])}"]`); if (!row) return;
   const sec = row.closest('[data-sec]'); if (!sec || !sectionAccepts(sec.dataset.sec, 'todo')) return;
   const ok = sec.dataset.ok || 'order';
@@ -3791,7 +3829,7 @@ function openSettings() {
   const notifState = !('Notification' in window) || IN_FRAME ? 'unavailable' : Notification.permission;
   const fsOK = fileSyncSupported();
   const build = () => `<div class="modal-h"><h2>Settings</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">
-    <div class="set-sec"><h3>Appearance</h3><div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']])}</div></div>
+    <div class="set-sec"><h3>Appearance</h3><div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']])}</div><div class="set-row"><span class="lbl">Row spacing<small>Compact fits more to-dos on screen, handy on the Board. Each device keeps its own.</small></span>${seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']])}</div></div>
     <div class="set-sec"><h3>Lists</h3>
       <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
       <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
@@ -4595,6 +4633,7 @@ function init() {
   loadState();
   loadExpanded();
   loadBoard();
+  loadSorts();
   syncLoadState();
   restoreView();
   ui.mobile = isMobile() && !LISTS[(location.hash || '').slice(1)] ? 'home' : 'list';
@@ -5934,6 +5973,53 @@ function openReport(scope = { type: 'all' }) {
     } });
   return L;
 }
+
+/* ===================== Sorting and compact rows =====================
+   Each list can be sorted by deadline, date, title or when it was added, instead of the
+   order you arrange by hand. The choice is per list and per device (sectis.sort).
+   Compact rows (Settings → Row spacing) fit more on screen. */
+const SORTS = [['manual', 'Manual Order'], ['deadline', 'Deadline'], ['when', 'Date'], ['title', 'Title'], ['added', 'Recently Added']];
+const SORT_LABEL = { manual: 'Manual', deadline: 'Deadline', when: 'Date', title: 'Title', added: 'Recently Added' };
+const SORT_SEC = /^(inbox|today|evening|anytime|someday|project|area|tag|waiting)/; // not Upcoming or the Logbook, which have their own order
+function loadSorts() { try { ui.sorts = JSON.parse(lsGet('sectis.sort') || '{}') || {}; } catch (e) { ui.sorts = {}; } }
+function sortKeyFor(v = ui.view) { return v.id ? `${v.type}:${v.id}` : v.type; }
+function sortableView(v = ui.view) { return ['inbox', 'today', 'anytime', 'someday', 'project', 'area', 'tag', 'waiting', 'board'].includes(v.type); }
+function currentSort() { return sortableView() ? (ui.sorts || {})[sortKeyFor()] || 'manual' : 'manual'; }
+function setSort(mode) {
+  ui.sorts = ui.sorts || {};
+  const k = sortKeyFor();
+  if (mode === 'manual') delete ui.sorts[k]; else ui.sorts[k] = mode;
+  lsSet('sectis.sort', JSON.stringify(ui.sorts)); render();
+}
+function sortItems(items, mode) {
+  const T = T0();
+  const name = (x) => (x.type === 'project' ? pTitle(x) : x.title || '');
+  // items without the value keep their hand-arranged order, after the rest
+  const by = (f) => items.slice().sort((a, b) => { const x = f(a), y = f(b); if (x === y) return 0; if (x == null) return 1; if (y == null) return -1; return x < y ? -1 : 1; });
+  if (mode === 'deadline') return by((x) => x.deadline || null);
+  if (mode === 'when') return by((x) => (x.start === 'someday' ? '9999-12-31' : x.when ? (x.when < T ? T : x.when) : null));
+  if (mode === 'title') return items.slice().sort((a, b) => name(a).localeCompare(name(b), undefined, { numeric: true, sensitivity: 'base' }));
+  if (mode === 'added') return items.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  return items;
+}
+function sortMenuItem(anchor) { return { label: 'Sort By…', icon: 'sort', hint: SORT_LABEL[currentSort()], fn: () => openSortMenu(anchor) }; }
+function openSortMenu(anchor) {
+  const cur = currentSort();
+  return openMenu(anchor, [{ header: 'Sort By' }, ...SORTS.map(([v, l]) => ({ label: l, icon: v === cur ? 'check' : 'blank', fn: () => setSort(v) }))]);
+}
+/* a small "Sorted by …" button in the list header, so a sorted list never looks like it lost your order */
+function addSortPill() {
+  const mode = currentSort(); if (mode === 'manual') return;
+  const lh = $('#content .lh'); if (!lh) return;
+  const b = document.createElement('button');
+  b.className = 'sort-pill'; b.dataset.action = 'sort-menu'; b.title = 'Sorted by ' + SORT_LABEL[mode] + '. Click to change.';
+  b.innerHTML = `${ic('sort')}<span>${esc(SORT_LABEL[mode])}</span>`;
+  lh.insertBefore(b, lh.querySelector('.lh-board, .lh-share, .board-add, [data-action="view-menu"], [data-action="proj-menu"], [data-action="area-menu"]'));
+}
+function sortedHint() {
+  toast(`This list is sorted by ${SORT_LABEL[currentSort()]}. Switch to Manual Order to arrange it by hand.`, { action: 'Manual Order', fn: () => setSort('manual'), ms: 6000 });
+}
+function toggleCompact() { S.settings.density = S.settings.density === 'compact' ? 'comfortable' : 'compact'; saveSoon(); render(); }
 
 /* ===================== Start ===================== */
 init();

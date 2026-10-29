@@ -55,6 +55,7 @@ function renderShell() {
   app.classList.toggle('m-list', ui.mobile !== 'home');
   app.classList.toggle('sel-mode', ui.selectMode);
   app.classList.toggle('touch', isCoarse());
+  app.classList.toggle('compact', S.settings.density === 'compact');
   const magic = $('#magic');
   const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash', 'templates'].includes(ui.view.type));
   magic.classList.toggle('hidden-in', hide);
@@ -202,6 +203,8 @@ function ghostProjRowHTML(p, date) {
   return `<div class="row ghost" data-nav="project:${p.id}" title="Repeating project — click to edit">${ic('repeat', 'r-ic')}<div class="r-main"><div class="r-line">${date ? `<span class="r-when">${esc(fmtRel(date))}</span>` : ''}<span class="r-title" style="font-weight:600">${esc(pTitle(p))}</span>${tagPills(p)}</div><div class="r-sub">${esc(ruleSummary(p.repeat))}${n ? ' · ' + plural(n, 'to-do') : ''}${p.areaId && getA(p.areaId) ? ' · ' + esc(aTitle(getA(p.areaId))) : ''}</div></div></div>`;
 }
 function secHTML(sec, items, ctx = {}, okey = 'order') {
+  const mode = currentSort();
+  if (mode !== 'manual' && SORT_SEC.test(sec)) items = sortItems(items, mode);
   return `<div class="sec" data-sec="${sec}" data-ok="${okey}">${items.map((x) => rowHTML(x, ctx)).join('')}</div>`;
 }
 
@@ -305,6 +308,7 @@ function renderMain() {
   }
   $('#content').classList.toggle('board-view', ui.view.type === 'board' || (ui.view.type === 'project' && projectBoardOn(getP(ui.view.id))));
   $('#content').innerHTML = mobileBarHTML() + html;
+  addSortPill();
 }
 function viewInbox() {
   const all = inboxItems();

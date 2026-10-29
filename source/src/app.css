@@ -765,3 +765,27 @@ body.col-resizing .board { scroll-snap-type: none; }
 .report-modal .rp-period { flex-wrap: wrap; }
 .report-modal .ta { min-height: 280px; }
 .report-modal a.btn { display: inline-flex; align-items: center; text-decoration: none; color: inherit; }
+
+/* sorted lists */
+.sort-pill { flex: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 3px 10px 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-tint); white-space: nowrap; }
+.sort-pill .ic { width: 13px; height: 13px; }
+.sort-pill:hover { filter: brightness(1.05); }
+@media (max-width: 760px) { .sort-pill { margin-top: 8px; } }
+
+/* compact rows */
+#app.compact { --row-h: 26px; }
+#app.compact .row { padding-top: 3px; padding-bottom: 3px; }
+#app.compact .r-sub { margin-top: 0; font-size: 11.5px; }
+#app.compact .sec-h { margin-top: 14px; }
+#app.compact .sub-h { margin-top: 8px; }
+#app.compact .hrow { margin-top: 12px; }
+#app.compact .bcol { padding-top: 6px; padding-bottom: 6px; }
+#app.compact .bcol-h { padding-bottom: 6px; margin-bottom: 2px; }
+#app.compact .board { gap: 10px; }
+#app.compact .r-cklist { margin-top: 3px; }
+#app.compact .r-ckit { padding: 1px 0; }
+@media (max-width: 760px) {
+  #app.compact { --row-h: 36px; }
+  #app.compact .row { padding-top: 6px; padding-bottom: 6px; }
+  #app.compact .r-ckit { padding: 4px 0; }
+}

@@ -186,6 +186,7 @@ function performDrop(st, t) {
   const ids = st.ids;
   if (t.type === 'list') return dropOnList(ids, t.key, st.kind, t.el);
   if (t.type === 'sec') {
+    if (st.kind !== 'magic' && currentSort() !== 'manual' && SORT_SEC.test(t.sec) && st.src && st.src.closest('[data-sec]') === t.secEl) { sortedHint(); return; } // can't hand-arrange a sorted list
     const secEl = t.secEl, ok = secEl.dataset.ok || 'order';
     const rows = $$(':scope > .row[data-id]', secEl).filter((r) => !ids.includes(r.dataset.id));
     const prev = rowItem(rows[t.index - 1]), next = rowItem(rows[t.index]);

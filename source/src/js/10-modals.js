@@ -189,7 +189,7 @@ function openSettings() {
   const notifState = !('Notification' in window) || IN_FRAME ? 'unavailable' : Notification.permission;
   const fsOK = fileSyncSupported();
   const build = () => `<div class="modal-h"><h2>Settings</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">
-    <div class="set-sec"><h3>Appearance</h3><div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']])}</div></div>
+    <div class="set-sec"><h3>Appearance</h3><div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']])}</div><div class="set-row"><span class="lbl">Row spacing<small>Compact fits more to-dos on screen, handy on the Board. Each device keeps its own.</small></span>${seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']])}</div></div>
     <div class="set-sec"><h3>Lists</h3>
       <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
       <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
