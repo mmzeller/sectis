@@ -193,6 +193,8 @@ function openSettings() {
     <div class="set-sec"><h3>Lists</h3>
       <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
       <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
+      <div class="set-row"><span class="lbl">To-dos take on the tags of their project and area<small>When you add or move a to-do into a project or area, it gets that place’s tags. Moving it elsewhere swaps them.</small></span>${sw('inheritTags')}</div>
+      <div class="set-row"><span class="lbl">Tag to-dos already in projects and areas<small>Adds each project’s and area’s tags to the to-dos inside it now. You can undo it.</small></span><button class="btn" data-s="retag-all">Tag Them Now</button></div>
       <div class="set-row"><span class="lbl">Week starts on</span>${seg('weekStart', [[0, 'Sunday'], [1, 'Monday']])}</div>
       <div class="set-row"><span class="lbl">Quick Entry reads dates and tags<small>“Pay rent friday #Home !oct 31” sets When, tag and deadline.</small></span>${sw('parseEntry')}</div></div>
     <div class="set-sec"><h3>Sync</h3>${syncSettingsHTML()}</div>
@@ -218,6 +220,16 @@ function openSettings() {
       const b = e.target.closest('[data-s]'); if (!b) return;
       const act = b.dataset.s;
       if (act === 'tags') { closeLayer(L); openTagManager(); }
+      if (act === 'retag-all') {
+        let n = 0;
+        commit('Tag To-Dos', () => S.todos.forEach((t) => {
+          if (t.trashed || t.isTemplate || t.isDraft || (!t.projectId && !t.areaId)) return;
+          const before = t.tags.join(); const keep = S.settings.inheritTags; S.settings.inheritTags = true; retag(t, new Set()); S.settings.inheritTags = keep;
+          if (t.tags.join() !== before) { touch(t); n++; }
+        }));
+        toast(n ? `Tagged ${plural(n, 'to-do')}` : 'Every to-do already has its project’s and area’s tags', n ? { undo: true } : {});
+        return;
+      }
       if (act === 'backups') { closeLayer(L); openBackups(); }
       if (act === 'export') { closeLayer(L); openExport(); }
       if (act === 'import') { closeLayer(L); openImport(); }

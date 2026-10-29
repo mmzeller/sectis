@@ -8,7 +8,7 @@ const ui = {
 };
 
 function defaultSettings() {
-  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false };
+  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true };
 }
 function emptyState() {
   return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
@@ -203,6 +203,21 @@ function matchesTagFilter(x) {
   const want = tagDescendants(ui.tagFilter);
   for (const t of effectiveTags(x)) if (want.has(t)) return true;
   return false;
+}
+/* A to-do placed in a project or area takes on that place's tags (the project's and its
+   area's). Moving it on swaps the tags it picked up from the old place for the new one's. */
+function placeTagIds(t) {
+  const out = new Set();
+  const p = t.projectId && getP(t.projectId); if (p) p.tags.forEach((x) => out.add(x));
+  const a = t.areaId ? getA(t.areaId) : p && p.areaId ? getA(p.areaId) : null; if (a) a.tags.forEach((x) => out.add(x));
+  return out;
+}
+function retag(t, before) {
+  if (!S.settings.inheritTags || !t || t.type !== 'todo' || t.isTemplate) return;
+  const now = placeTagIds(t);
+  let tags = t.tags.filter((x) => !(before.has(x) && !now.has(x)));
+  now.forEach((x) => { if (!tags.includes(x) && getTag(x)) tags.push(x); });
+  if (tags.join() !== t.tags.join()) t.tags = tags;
 }
 function tagTitle(id) { const t = getTag(id); return t ? t.title : ''; }
 function findOrCreateTag(title) {

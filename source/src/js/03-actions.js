@@ -49,12 +49,13 @@ function moveItems(ids, target, opts = {}) {
         else if (target.type === 'none' || target.type === 'inbox') x.areaId = null;
         touch(x); continue;
       }
-      const prevContainer = containerKey(x);
+      const prevContainer = containerKey(x), prevTags = placeTagIds(x);
       if (target.type === 'inbox') { x.projectId = null; x.areaId = null; x.headingId = null; x.start = 'inbox'; x.when = null; x.evening = false; x.reminder = null; }
       else if (target.type === 'area') { x.areaId = target.id; x.projectId = null; x.headingId = null; if (x.start === 'inbox') x.start = 'anytime'; }
       else if (target.type === 'project') { x.projectId = target.id; x.areaId = null; x.headingId = target.headingId || null; if (x.start === 'inbox') x.start = 'anytime'; }
       else if (target.type === 'none') { x.projectId = null; x.areaId = null; x.headingId = null; if (x.start === 'inbox') x.start = 'anytime'; }
       if (prevContainer !== containerKey(x) && !opts.keepOrder) x.order = endOrder(S.todos.filter((t) => t !== x && containerKey(t) === containerKey(x)));
+      retag(x, prevTags);
       touch(x);
     }
   };
@@ -231,7 +232,7 @@ function headingToProject(h) {
   commit('Convert Heading', () => {
     p = makeProject({ title: h.title, areaId: src ? src.areaId : null, order: endOrder(S.projects) });
     S.projects.push(p);
-    S.todos.filter((t) => t.headingId === h.id).forEach((t) => { t.projectId = p.id; t.headingId = null; });
+    S.todos.filter((t) => t.headingId === h.id).forEach((t) => { const before = placeTagIds(t); t.projectId = p.id; t.headingId = null; retag(t, before); });
     S.headings = S.headings.filter((x) => x !== h);
   });
   navigate('project:' + p.id);
@@ -239,7 +240,7 @@ function headingToProject(h) {
 function moveHeading(h, projectId) {
   commit('Move Heading', () => {
     h.projectId = projectId; h.order = endOrder(S.headings.filter((x) => x.projectId === projectId));
-    S.todos.filter((t) => t.headingId === h.id).forEach((t) => { t.projectId = projectId; });
+    S.todos.filter((t) => t.headingId === h.id).forEach((t) => { const before = placeTagIds(t); t.projectId = projectId; retag(t, before); });
   });
 }
 function duplicateProject(p) {
@@ -264,6 +265,7 @@ function createTodoIn(props, place = {}) {
   t.order = place.order != null ? place.order : topOrder(same);
   t.todayOrder = place.todayOrder != null ? place.todayOrder : todayTop();
   S.todos.push(t); idx.todo.set(t.id, t);
+  retag(t, new Set());
   return t;
 }
 function defaultsForView(extra = {}) {

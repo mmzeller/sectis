@@ -43,7 +43,7 @@ function sectionProps(sec) {
 }
 function applySectionProps(x, props) {
   if (!props) return;
-  const T = T0();
+  const T = T0(), before = placeTagIds(x);
   for (const [k, v] of Object.entries(props)) {
     if (k.startsWith('_') || v === undefined) continue;
     if (k === 'when' && props._today && x.when && x.when <= T && x.start === 'anytime') continue; // keep overdue start dates
@@ -54,6 +54,7 @@ function applySectionProps(x, props) {
   if (props.start === 'someday') { x.when = null; x.evening = false; x.reminder = null; }
   if (x.headingId && x.projectId && getH(x.headingId) && getH(x.headingId).projectId !== x.projectId) x.headingId = null;
   if (!x.when) x.reminder = null;
+  retag(x, before);
   touch(x);
 }
 function rowItem(row) { return row ? itemById(row.dataset.id) : null; }

@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.7.1
+Version 1.8.0
 
 ## What's in it
 
@@ -15,7 +15,7 @@ Version 1.7.1
 - **Checklists** you can reorder by dragging the grip (or ⌘↑ / ⌘↓), and any item can become its own to-do from its ••• menu
 - **Repeating to-dos and projects**, on a schedule (every weekday, the last Friday of each month…) or a set time after you finish the last one. A repeating project makes a fresh copy with all its headings and to-dos each time
 - **Automatic backups**: each device keeps a daily copy for 14 days, plus a copy before big changes. Restore from **Settings → Backups**
-- **Tags**, nestable, with a tag bar on every list to filter it
+- **Tags**, nestable, with a tag bar on every list to filter it. To-dos added to or moved into a project or area take on its tags (switchable in Settings)
 - **Quick Find** (`/`) for lists, projects, tags and to-dos, including the Logbook
 - **Quick Entry** (`Q`) that reads dates, deadlines and tags as you type: `Pay rent friday #Home !oct 31`
 - **Type a date** anywhere you pick one: `tom`, `fri`, `next week`, `in 3 days`, `oct 24`, `10/24`

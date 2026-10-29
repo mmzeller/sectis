@@ -678,7 +678,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.7.1';
+const APP_VERSION = '1.8.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -881,7 +881,7 @@ const ui = {
 };
 
 function defaultSettings() {
-  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false };
+  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true };
 }
 function emptyState() {
   return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
@@ -1077,6 +1077,21 @@ function matchesTagFilter(x) {
   for (const t of effectiveTags(x)) if (want.has(t)) return true;
   return false;
 }
+/* A to-do placed in a project or area takes on that place's tags (the project's and its
+   area's). Moving it on swaps the tags it picked up from the old place for the new one's. */
+function placeTagIds(t) {
+  const out = new Set();
+  const p = t.projectId && getP(t.projectId); if (p) p.tags.forEach((x) => out.add(x));
+  const a = t.areaId ? getA(t.areaId) : p && p.areaId ? getA(p.areaId) : null; if (a) a.tags.forEach((x) => out.add(x));
+  return out;
+}
+function retag(t, before) {
+  if (!S.settings.inheritTags || !t || t.type !== 'todo' || t.isTemplate) return;
+  const now = placeTagIds(t);
+  let tags = t.tags.filter((x) => !(before.has(x) && !now.has(x)));
+  now.forEach((x) => { if (!tags.includes(x) && getTag(x)) tags.push(x); });
+  if (tags.join() !== t.tags.join()) t.tags = tags;
+}
 function tagTitle(id) { const t = getTag(id); return t ? t.title : ''; }
 function findOrCreateTag(title) {
   const name = title.trim(); if (!name) return null;
@@ -1152,12 +1167,13 @@ function moveItems(ids, target, opts = {}) {
         else if (target.type === 'none' || target.type === 'inbox') x.areaId = null;
         touch(x); continue;
       }
-      const prevContainer = containerKey(x);
+      const prevContainer = containerKey(x), prevTags = placeTagIds(x);
       if (target.type === 'inbox') { x.projectId = null; x.areaId = null; x.headingId = null; x.start = 'inbox'; x.when = null; x.evening = false; x.reminder = null; }
       else if (target.type === 'area') { x.areaId = target.id; x.projectId = null; x.headingId = null; if (x.start === 'inbox') x.start = 'anytime'; }
       else if (target.type === 'project') { x.projectId = target.id; x.areaId = null; x.headingId = target.headingId || null; if (x.start === 'inbox') x.start = 'anytime'; }
       else if (target.type === 'none') { x.projectId = null; x.areaId = null; x.headingId = null; if (x.start === 'inbox') x.start = 'anytime'; }
       if (prevContainer !== containerKey(x) && !opts.keepOrder) x.order = endOrder(S.todos.filter((t) => t !== x && containerKey(t) === containerKey(x)));
+      retag(x, prevTags);
       touch(x);
     }
   };
@@ -1334,7 +1350,7 @@ function headingToProject(h) {
   commit('Convert Heading', () => {
     p = makeProject({ title: h.title, areaId: src ? src.areaId : null, order: endOrder(S.projects) });
     S.projects.push(p);
-    S.todos.filter((t) => t.headingId === h.id).forEach((t) => { t.projectId = p.id; t.headingId = null; });
+    S.todos.filter((t) => t.headingId === h.id).forEach((t) => { const before = placeTagIds(t); t.projectId = p.id; t.headingId = null; retag(t, before); });
     S.headings = S.headings.filter((x) => x !== h);
   });
   navigate('project:' + p.id);
@@ -1342,7 +1358,7 @@ function headingToProject(h) {
 function moveHeading(h, projectId) {
   commit('Move Heading', () => {
     h.projectId = projectId; h.order = endOrder(S.headings.filter((x) => x.projectId === projectId));
-    S.todos.filter((t) => t.headingId === h.id).forEach((t) => { t.projectId = projectId; });
+    S.todos.filter((t) => t.headingId === h.id).forEach((t) => { const before = placeTagIds(t); t.projectId = projectId; retag(t, before); });
   });
 }
 function duplicateProject(p) {
@@ -1367,6 +1383,7 @@ function createTodoIn(props, place = {}) {
   t.order = place.order != null ? place.order : topOrder(same);
   t.todayOrder = place.todayOrder != null ? place.todayOrder : todayTop();
   S.todos.push(t); idx.todo.set(t.id, t);
+  retag(t, new Set());
   return t;
 }
 function defaultsForView(extra = {}) {
@@ -2167,7 +2184,7 @@ function sectionProps(sec) {
 }
 function applySectionProps(x, props) {
   if (!props) return;
-  const T = T0();
+  const T = T0(), before = placeTagIds(x);
   for (const [k, v] of Object.entries(props)) {
     if (k.startsWith('_') || v === undefined) continue;
     if (k === 'when' && props._today && x.when && x.when <= T && x.start === 'anytime') continue; // keep overdue start dates
@@ -2178,6 +2195,7 @@ function applySectionProps(x, props) {
   if (props.start === 'someday') { x.when = null; x.evening = false; x.reminder = null; }
   if (x.headingId && x.projectId && getH(x.headingId) && getH(x.headingId).projectId !== x.projectId) x.headingId = null;
   if (!x.when) x.reminder = null;
+  retag(x, before);
   touch(x);
 }
 function rowItem(row) { return row ? itemById(row.dataset.id) : null; }
@@ -3472,6 +3490,8 @@ function openSettings() {
     <div class="set-sec"><h3>Lists</h3>
       <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
       <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
+      <div class="set-row"><span class="lbl">To-dos take on the tags of their project and area<small>When you add or move a to-do into a project or area, it gets that place’s tags. Moving it elsewhere swaps them.</small></span>${sw('inheritTags')}</div>
+      <div class="set-row"><span class="lbl">Tag to-dos already in projects and areas<small>Adds each project’s and area’s tags to the to-dos inside it now. You can undo it.</small></span><button class="btn" data-s="retag-all">Tag Them Now</button></div>
       <div class="set-row"><span class="lbl">Week starts on</span>${seg('weekStart', [[0, 'Sunday'], [1, 'Monday']])}</div>
       <div class="set-row"><span class="lbl">Quick Entry reads dates and tags<small>“Pay rent friday #Home !oct 31” sets When, tag and deadline.</small></span>${sw('parseEntry')}</div></div>
     <div class="set-sec"><h3>Sync</h3>${syncSettingsHTML()}</div>
@@ -3497,6 +3517,16 @@ function openSettings() {
       const b = e.target.closest('[data-s]'); if (!b) return;
       const act = b.dataset.s;
       if (act === 'tags') { closeLayer(L); openTagManager(); }
+      if (act === 'retag-all') {
+        let n = 0;
+        commit('Tag To-Dos', () => S.todos.forEach((t) => {
+          if (t.trashed || t.isTemplate || t.isDraft || (!t.projectId && !t.areaId)) return;
+          const before = t.tags.join(); const keep = S.settings.inheritTags; S.settings.inheritTags = true; retag(t, new Set()); S.settings.inheritTags = keep;
+          if (t.tags.join() !== before) { touch(t); n++; }
+        }));
+        toast(n ? `Tagged ${plural(n, 'to-do')}` : 'Every to-do already has its project’s and area’s tags', n ? { undo: true } : {});
+        return;
+      }
       if (act === 'backups') { closeLayer(L); openBackups(); }
       if (act === 'export') { closeLayer(L); openExport(); }
       if (act === 'import') { closeLayer(L); openImport(); }
@@ -4915,6 +4945,8 @@ function alsoAddTo(ids, target) {
     });
     c.order = endOrder(S.todos.filter((x) => !x.trashed && containerKey(x) === containerKey(c)));
     c.todayOrder = orderBetween(t.todayOrder, null)[0];
+    retag(c, new Set());
+    if (c.tags.join() !== t.tags.join()) touch(c); // tags are shared, so the new place's tags reach every copy
     S.todos.push(c); added++;
   }));
   const name = target.type === 'project' ? pTitle(getP(target.id)) : aTitle(getA(target.id));

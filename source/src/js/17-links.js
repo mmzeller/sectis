@@ -58,6 +58,8 @@ function alsoAddTo(ids, target) {
     });
     c.order = endOrder(S.todos.filter((x) => !x.trashed && containerKey(x) === containerKey(c)));
     c.todayOrder = orderBetween(t.todayOrder, null)[0];
+    retag(c, new Set());
+    if (c.tags.join() !== t.tags.join()) touch(c); // tags are shared, so the new place's tags reach every copy
     S.todos.push(c); added++;
   }));
   const name = target.type === 'project' ? pTitle(getP(target.id)) : aTitle(getA(target.id));
