@@ -61,7 +61,8 @@ function rowItem(row) { return row ? itemById(row.dataset.id) : null; }
 function nextRowEl(row) { let n = row.nextElementSibling; while (n && !n.matches('.row[data-id]')) n = n.nextElementSibling; return n; }
 
 function newTodo(opts = {}) {
-  if (['logbook', 'trash'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
+  if (ui.view.type === 'templates') { newTodoTemplate(); return; }
+  if (['logbook', 'trash', 'waiting'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
   if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) { toast('Reopen the project to add to-dos'); return; } }
   if (ui.view.type === 'board' && !opts.sec && !opts.place) {
     // a selected to-do decides the spot below; otherwise its column (or the first column) does
@@ -150,6 +151,12 @@ function renderTplModal() {
   let L = ui.tplLayer;
   if (!L || !L.el.isConnected) {
     L = ui.tplLayer = openLayer({ modal: true, cls: 'tpl-modal', html: '', onClose: () => { ui.tplModal = null; ui.tplLayer = null; render(); } });
+  }
+  if (t.blueprint) {
+    L.el.innerHTML = `<div class="modal-h"><h2>To-Do Template</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>
+      <div class="modal-b">${cardHTML(t)}<p class="note">Use it from any list’s ••• menu (<b>New To-Do from Template</b>), or with <b>Add To…</b> below.</p></div>
+      <div class="modal-f"><button class="btn" data-action="delete-template" data-id="${t.id}">Delete Template</button><button class="btn" data-action="use-ttemplate" data-id="${t.id}">Add To…</button><button class="btn primary" data-action="close-layer">Done</button></div>`;
+    return;
   }
   const upcoming = []; let nd = t.next;
   for (let i = 0; i < 3 && nd; i++) { upcoming.push(nd); nd = t.repeat.mode === 'schedule' ? nextOccurrence(t.repeat, nd) : null; }

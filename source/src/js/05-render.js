@@ -5,9 +5,11 @@ const LISTS = {
   upcoming: { title: 'Upcoming', icon: 'calendar', color: 'var(--c-upcoming)' },
   anytime: { title: 'Anytime', icon: 'layers', color: 'var(--c-anytime)' },
   someday: { title: 'Someday', icon: 'box', color: 'var(--c-someday)' },
+  waiting: { title: 'Waiting', icon: 'hourglass', color: 'var(--c-waiting)' },
   logbook: { title: 'Logbook', icon: 'logbook', color: 'var(--c-logbook)' },
   trash: { title: 'Trash', icon: 'trash', color: 'var(--c-trash)' },
   board: { title: 'Board', icon: 'columns', color: 'var(--c-board)' },
+  templates: { title: 'Templates', icon: 'template', color: 'var(--c-template)' },
 };
 const byOrder = (a, b) => a.order - b.order || a.createdAt - b.createdAt;
 const byToday = (a, b) => ((a.type === 'project' ? 0 : 1) - (b.type === 'project' ? 0 : 1)) || a.todayOrder - b.todayOrder || a.createdAt - b.createdAt;
@@ -54,7 +56,7 @@ function renderShell() {
   app.classList.toggle('sel-mode', ui.selectMode);
   app.classList.toggle('touch', isCoarse());
   const magic = $('#magic');
-  const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash'].includes(ui.view.type));
+  const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash', 'templates'].includes(ui.view.type));
   magic.classList.toggle('hidden-in', hide);
   const L = LISTS[ui.view.type];
   document.title = isMobile() && ui.mobile === 'home' ? 'Sectis' : `${L ? L.title : ui.view.type === 'project' ? pTitle(getP(ui.view.id)) : ui.view.type === 'area' ? aTitle(getA(ui.view.id)) : ui.view.type === 'tag' ? tagTitle(ui.view.id) : 'Sectis'} – Sectis`;
@@ -86,7 +88,7 @@ function renderSidebar() {
   const sbProjects = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && (p.areaId || null) === areaId).sort(byOrder);
   let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button></div><nav class="sb-scroll" id="sb-scroll">`;
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
-  html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${item('anytime')}${item('someday')}</div>`;
+  html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
   html += `<div class="sb-group sb-board-g"><button class="sb-item${on('board')}" data-nav="board" title="Projects and areas side by side (8)"><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">Board</span></button></div>`;
   const loose = sbProjects(null);
@@ -149,6 +151,7 @@ function rowHTML(x, ctx = {}) {
   if (ctx.when && x.start === 'someday') line += ic('box', 'r-box');
   if (ctx.when && isScheduledToday(x) && !ctx.star) line += isEveningItem(x) ? ic('moon', 'r-moon') : ic('star', 'r-star');
   line += `<span class="r-title${x.title ? '' : ' untitled'}">${esc(x.title || 'New To-Do')}</span>`;
+  if (x.waitFor && x.status === 'open' && !ctx.noWait && !x.isTemplate) line += `<span class="r-wait" title="Waiting on ${esc(x.waitFor)}">${ic('hourglass')}${esc(x.waitFor)}</span>`;
   if (x.templateId) line += ic('repeat', 'r-ic');
   if (x.linkId && !x.trashed && linkSiblings(x).length) line += `<span class="ic r-ic r-link" title="Also in ${esc(linkSiblings(x).map(placeLabel).join(', '))}">${I.link}</span>`;
   if (x.reminder && x.when) line += ic('bell', 'r-ic');
@@ -163,7 +166,7 @@ function rowHTML(x, ctx = {}) {
       : `<span class="r-ck">${ic('checklist', 'r-ic')}${d}/${n}</span>`;
   }
   line += tagPills(x);
-  const parent = ctx.parent ? parentLabel(x) : '';
+  const parent = [ctx.parent ? parentLabel(x) : '', ctx.waitInfo && x.waitSince ? `Waiting since ${fmtDate(x.waitSince, { weekday: false })}` : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(x) + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
   return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
@@ -242,7 +245,8 @@ function cardHTML(t) {
   const ck = ckOpen ? `<div class="ck">${t.checklist.map((c) => checklistItemHTML(t, c, tpl)).join('')}<div class="ck-item"><span class="ck-box" style="opacity:.4"></span><textarea class="ck-input" data-edit="ck-new" data-id="${t.id}" data-fkey="cknew-${t.id}" placeholder="Add item" enterkeyhint="next" aria-label="New checklist item" rows="1" data-autosize data-oneline></textarea></div></div>` : '';
   const tags = t.tags.length ? `<div class="c-tags">${t.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
   const links = linkSiblings(t).map((s) => `<span class="chip linkc${s.status !== 'open' ? ' done' : ''}"><button class="chip-main" data-action="reveal" data-id="${s.id}" title="Go to this copy">${ic('link')}<span>${s.status === 'open' ? 'Also in' : s.status === 'done' ? 'Done in' : 'Canceled in'} ${esc(placeLabel(s))}</span></button></span>`).join('');
-  const chips = whenChipHTML(t) + repeatChipHTML(t) + deadlineChipHTML(t) + links;
+  const wait = t.waitFor && !tpl ? `<span class="chip waitc"><button class="chip-main" data-action="waiting" data-id="${t.id}" title="Change who or when">${ic('hourglass')}<span>Waiting on ${esc(t.waitFor)}${t.waitSince ? ` since ${esc(fmtDate(t.waitSince, { weekday: false }))}` : ''}</span></button><button class="chip-x" data-action="stop-waiting" data-id="${t.id}" aria-label="Stop waiting">${ic('x')}</button></span>` : '';
+  const chips = whenChipHTML(t) + wait + repeatChipHTML(t) + deadlineChipHTML(t) + links;
   const tools = [
     `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>`,
     !ckOpen ? `<button class="ib" data-action="ck-open" data-id="${t.id}" title="Checklist" aria-label="Checklist">${ic('checklist')}</button>` : '',
@@ -251,7 +255,7 @@ function cardHTML(t) {
     `<button class="ib" data-action="todo-menu" data-id="${t.id}" title="More" aria-label="More">${ic('more')}</button>`,
   ].join('');
   return `<div class="card" data-id="${t.id}" data-kind="todo">
-    ${tpl ? `<div class="c-tpl">${ic('repeat')}<span>Repeating to-do. Changes apply to the copies it makes from now on.</span></div>` : ''}
+    ${tpl ? (t.blueprint ? `<div class="c-tpl">${ic('template')}<span>To-do template. New to-dos made from it get this title, notes, checklist and tags.</span></div>` : `<div class="c-tpl">${ic('repeat')}<span>Repeating to-do. Changes apply to the copies it makes from now on.</span></div>`) : ''}
     <div class="c-top">${tpl || tplChild ? `<span class="cb tpl-cb" aria-hidden="true"></span>` : checkboxHTML(t)}<textarea class="c-title" data-edit="title" data-id="${t.id}" data-fkey="title-${t.id}" placeholder="New To-Do" enterkeyhint="done" aria-label="Title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(t.title)}</textarea></div>
     <div class="c-body">${notesBlockHTML('notes', t.id, `notes-${t.id}`, t.notes, 'c-notes', 'Notes')}${ck}${tags}
     <div class="c-foot"><div class="c-chips">${chips}</div><div class="c-tools">${tools}</div></div></div></div>`;
@@ -295,9 +299,11 @@ function renderMain() {
     case 'area': html = viewArea(getA(ui.view.id)); break;
     case 'tag': html = viewTag(getTag(ui.view.id)); break;
     case 'board': html = viewBoard(); break;
+    case 'templates': html = viewTemplates(); break;
+    case 'waiting': html = viewWaiting(); break;
     default: html = viewToday();
   }
-  $('#content').classList.toggle('board-view', ui.view.type === 'board');
+  $('#content').classList.toggle('board-view', ui.view.type === 'board' || (ui.view.type === 'project' && projectBoardOn(getP(ui.view.id))));
   $('#content').innerHTML = mobileBarHTML() + html;
 }
 function viewInbox() {
@@ -444,8 +450,8 @@ function viewTrash() {
   const head = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-trash)">${I.trash}</span><h1 class="lh-title">Trash</h1>${n ? `<button class="btn" data-action="empty-trash">Empty Trash</button>` : ''}</div>`;
   return head + `<div class="list">${projs.length ? `<div class="sec" data-sec="trash">${projs.map((p) => projRowHTML(p, { parent: true })).join('')}</div>` : ''}${secHTML('trash', todos, { parent: true })}</div>` + (n ? '' : emptyHTML('trash', 'Trash is empty', 'Deleted to-dos and projects wait here until you empty the Trash.'));
 }
-function templatesIn(filter) { return S.todos.filter((t) => t.isTemplate && !t.trashed && filter(t)).sort(byOrder); }
-function projectTemplatesIn(filter) { return S.projects.filter((p) => p.isTemplate && !p.trashed && filter(p)).sort(byOrder); }
+function templatesIn(filter) { return S.todos.filter((t) => t.isTemplate && !t.blueprint && !t.trashed && filter(t)).sort(byOrder); }
+function projectTemplatesIn(filter) { return S.projects.filter((p) => p.isTemplate && !p.blueprint && !p.trashed && filter(p)).sort(byOrder); }
 function repeatingSectionHTML(tpls) {
   if (!tpls.length) return '';
   return `<div class="sec-h">${ic('repeat')}<span>Repeating</span></div><div class="sec" data-sec="repeating">${tpls.map((t) => ghostRowHTML(t, t.next)).join('')}</div>`;
@@ -460,27 +466,31 @@ function viewProject(p) {
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag')}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh"><span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span><textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
+  let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
+  else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these headings, to-dos and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
   else if (p.isTemplate) html += `<div class="lh-banner rp-banner">${ic('repeat')}<span><b>Repeating project.</b> ${esc(ruleSummary(p.repeat))}${p.next ? `. Next copy ${esc(fmtRel(p.next))}` : p.repeat && p.repeat.mode === 'after' ? '. The next copy comes after you complete the current one' : '. This repeat has ended'}. Changes here apply to future copies.</span><button class="link-btn" data-action="repeat" data-id="${p.id}">Change</button></div>`;
   else if (p.status !== 'open') html += `<div class="lh-banner"><b>${p.status === 'done' ? 'Completed' : 'Canceled'}</b> ${p.completedAt ? 'on ' + esc(fmtDate(stampDay(p.completedAt))) : ''} <button class="link-btn" data-action="reopen-project" data-id="${p.id}">Reopen</button></div>`;
   html += notesBlockHTML('project-notes', p.id, 'pnotes', p.notes, 'lh-notes', 'Project notes');
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(live);
+  if (projectBoardOn(p)) html += projectBoardHTML(p, items, headings, ctx);
+  else {
   html += `<div class="list">${secHTML(`project:${p.id}:`, items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx)}`;
   headings.forEach((h) => {
     html += `<div class="hrow" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><textarea class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea><button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options">${ic('more')}</button></div>`;
     html += secHTML(`project:${p.id}:${h.id}`, items.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
   });
   html += '</div>';
+  }
   if (!p.isTemplate) html += repeatingSectionHTML(templatesIn((t) => t.projectId === p.id));
   if (logged.length) {
     const open = ui.showLogged[p.id];
     html += `<button class="show-more" data-action="toggle-logged" data-id="${p.id}">${open ? 'Hide' : 'Show'} ${plural(logged.length, 'logged item')}</button>`;
     if (open) html += `<div class="sec" data-sec="logbook">${logged.map((t) => rowHTML(t, { date: fmtDate(stampDay(t.completedAt), { weekday: false }) })).join('')}</div>`;
   }
-  if (!todosAll.length && !headings.length && p.isTemplate) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and headings you add here.');
-  else if (!todosAll.length && !headings.length) html += emptyHTML('project', 'No to-dos yet', 'Press N or the + button to add the first one. Add headings from the ••• menu to split the project into stages.');
+  if (!todosAll.length && !headings.length && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and headings you add here.');
+  else if (!todosAll.length && !headings.length && !projectBoardOn(p)) html += emptyHTML('project', 'No to-dos yet', 'Press N or the + button to add the first one. Add headings from the ••• menu to split the project into stages.');
   return html;
 }
 function viewArea(a) {
@@ -548,6 +558,8 @@ function visibleInCurrentView(x) {
     case 'logbook': return x.status !== 'open' && x.logged;
     case 'trash': return !!x.trashed;
     case 'tag': return effectiveTags(x).has(v.id);
+    case 'templates': return false;
+    case 'waiting': return isWaiting(x);
     case 'board': return boardCols().some((c) => (c.t === 'p' ? x.projectId === c.id || x.id === c.id : (areaOf(x) || {}).id === c.id));
     default: return true;
   }

@@ -86,6 +86,10 @@ function collectExport(scope) {
     else if (v.type === 'logbook') {
       title = 'Logbook'; forceDone = true; let cur = null;
       logbookItems().filter(f).slice(0, 500).forEach((x) => { const g = dayGroupLabel(stampDay(x.completedAt || Date.now())); if (g !== cur) { cur = g; B.push({ h: 2, text: g }); } B.push({ item: x }); });
+    } else if (v.type === 'waiting') {
+      title = 'Waiting'; const g = new Map();
+      waitingItems().filter(f).forEach((t) => { const k = t.waitFor.trim(); if (!g.has(k.toLowerCase())) g.set(k.toLowerCase(), { name: k, list: [] }); g.get(k.toLowerCase()).list.push(t); });
+      [...g.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach((x) => { B.push({ h: 2, text: x.name }); x.list.sort((a, b) => ((a.when || '9999') < (b.when || '9999') ? -1 : (a.when || '9999') > (b.when || '9999') ? 1 : byOrder(a, b))).forEach((t) => B.push({ item: t })); });
     } else if (v.type === 'project') return collectExport({ type: 'items', ids: [v.id] });
     else if (v.type === 'area') return collectExport({ type: 'area', id: v.id });
     else if (v.type === 'tag') {
@@ -117,6 +121,7 @@ function shareDates(x, o) {
   if (x.type === 'project') { const l = projectLine(x); return l ? [l] : []; }
   if (x.status === 'done') bits.push(x.completedAt ? 'done ' + fmtDate(stampDay(x.completedAt), { weekday: false }) : 'done');
   else if (x.status === 'canceled') bits.push('canceled');
+  else if (x.waitFor && x.type === 'todo') { bits.push('waiting on ' + x.waitFor); if (x.when) bits.push('follow up ' + (x.when <= T0() ? 'today' : fmtDate(x.when))); }
   else if (x.start === 'someday') bits.push('Someday');
   else if (isEveningItem(x)) bits.push('This Evening');
   else if (x.when && x.when <= T0()) bits.push('Today');

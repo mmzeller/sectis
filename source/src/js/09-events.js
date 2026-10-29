@@ -105,6 +105,15 @@ function handleAction(act, el, e) {
       return;
     }
     case 'board-add': openBoardPicker(el); return;
+    case 'waiting': openWaiting([id], el); return;
+    case 'stop-waiting': stopWaiting([id]); return;
+    case 'proj-board': setProjectBoard(id, !ui.projBoard.has(id)); return;
+    case 'hcol-menu': hcolMenu(el); return;
+    case 'hcol-new': newHeading(id); return;
+    case 'use-ptemplate': newProjectFromTemplate(id); return;
+    case 'use-ttemplate': openAddTodoTemplateTo(id, el); return;
+    case 'delete-template': deleteTemplate(id); return;
+    case 'templates-new': openMenu(el, [{ label: 'New Project Template', icon: 'project', fn: newProjectTemplate }, { label: 'New To-Do Template', icon: 'template', fn: newTodoTemplate }]); return;
     case 'bcol-add': newTodo({ sec: el.dataset.sec }); return;
     case 'bcol-menu': boardColMenu(el.dataset.col, el); return;
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
@@ -118,7 +127,7 @@ function handleAction(act, el, e) {
     case 'find': openFind(); return;
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
-    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }]); return;
+    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
     case 'm-back': closeEditor({ noRender: true }); ui.mobile = 'home'; ui.sel.clear(); ui.selectMode = false; render(); return;
     case 'select-done': ui.selectMode = false; ui.sel.clear(); render(); return;
     case 'select-all': visibleRowIds().forEach((x) => ui.sel.add(x)); paintSelection(); return;
@@ -150,6 +159,9 @@ function todoMenu(id, el) {
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ sep: 1 }, { label: 'Delete To-Do', icon: 'trash', danger: true, fn: () => trashItems([id]) });
+  } else if (t.blueprint) {
+    items.push({ label: 'Add To…', icon: 'move', fn: () => openAddTodoTemplateTo(id, el) });
+    items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(id) });
   } else if (t.isTemplate) {
     items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(id, el) });
     items.push({ label: 'Move…', icon: 'move', fn: () => openMove([id], el) });
@@ -158,12 +170,15 @@ function todoMenu(id, el) {
     items.push({ label: 'When…', icon: 'calendar', hint: 'S', fn: () => openWhen([id], el) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
+    if (t.status === 'open') items.push({ label: t.waitFor ? `Waiting on ${t.waitFor}…` : 'Waiting For…', icon: 'hourglass', hint: 'W', fn: () => openWaiting([id], el) });
+    if (t.waitFor) items.push({ label: 'Stop Waiting', icon: 'x', fn: () => stopWaiting([id]) });
     if (!t.templateId) items.push({ label: 'Also Add To…', icon: 'link', fn: () => openAlsoAddTo([id], el) });
     if (linkSiblings(t).some((x) => x.status === 'open') || (t.status === 'open' && linkSiblings(t).length)) items.push({ label: 'Complete Everywhere', icon: 'check', fn: () => completeEverywhere(id) });
     if (linkSiblings(t).length) items.push({ label: 'Unlink This Copy', icon: 'x', fn: () => unlinkTodo(id) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ label: 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
+    items.push({ label: 'Save as Template', icon: 'template', fn: () => saveTodoAsTemplate(t) });
     items.push({ sep: 1 });
     if (!t.logged && !t.trashed) items.push({ label: t.status === 'open' ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', fn: () => logItems([id]) });
     items.push(t.status === 'canceled' ? { label: 'Mark as Open', icon: 'reopen', fn: () => toggleComplete([id], 'canceled') } : { label: 'Mark as Canceled', icon: 'cancel', fn: () => toggleComplete([id], 'canceled') });
@@ -176,6 +191,15 @@ function projectMenu(p, el, extra = []) {
   const items = [...extra];
   if (isMobile() && p.status === 'open' && !p.trashed) items.push(selectModeItem(), { sep: 1 });
   const src = p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
+  if (p.blueprint && !p.trashed) {
+    items.push({ label: 'New Project from Template', icon: 'project', fn: () => newProjectFromTemplate(p.id) });
+    items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
+    items.push({ label: 'Default Area…', icon: 'area', fn: () => openMove([p.id], el, { title: 'Default Area', onPick: (tg) => commit('Default Area', () => { p.bpAreaId = tg.type === 'area' ? tg.id : null; touch(p); }) }) });
+    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
+    items.push({ label: 'All Templates', icon: 'template', fn: () => navigate('templates') });
+    items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(p.id) });
+    openMenu(el, items); return;
+  }
   if (p.isTemplate && !p.trashed) {
     items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
@@ -193,12 +217,17 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
     items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
+    if (!isMobile()) items.push({ label: ui.projBoard.has(p.id) ? 'Show as List' : 'Show Headings as Board', icon: 'columns', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); setProjectBoard(p.id, !ui.projBoard.has(p.id)); } });
+    items.push({ label: 'Add To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'], sec: `project:${p.id}:` }) });
+    items.push({ label: 'Save as Template', icon: 'template', fn: () => saveProjectAsTemplate(p) });
     items.push({ label: 'Share Project…', icon: 'share', fn: () => openShare({ type: 'items', ids: [p.id] }) });
+    items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
     items.push(src ? { label: 'Edit Repeating Project', icon: 'repeat', fn: () => navigate('project:' + src.id) } : { label: 'Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
   } else {
     if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
+    if (!p.trashed) items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
     if (!p.logged && !p.trashed) items.push({ label: 'Move to Logbook', icon: 'logbook', fn: () => logItems([p.id]) });
     items.push({ label: 'Reopen Project', icon: 'reopen', fn: () => reopenProject(p) });
   }
@@ -213,18 +242,21 @@ function areaMenu(a, el, extra = []) {
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
     ...boardMenuItems('a', a.id, isColMenu(extra)),
+    { label: 'Add from Template…', icon: 'template', fn: () => openTemplatePicker(el, { sec: `area:${a.id}`, areaId: a.id }) },
     { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
     { label: ui.sbCollapsed.size ? 'Show All Projects in Sidebar' : 'Hide All Projects in Sidebar', icon: 'layers', fn: () => setSidebarAreas(!ui.sbCollapsed.size) },
     { label: 'Collapse All Projects', icon: 'chevR', fn: () => setExpanded(areaProjectIds(a.id), false) },
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
+    { label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
     { label: 'Rename', icon: 'edit', fn: () => { if (!(ui.view.type === 'area' && ui.view.id === a.id)) navigate('area:' + a.id); const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
     { sep: 1 }, { label: 'Delete Area…', icon: 'trash', danger: true, fn: () => deleteArea(a) },
   ]);
 }
-function headingMenu(h, el) {
+function headingMenu(h, el, extra = []) {
   if (!h) return;
   openMenu(el, [
+    ...extra,
     { label: 'New To-Do Here', icon: 'plus', fn: () => { const sec = `project:${h.projectId}:${h.id}`; const first = S.todos.filter((t) => t.headingId === h.id && !t.trashed).sort(byOrder)[0]; newTodo({ sec, place: { order: first ? first.order - 1 : 0 } }); } },
     { label: 'Move to Project…', icon: 'move', fn: () => openMove([], el, { heading: true, onPick: (t) => { if (t.type === 'project') moveHeading(h, t.id); } }) },
     { label: 'Convert to Project', icon: 'project', fn: () => headingToProject(h) },
@@ -247,6 +279,7 @@ function batchMenuItems(anchor) {
     { label: 'Move…', icon: 'move', hint: 'M', disabled: !todos.length, fn: () => endSelectAfter(openMove(todos, anchor)) },
     { label: 'Also Add To…', icon: 'link', disabled: !todos.length, fn: () => endSelectAfter(openAlsoAddTo(todos, anchor)) },
     { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
+    { label: 'Waiting For…', icon: 'hourglass', hint: 'W', disabled: !todos.length, fn: () => endSelectAfter(openWaiting(todos, anchor)) },
     { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: loggable.some((x) => x.status === 'open') ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', disabled: !loggable.length, fn: () => { logItems(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
@@ -261,6 +294,8 @@ document.addEventListener('contextmenu', (e) => {
     // sidebar projects and areas, and board column headers, get their menus too
     const sbi = e.target.closest('#sidebar .sb-item[data-kind="project"], #sidebar .sb-item[data-kind="area"]');
     if (sbi) { e.preventDefault(); const at = { x: e.clientX, y: e.clientY }; if (sbi.dataset.kind === 'project') projectMenu(getP(sbi.dataset.id), at); else areaMenu(getA(sbi.dataset.id), at); return; }
+    const hh = e.target.closest('#content .bcol-h[data-hcol]');
+    if (hh) { const btn = hh.querySelector('[data-action="hcol-menu"]'); if (btn) { e.preventDefault(); hcolMenu(btn); return; } }
     const bh = e.target.closest('#content .bcol-h[data-col]');
     if (bh) { e.preventDefault(); boardColMenu(bh.dataset.col, { x: e.clientX, y: e.clientY }); return; }
   }
@@ -283,6 +318,7 @@ function viewMenu(el) {
     openMenu(el, [...batch,
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
       { label: 'Fit All Widths Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w), fn: resetAllWidths },
+      { label: 'Status Report…', icon: 'report', disabled: !n, fn: () => openReport({ type: 'board' }) },
       { label: 'Remove All Columns', icon: 'x', disabled: !n, fn: () => { const prev = ui.board.slice(); ui.board = []; saveBoard(); render(); toast('Board cleared', { action: 'Undo', fn: () => { ui.board = prev; saveBoard(); render(); } }); } },
     ]);
     return;
@@ -290,7 +326,9 @@ function viewMenu(el) {
   if (isMobile() && !['logbook', 'trash', 'tag'].includes(v)) items.push(selectModeItem());
   if (v === 'today') items.push({ label: S.settings.groupToday ? 'Don’t Group by Project' : 'Group by Project & Area', icon: 'layers', fn: () => { S.settings.groupToday = !S.settings.groupToday; saveSoon(); render(); } });
   const unlogged = S.todos.concat(S.projects).some((x) => x.status !== 'open' && !x.logged);
+  if (['inbox', 'today', 'upcoming', 'anytime', 'someday', 'tag'].includes(v)) items.push({ label: 'New To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'] }) });
   if (v !== 'trash') items.push({ label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) });
+  if (v !== 'trash') items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'all' }) });
   items.push({ label: 'Log Completed Now', icon: 'logbook', disabled: !unlogged, fn: logCompletedNow });
   if (v === 'trash') items.push({ label: 'Empty Trash…', icon: 'trash', danger: true, fn: emptyTrash });
   items.push({ sep: 1 }, { label: 'Keyboard Shortcuts', icon: 'key', fn: openShortcuts }, { label: 'Settings', icon: 'gear', fn: openSettings });
@@ -433,6 +471,7 @@ document.addEventListener('keydown', (e) => {
     case 'o': e.preventDefault(); applyWhen(one, 'someday'); return;
     case 's': e.preventDefault(); openWhen(one, anchorFor(one[0])); return;
     case 'd': e.preventDefault(); openWhen(one, anchorFor(one[0]), 'deadline'); return;
+    case 'w': e.preventDefault(); openWaiting(one, anchorFor(one[0])); return;
     case '#': e.preventDefault(); openTagPicker(one, anchorFor(one[0])); return;
     case 'm': e.preventDefault(); openMove(todosSel.length ? todosSel : one, anchorFor(one[0])); return;
     case 'r': e.preventDefault(); if (todosSel.length === 1) { const t = getT(todosSel[0]); if (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed) openTplModal(t.templateId); else openRepeat(t.id, anchorFor(t.id)); } return;

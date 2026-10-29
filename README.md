@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.14.0
+Version 1.15.0
 
 ## What's in it
 
@@ -16,6 +16,10 @@ Version 1.14.0
 - **Checklists** you can reorder by dragging the grip (or ⌘↑ / ⌘↓), and any item can become its own to-do from its ••• menu
 - **Repeating to-dos and projects**, on a schedule (every weekday, the last Friday of each month…) or a set time after you finish the last one. A repeating project makes a fresh copy with all its headings and to-dos each time
 - **Automatic backups**: each device keeps a daily copy for 14 days, plus a copy before big changes. Restore from **Settings → Backups**
+- **Templates**: **Save as Template** in a project's ••• menu keeps its headings, to-dos and checklists to reuse; **New Project from Template…** (in **+ New List**) makes a fresh copy, in the template's area. To-dos with checklists can be templates too: **New To-Do from Template…** in any list's ••• menu, or **Add To-Do from Template…** in a project's. Edit them all under **+ New List → Templates**
+- **Headings as a board** (Mac): the columns button at the top of a project shows each heading as a column. Drag cards between columns to change their heading, add headings with **Add Heading**, rename them in place, and reorder or resize columns
+- **Waiting For**: press `W` (or ••• → **Waiting For…**) to note who a to-do is waiting on and when to follow up. The **Waiting** list groups them by person, and each comes back to Today on its follow-up date
+- **Status report**: ••• → **Status Report…** in any list, area, project or the Board gives what got done, what's coming up and who you're waiting on for this week, last week or the last 7 or 30 days, ready to copy, email, share or print
 - **Tags**, nestable, with a tag bar on every list to filter it. To-dos added to or moved into a project or area take on its tags (switchable in Settings). Lists show only a to-do's own tags, not the ones it gets from its project or area; change this in **Settings → Tags shown in lists** (Own Only, All or None)
 - **Quick Find** (`/`) for lists, projects, tags and to-dos, including the Logbook
 - **Quick Entry** (`Q`) that reads dates, deadlines and tags as you type: `Pay rent friday #Home !oct 31`
@@ -135,7 +139,7 @@ The installed app checks for a new version when you bring it to the front (and e
 | Open selected to-do | `Return` |
 | Complete / Cancel | `K` or `⌘K` / `⌥K` |
 | Today / This Evening / Anytime / Someday | `T` / `E` / `A` / `O` |
-| When / Deadline / Tags / Move / Repeat | `S` / `D` / `#` / `M` / `R` |
+| When / Deadline / Tags / Move / Repeat / Waiting For | `S` / `D` / `#` / `M` / `R` / `W` |
 | Move up or down | `⌘↑` `⌘↓` |
 | Go to Inbox … Trash, Board | `1` … `8` |
 | Delete | `⌫` |

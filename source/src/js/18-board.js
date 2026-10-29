@@ -3,6 +3,8 @@
    The columns are remembered per device (a Mac layout, not synced). */
 function loadBoard() {
   try { ui.board = JSON.parse(lsGet('sectis.board') || '[]').filter((c) => c && c.id && (c.t === 'p' || c.t === 'a')); } catch (e) { ui.board = []; }
+  try { ui.projBoard = new Set(JSON.parse(lsGet('sectis.pboard') || '[]')); } catch (e) { ui.projBoard = new Set(); }
+  try { ui.hcolW = JSON.parse(lsGet('sectis.hcolw') || '{}') || {}; } catch (e) { ui.hcolW = {}; }
 }
 function saveBoard() { lsSet('sectis.board', JSON.stringify(ui.board)); }
 function colShown(c) {
@@ -48,10 +50,13 @@ const clampW = (w) => Math.round(Math.max(COL_MIN, Math.min(COL_MAX, w)));
 function colEntry(key) { const [t, id] = key.split(':'); return (ui.board || []).find((c) => c.t === t && c.id === id); }
 function colStyle(c) { return c.w ? ` style="flex:0 0 ${clampW(c.w)}px;width:${clampW(c.w)}px"` : ''; }
 function resizeHandleHTML(c) { return `<div class="bcol-resize" data-colresize="${c.t}:${c.id}" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div>`; }
+/* Board columns keep their width in the board list; heading columns (h:headingId, n:projectId) in their own map */
+function getColW(key) { const c = colEntry(key); return c ? c.w || 0 : (ui.hcolW || {})[key] || 0; }
 function setColWidth(key, w) {
-  const c = colEntry(key); if (!c) return;
-  if (w) c.w = clampW(w); else delete c.w;
-  saveBoard(); render();
+  const c = colEntry(key);
+  if (c) { if (w) c.w = clampW(w); else delete c.w; saveBoard(); }
+  else { ui.hcolW = ui.hcolW || {}; if (w) ui.hcolW[key] = clampW(w); else delete ui.hcolW[key]; lsSet('sectis.hcolw', JSON.stringify(ui.hcolW)); }
+  render();
 }
 function resetAllWidths() { (ui.board || []).forEach((c) => delete c.w); saveBoard(); render(); }
 document.addEventListener('pointerdown', (e) => {
@@ -151,6 +156,50 @@ function boardNewSec() {
   const row = ui.anchor && ui.sel.has(ui.anchor) && document.querySelector(`#content .row[data-id="${CSS.escape(ui.anchor)}"]`);
   const col = (row && row.closest('.bcol[data-newsec]:not([data-newsec=""])')) || document.querySelector('#content .bcol[data-newsec]:not([data-newsec=""])');
   return col ? col.dataset.newsec : null;
+}
+
+/* ---- a project's headings as columns ---- */
+function projectBoardOn(p) { return !!(p && ui.projBoard && ui.projBoard.has(p.id) && !isMobile() && !p.trashed); }
+function setProjectBoard(id, on) {
+  if (on) ui.projBoard.add(id); else ui.projBoard.delete(id);
+  lsSet('sectis.pboard', JSON.stringify([...ui.projBoard])); render();
+}
+function projectBoardHTML(p, items, headings, ctx) {
+  const open = p.status === 'open' && !p.trashed;
+  const col = (key, sec, titleHTML, list, menuBtn) => {
+    const w = getColW(key);
+    return `<section class="bcol hcol${w ? ' sized' : ''}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${w ? ` style="flex:0 0 ${w}px;width:${w}px"` : ''}>
+      <div class="bcol-h" data-hcol="${key}">${titleHTML}${list.filter((t) => t.status === 'open').length ? `<span class="bcol-count" title="Open to-dos">${list.filter((t) => t.status === 'open').length}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" title="New to-do" aria-label="New to-do">${ic('plus')}</button>` : ''}${menuBtn}</div>
+      <div class="bcol-body">${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}</div><div class="bcol-resize" data-colresize="${key}" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div></section>`;
+  };
+  const loose = items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder);
+  let html = '<div class="board hboard">';
+  if (loose.length || !headings.length) html += col(`n:${p.id}`, `project:${p.id}:`, `<div class="bcol-t"><div class="bcol-title static">No Heading</div></div>`, loose, `<button class="ib" data-action="hcol-menu" data-id="" data-col="n:${p.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`);
+  headings.forEach((h) => {
+    const list = items.filter((t) => t.headingId === h.id).sort(byOrder);
+    html += col(`h:${h.id}`, `project:${p.id}:${h.id}`,
+      `<div class="bcol-t"><textarea class="bcol-htitle" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea></div>`,
+      list, `<button class="ib" data-action="hcol-menu" data-id="${h.id}" data-col="h:${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button>`);
+  });
+  if (open) html += `<button class="bcol-new" data-action="hcol-new" data-id="${p.id}">${ic('plus')}<span>Add Heading</span></button>`;
+  return html + '</div>';
+}
+function moveHeadingCol(h, dir) {
+  const hs = S.headings.filter((x) => x.projectId === h.projectId && !x.archived).sort(byOrder);
+  const i = hs.indexOf(h), j = i + dir; if (i < 0 || j < 0 || j >= hs.length) return;
+  commit('Move Heading', () => { const o = hs[i].order; hs[i].order = hs[j].order; hs[j].order = o; if (hs[i].order === hs[j].order) hs[i].order += dir * 0.001; touch(hs[i]); touch(hs[j]); });
+}
+function hcolMenu(el) {
+  const key = el.dataset.col, h = el.dataset.id ? getH(el.dataset.id) : null;
+  const fit = { label: 'Fit Width Automatically', icon: 'columns', disabled: !getColW(key), fn: () => setColWidth(key, 0) };
+  if (!h) { openMenu(el, [fit]); return; }
+  const hs = S.headings.filter((x) => x.projectId === h.projectId && !x.archived).sort(byOrder), i = hs.indexOf(h);
+  headingMenu(h, el, [
+    { header: 'Column' },
+    { label: 'Move Left', icon: 'chevL', disabled: i <= 0, fn: () => moveHeadingCol(h, -1) },
+    { label: 'Move Right', icon: 'chevR', disabled: i >= hs.length - 1, fn: () => moveHeadingCol(h, 1) },
+    fit, { sep: 1 },
+  ]);
 }
 
 /* ---- picking columns ---- */

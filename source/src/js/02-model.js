@@ -164,13 +164,14 @@ function somedayTodo(t) {
 function inboxItems() { return S.todos.filter((t) => liveTodo(t) && isInbox(t)); }
 
 function counts() {
-  let inbox = 0, today = 0, due = 0;
+  let inbox = 0, today = 0, due = 0, waiting = 0;
   for (const t of S.todos) {
     if (t.trashed || t.isTemplate || t.isDraft || t.status !== 'open') continue;
     if (isInbox(t)) inbox++;
+    if (t.waitFor && inLiveProject(t)) waiting++;
     if (inLiveProject(t) && isTodayItem(t)) { today++; if (t.deadline && t.deadline <= T0()) due++; }
   }
-  return { inbox, today, due };
+  return { inbox, today, due, waiting };
 }
 function projectProgress(p) {
   let total = 0, done = 0;

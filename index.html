@@ -48,6 +48,8 @@
   --c-trash: #8a909c;
   --c-area: #5b8f78;
   --c-board: #8b6fd6;
+  --c-template: #7a8ca3;
+  --c-waiting: #d9822b;
   --shadow-card: 0 1px 2px rgba(20, 28, 48, .06), 0 10px 30px rgba(20, 28, 48, .13);
   --shadow-pop: 0 2px 6px rgba(20, 28, 48, .08), 0 18px 48px rgba(20, 28, 48, .2);
   --scrim: rgba(18, 22, 32, .32);
@@ -63,7 +65,7 @@
     --bg: #17191e; --side: #1e2027; --card: #22252d; --pop: #262a33; --fg: #e7e9ef; --muted: #9aa1b1; --faint: #626a7a;
     --line: #2c3039; --line-strong: #3a3f4a; --hover: #282c35; --accent: #6d8cff; --accent-ink: #0f1424; --accent-tint: #26304d;
     --sel: #263252; --cb: #5c6372; --red: #ff6a5f; --c-inbox: #5aa2ee; --c-today: #f6c443; --c-evening: #8d99f0;
-    --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee;
+    --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee; --c-template: #9fb0c6; --c-waiting: #f0a050;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .45); --shadow-pop: 0 2px 8px rgba(0, 0, 0, .35), 0 20px 50px rgba(0, 0, 0, .55);
     --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
   }
@@ -72,7 +74,7 @@
   --bg: #17191e; --side: #1e2027; --card: #22252d; --pop: #262a33; --fg: #e7e9ef; --muted: #9aa1b1; --faint: #626a7a;
   --line: #2c3039; --line-strong: #3a3f4a; --hover: #282c35; --accent: #6d8cff; --accent-ink: #0f1424; --accent-tint: #26304d;
   --sel: #263252; --cb: #5c6372; --red: #ff6a5f; --c-inbox: #5aa2ee; --c-today: #f6c443; --c-evening: #8d99f0;
-  --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee;
+  --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee; --c-template: #9fb0c6; --c-waiting: #f0a050;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .45); --shadow-pop: 0 2px 8px rgba(0, 0, 0, .35), 0 20px 50px rgba(0, 0, 0, .55);
   --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
 }
@@ -739,6 +741,52 @@ body.col-resizing .board { scroll-snap-type: none; }
 .bcol.sized { min-width: 0; }
 @media (max-width: 760px) { .bcol-resize { display: none; } }
 
+/* templates list */
+.tpl-row { cursor: pointer; align-items: center; }
+.tpl-row:hover { background: var(--hover); }
+.tpl-row .tpl-ic { color: var(--c-template); }
+.tpl-row .r-title { font-weight: 600; }
+.tpl-use { padding: 5px 11px; font-size: 12.5px; white-space: nowrap; }
+.tpl-row .r-right { align-self: center; }
+
+/* a project's headings as columns */
+.lh-board.on { color: var(--accent); background: var(--accent-tint); }
+@media (max-width: 760px) { .lh-board { display: none; } }
+.board-view .lh-banner, .board-view .lh-notes, .board-view .lh-meta, .board-view .tagbar { max-width: 760px; }
+.hboard { padding-top: 12px; }
+.bcol-title.static { cursor: default; color: var(--muted); }
+.bcol-title.static:hover { text-decoration: none; }
+.bcol-htitle { display: block; width: 100%; font: inherit; font-weight: 650; font-size: 15px; line-height: 20px; color: var(--accent); background: none; border: 0; padding: 0; resize: none; overflow: hidden; outline: none; border-radius: 4px; }
+.bcol-htitle:focus { background: var(--bg); box-shadow: 0 0 0 2px var(--accent-tint); color: var(--fg); }
+.bcol-new { flex: 0 0 150px; min-width: 0; align-self: flex-start; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 16px 10px; border: 1.5px dashed var(--line-strong); border-radius: 12px; color: var(--muted); font-weight: 600; font-size: 13px; background: none; }
+.bcol-new:hover { color: var(--fg); border-color: var(--muted); background: var(--hover); }
+.bcol-new .ic { width: 15px; height: 15px; }
+
+/* waiting for */
+.r-line > .r-wait { display: inline-flex; align-items: center; gap: 3px; vertical-align: -2px; font-size: 11.5px; color: var(--c-waiting); font-weight: 550; white-space: nowrap; }
+.r-wait .ic { width: 12px; height: 12px; }
+.chip.waitc .chip-main { color: var(--c-waiting); }
+.sec-h .ic { width: 14px; height: 14px; color: var(--c-waiting); margin-right: 5px; vertical-align: -2px; }
+.wait-pop { width: 330px; padding: 0 0 10px; }
+.wf-b { padding: 4px 12px 0; }
+.wf-l { display: block; font-size: 12px; font-weight: 650; color: var(--muted); margin: 8px 0 6px; }
+.wait-pop .pk-in { width: 100%; margin: 0; }
+.wf-names, .wf-dates { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.wf-dates { margin-top: 0; }
+.wf-pick { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.wf-pick .ic { width: 13px; height: 13px; }
+.wf-pick input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.wf-note { margin: 10px 0 0; font-size: 12px; }
+.wf-f { display: flex; align-items: center; gap: 8px; padding: 12px 12px 0; }
+.wf-f .spacer { flex: 1; }
+@media (max-width: 760px) { .wait-pop { width: auto; } .r-line > .r-wait { font-size: 13px; } }
+
+/* status report */
+.report-modal .seg { margin-bottom: 10px; }
+.report-modal .rp-period { flex-wrap: wrap; }
+.report-modal .ta { min-height: 280px; }
+.report-modal a.btn { display: inline-flex; align-items: center; text-decoration: none; color: inherit; }
+
 </style>
 </head>
 <body>
@@ -756,7 +804,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.14.0';
+const APP_VERSION = '1.15.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -911,6 +959,9 @@ const I = {
   search: svg('<circle cx="10.6" cy="10.6" r="6.4"/><path d="m15.4 15.4 5 5"/>'),
   plus: svg('<path d="M12 5v14M5 12h14"/>'),
   more: svg('<circle class="fill" cx="5.5" cy="12" r="1.7"/><circle class="fill" cx="12" cy="12" r="1.7"/><circle class="fill" cx="18.5" cy="12" r="1.7"/>'),
+  report: svg('<rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8.5 15.5v-3M12 15.5v-6M15.5 15.5v-4.5"/>'),
+  hourglass: svg('<path d="M6.5 3.5h11M6.5 20.5h11M8 3.5v2.4c0 2.3 1.7 3.7 4 6.1-2.3 2.4-4 3.8-4 6.1v2.4M16 3.5v2.4c0 2.3-1.7 3.7-4 6.1 2.3 2.4 4 3.8 4 6.1v2.4"/>'),
+  template: svg('<rect x="4.5" y="3.5" width="15" height="17" rx="2.5" stroke-dasharray="3.2 2.4"/><path d="M8.5 9.5h7M8.5 13h7M8.5 16.5h4"/>'),
   columns: svg('<rect x="3.5" y="4" width="7" height="16" rx="2"/><rect x="13.5" y="4" width="7" height="10.5" rx="2"/>'),
   chevL: svg('<path d="m14.5 5.5-6.5 6.5 6.5 6.5"/>'),
   chevR: svg('<path d="m9.5 5.5 6.5 6.5-6.5 6.5"/>'),
@@ -1116,13 +1167,14 @@ function somedayTodo(t) {
 function inboxItems() { return S.todos.filter((t) => liveTodo(t) && isInbox(t)); }
 
 function counts() {
-  let inbox = 0, today = 0, due = 0;
+  let inbox = 0, today = 0, due = 0, waiting = 0;
   for (const t of S.todos) {
     if (t.trashed || t.isTemplate || t.isDraft || t.status !== 'open') continue;
     if (isInbox(t)) inbox++;
+    if (t.waitFor && inLiveProject(t)) waiting++;
     if (inLiveProject(t) && isTodayItem(t)) { today++; if (t.deadline && t.deadline <= T0()) due++; }
   }
-  return { inbox, today, due };
+  return { inbox, today, due, waiting };
 }
 function projectProgress(p) {
   let total = 0, done = 0;
@@ -1736,9 +1788,11 @@ const LISTS = {
   upcoming: { title: 'Upcoming', icon: 'calendar', color: 'var(--c-upcoming)' },
   anytime: { title: 'Anytime', icon: 'layers', color: 'var(--c-anytime)' },
   someday: { title: 'Someday', icon: 'box', color: 'var(--c-someday)' },
+  waiting: { title: 'Waiting', icon: 'hourglass', color: 'var(--c-waiting)' },
   logbook: { title: 'Logbook', icon: 'logbook', color: 'var(--c-logbook)' },
   trash: { title: 'Trash', icon: 'trash', color: 'var(--c-trash)' },
   board: { title: 'Board', icon: 'columns', color: 'var(--c-board)' },
+  templates: { title: 'Templates', icon: 'template', color: 'var(--c-template)' },
 };
 const byOrder = (a, b) => a.order - b.order || a.createdAt - b.createdAt;
 const byToday = (a, b) => ((a.type === 'project' ? 0 : 1) - (b.type === 'project' ? 0 : 1)) || a.todayOrder - b.todayOrder || a.createdAt - b.createdAt;
@@ -1785,7 +1839,7 @@ function renderShell() {
   app.classList.toggle('sel-mode', ui.selectMode);
   app.classList.toggle('touch', isCoarse());
   const magic = $('#magic');
-  const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash'].includes(ui.view.type));
+  const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash', 'templates'].includes(ui.view.type));
   magic.classList.toggle('hidden-in', hide);
   const L = LISTS[ui.view.type];
   document.title = isMobile() && ui.mobile === 'home' ? 'Sectis' : `${L ? L.title : ui.view.type === 'project' ? pTitle(getP(ui.view.id)) : ui.view.type === 'area' ? aTitle(getA(ui.view.id)) : ui.view.type === 'tag' ? tagTitle(ui.view.id) : 'Sectis'} – Sectis`;
@@ -1817,7 +1871,7 @@ function renderSidebar() {
   const sbProjects = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && (p.areaId || null) === areaId).sort(byOrder);
   let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button></div><nav class="sb-scroll" id="sb-scroll">`;
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
-  html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${item('anytime')}${item('someday')}</div>`;
+  html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
   html += `<div class="sb-group sb-board-g"><button class="sb-item${on('board')}" data-nav="board" title="Projects and areas side by side (8)"><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">Board</span></button></div>`;
   const loose = sbProjects(null);
@@ -1880,6 +1934,7 @@ function rowHTML(x, ctx = {}) {
   if (ctx.when && x.start === 'someday') line += ic('box', 'r-box');
   if (ctx.when && isScheduledToday(x) && !ctx.star) line += isEveningItem(x) ? ic('moon', 'r-moon') : ic('star', 'r-star');
   line += `<span class="r-title${x.title ? '' : ' untitled'}">${esc(x.title || 'New To-Do')}</span>`;
+  if (x.waitFor && x.status === 'open' && !ctx.noWait && !x.isTemplate) line += `<span class="r-wait" title="Waiting on ${esc(x.waitFor)}">${ic('hourglass')}${esc(x.waitFor)}</span>`;
   if (x.templateId) line += ic('repeat', 'r-ic');
   if (x.linkId && !x.trashed && linkSiblings(x).length) line += `<span class="ic r-ic r-link" title="Also in ${esc(linkSiblings(x).map(placeLabel).join(', '))}">${I.link}</span>`;
   if (x.reminder && x.when) line += ic('bell', 'r-ic');
@@ -1894,7 +1949,7 @@ function rowHTML(x, ctx = {}) {
       : `<span class="r-ck">${ic('checklist', 'r-ic')}${d}/${n}</span>`;
   }
   line += tagPills(x);
-  const parent = ctx.parent ? parentLabel(x) : '';
+  const parent = [ctx.parent ? parentLabel(x) : '', ctx.waitInfo && x.waitSince ? `Waiting since ${fmtDate(x.waitSince, { weekday: false })}` : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(x) + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
   return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
@@ -1973,7 +2028,8 @@ function cardHTML(t) {
   const ck = ckOpen ? `<div class="ck">${t.checklist.map((c) => checklistItemHTML(t, c, tpl)).join('')}<div class="ck-item"><span class="ck-box" style="opacity:.4"></span><textarea class="ck-input" data-edit="ck-new" data-id="${t.id}" data-fkey="cknew-${t.id}" placeholder="Add item" enterkeyhint="next" aria-label="New checklist item" rows="1" data-autosize data-oneline></textarea></div></div>` : '';
   const tags = t.tags.length ? `<div class="c-tags">${t.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
   const links = linkSiblings(t).map((s) => `<span class="chip linkc${s.status !== 'open' ? ' done' : ''}"><button class="chip-main" data-action="reveal" data-id="${s.id}" title="Go to this copy">${ic('link')}<span>${s.status === 'open' ? 'Also in' : s.status === 'done' ? 'Done in' : 'Canceled in'} ${esc(placeLabel(s))}</span></button></span>`).join('');
-  const chips = whenChipHTML(t) + repeatChipHTML(t) + deadlineChipHTML(t) + links;
+  const wait = t.waitFor && !tpl ? `<span class="chip waitc"><button class="chip-main" data-action="waiting" data-id="${t.id}" title="Change who or when">${ic('hourglass')}<span>Waiting on ${esc(t.waitFor)}${t.waitSince ? ` since ${esc(fmtDate(t.waitSince, { weekday: false }))}` : ''}</span></button><button class="chip-x" data-action="stop-waiting" data-id="${t.id}" aria-label="Stop waiting">${ic('x')}</button></span>` : '';
+  const chips = whenChipHTML(t) + wait + repeatChipHTML(t) + deadlineChipHTML(t) + links;
   const tools = [
     `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>`,
     !ckOpen ? `<button class="ib" data-action="ck-open" data-id="${t.id}" title="Checklist" aria-label="Checklist">${ic('checklist')}</button>` : '',
@@ -1982,7 +2038,7 @@ function cardHTML(t) {
     `<button class="ib" data-action="todo-menu" data-id="${t.id}" title="More" aria-label="More">${ic('more')}</button>`,
   ].join('');
   return `<div class="card" data-id="${t.id}" data-kind="todo">
-    ${tpl ? `<div class="c-tpl">${ic('repeat')}<span>Repeating to-do. Changes apply to the copies it makes from now on.</span></div>` : ''}
+    ${tpl ? (t.blueprint ? `<div class="c-tpl">${ic('template')}<span>To-do template. New to-dos made from it get this title, notes, checklist and tags.</span></div>` : `<div class="c-tpl">${ic('repeat')}<span>Repeating to-do. Changes apply to the copies it makes from now on.</span></div>`) : ''}
     <div class="c-top">${tpl || tplChild ? `<span class="cb tpl-cb" aria-hidden="true"></span>` : checkboxHTML(t)}<textarea class="c-title" data-edit="title" data-id="${t.id}" data-fkey="title-${t.id}" placeholder="New To-Do" enterkeyhint="done" aria-label="Title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(t.title)}</textarea></div>
     <div class="c-body">${notesBlockHTML('notes', t.id, `notes-${t.id}`, t.notes, 'c-notes', 'Notes')}${ck}${tags}
     <div class="c-foot"><div class="c-chips">${chips}</div><div class="c-tools">${tools}</div></div></div></div>`;
@@ -2026,9 +2082,11 @@ function renderMain() {
     case 'area': html = viewArea(getA(ui.view.id)); break;
     case 'tag': html = viewTag(getTag(ui.view.id)); break;
     case 'board': html = viewBoard(); break;
+    case 'templates': html = viewTemplates(); break;
+    case 'waiting': html = viewWaiting(); break;
     default: html = viewToday();
   }
-  $('#content').classList.toggle('board-view', ui.view.type === 'board');
+  $('#content').classList.toggle('board-view', ui.view.type === 'board' || (ui.view.type === 'project' && projectBoardOn(getP(ui.view.id))));
   $('#content').innerHTML = mobileBarHTML() + html;
 }
 function viewInbox() {
@@ -2175,8 +2233,8 @@ function viewTrash() {
   const head = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-trash)">${I.trash}</span><h1 class="lh-title">Trash</h1>${n ? `<button class="btn" data-action="empty-trash">Empty Trash</button>` : ''}</div>`;
   return head + `<div class="list">${projs.length ? `<div class="sec" data-sec="trash">${projs.map((p) => projRowHTML(p, { parent: true })).join('')}</div>` : ''}${secHTML('trash', todos, { parent: true })}</div>` + (n ? '' : emptyHTML('trash', 'Trash is empty', 'Deleted to-dos and projects wait here until you empty the Trash.'));
 }
-function templatesIn(filter) { return S.todos.filter((t) => t.isTemplate && !t.trashed && filter(t)).sort(byOrder); }
-function projectTemplatesIn(filter) { return S.projects.filter((p) => p.isTemplate && !p.trashed && filter(p)).sort(byOrder); }
+function templatesIn(filter) { return S.todos.filter((t) => t.isTemplate && !t.blueprint && !t.trashed && filter(t)).sort(byOrder); }
+function projectTemplatesIn(filter) { return S.projects.filter((p) => p.isTemplate && !p.blueprint && !p.trashed && filter(p)).sort(byOrder); }
 function repeatingSectionHTML(tpls) {
   if (!tpls.length) return '';
   return `<div class="sec-h">${ic('repeat')}<span>Repeating</span></div><div class="sec" data-sec="repeating">${tpls.map((t) => ghostRowHTML(t, t.next)).join('')}</div>`;
@@ -2191,27 +2249,31 @@ function viewProject(p) {
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag')}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh"><span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span><textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
+  let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
+  else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these headings, to-dos and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
   else if (p.isTemplate) html += `<div class="lh-banner rp-banner">${ic('repeat')}<span><b>Repeating project.</b> ${esc(ruleSummary(p.repeat))}${p.next ? `. Next copy ${esc(fmtRel(p.next))}` : p.repeat && p.repeat.mode === 'after' ? '. The next copy comes after you complete the current one' : '. This repeat has ended'}. Changes here apply to future copies.</span><button class="link-btn" data-action="repeat" data-id="${p.id}">Change</button></div>`;
   else if (p.status !== 'open') html += `<div class="lh-banner"><b>${p.status === 'done' ? 'Completed' : 'Canceled'}</b> ${p.completedAt ? 'on ' + esc(fmtDate(stampDay(p.completedAt))) : ''} <button class="link-btn" data-action="reopen-project" data-id="${p.id}">Reopen</button></div>`;
   html += notesBlockHTML('project-notes', p.id, 'pnotes', p.notes, 'lh-notes', 'Project notes');
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(live);
+  if (projectBoardOn(p)) html += projectBoardHTML(p, items, headings, ctx);
+  else {
   html += `<div class="list">${secHTML(`project:${p.id}:`, items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx)}`;
   headings.forEach((h) => {
     html += `<div class="hrow" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><textarea class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea><button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options">${ic('more')}</button></div>`;
     html += secHTML(`project:${p.id}:${h.id}`, items.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
   });
   html += '</div>';
+  }
   if (!p.isTemplate) html += repeatingSectionHTML(templatesIn((t) => t.projectId === p.id));
   if (logged.length) {
     const open = ui.showLogged[p.id];
     html += `<button class="show-more" data-action="toggle-logged" data-id="${p.id}">${open ? 'Hide' : 'Show'} ${plural(logged.length, 'logged item')}</button>`;
     if (open) html += `<div class="sec" data-sec="logbook">${logged.map((t) => rowHTML(t, { date: fmtDate(stampDay(t.completedAt), { weekday: false }) })).join('')}</div>`;
   }
-  if (!todosAll.length && !headings.length && p.isTemplate) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and headings you add here.');
-  else if (!todosAll.length && !headings.length) html += emptyHTML('project', 'No to-dos yet', 'Press N or the + button to add the first one. Add headings from the ••• menu to split the project into stages.');
+  if (!todosAll.length && !headings.length && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and headings you add here.');
+  else if (!todosAll.length && !headings.length && !projectBoardOn(p)) html += emptyHTML('project', 'No to-dos yet', 'Press N or the + button to add the first one. Add headings from the ••• menu to split the project into stages.');
   return html;
 }
 function viewArea(a) {
@@ -2279,6 +2341,8 @@ function visibleInCurrentView(x) {
     case 'logbook': return x.status !== 'open' && x.logged;
     case 'trash': return !!x.trashed;
     case 'tag': return effectiveTags(x).has(v.id);
+    case 'templates': return false;
+    case 'waiting': return isWaiting(x);
     case 'board': return boardCols().some((c) => (c.t === 'p' ? x.projectId === c.id || x.id === c.id : (areaOf(x) || {}).id === c.id));
     default: return true;
   }
@@ -2347,7 +2411,8 @@ function rowItem(row) { return row ? itemById(row.dataset.id) : null; }
 function nextRowEl(row) { let n = row.nextElementSibling; while (n && !n.matches('.row[data-id]')) n = n.nextElementSibling; return n; }
 
 function newTodo(opts = {}) {
-  if (['logbook', 'trash'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
+  if (ui.view.type === 'templates') { newTodoTemplate(); return; }
+  if (['logbook', 'trash', 'waiting'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
   if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) { toast('Reopen the project to add to-dos'); return; } }
   if (ui.view.type === 'board' && !opts.sec && !opts.place) {
     // a selected to-do decides the spot below; otherwise its column (or the first column) does
@@ -2436,6 +2501,12 @@ function renderTplModal() {
   let L = ui.tplLayer;
   if (!L || !L.el.isConnected) {
     L = ui.tplLayer = openLayer({ modal: true, cls: 'tpl-modal', html: '', onClose: () => { ui.tplModal = null; ui.tplLayer = null; render(); } });
+  }
+  if (t.blueprint) {
+    L.el.innerHTML = `<div class="modal-h"><h2>To-Do Template</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>
+      <div class="modal-b">${cardHTML(t)}<p class="note">Use it from any list’s ••• menu (<b>New To-Do from Template</b>), or with <b>Add To…</b> below.</p></div>
+      <div class="modal-f"><button class="btn" data-action="delete-template" data-id="${t.id}">Delete Template</button><button class="btn" data-action="use-ttemplate" data-id="${t.id}">Add To…</button><button class="btn primary" data-action="close-layer">Done</button></div>`;
+    return;
   }
   const upcoming = []; let nd = t.next;
   for (let i = 0; i < 3 && nd; i++) { upcoming.push(nd); nd = t.repeat.mode === 'schedule' ? nextOccurrence(t.repeat, nd) : null; }
@@ -2873,7 +2944,7 @@ function showLine(st, el, after, sec) {
   st.line.hidden = false;
 }
 function sectionAccepts(sec, kind) {
-  if (!sec || /^(logbook|trash|repeating|tag)/.test(sec)) return false;
+  if (!sec || /^(logbook|trash|repeating|tag|waiting)/.test(sec)) return false;
   const projectSec = sec.startsWith('areaprojects:') || sec.includes(':projects:');
   if (kind === 'project') return projectSec || /^(today|evening|upcoming)/.test(sec);
   return !projectSec;
@@ -3008,6 +3079,7 @@ function dropOnList(ids, key, kind, anchorEl) {
     case 'anytime': applyWhen(ids, 'anytime'); break;
     case 'someday': applyWhen(ids, 'someday'); break;
     case 'logbook': completeIds(ids); break;
+    case 'waiting': if (kind === 'todo') openWaiting(ids, anchorEl); break;
     case 'trash': trashItems(ids); break;
     case 'project': if (kind === 'todo') moveItems(ids, { type: 'project', id }); break;
     case 'area': moveItems(ids, { type: 'area', id }); break;
@@ -3131,6 +3203,15 @@ function handleAction(act, el, e) {
       return;
     }
     case 'board-add': openBoardPicker(el); return;
+    case 'waiting': openWaiting([id], el); return;
+    case 'stop-waiting': stopWaiting([id]); return;
+    case 'proj-board': setProjectBoard(id, !ui.projBoard.has(id)); return;
+    case 'hcol-menu': hcolMenu(el); return;
+    case 'hcol-new': newHeading(id); return;
+    case 'use-ptemplate': newProjectFromTemplate(id); return;
+    case 'use-ttemplate': openAddTodoTemplateTo(id, el); return;
+    case 'delete-template': deleteTemplate(id); return;
+    case 'templates-new': openMenu(el, [{ label: 'New Project Template', icon: 'project', fn: newProjectTemplate }, { label: 'New To-Do Template', icon: 'template', fn: newTodoTemplate }]); return;
     case 'bcol-add': newTodo({ sec: el.dataset.sec }); return;
     case 'bcol-menu': boardColMenu(el.dataset.col, el); return;
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
@@ -3144,7 +3225,7 @@ function handleAction(act, el, e) {
     case 'find': openFind(); return;
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
-    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }]); return;
+    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
     case 'm-back': closeEditor({ noRender: true }); ui.mobile = 'home'; ui.sel.clear(); ui.selectMode = false; render(); return;
     case 'select-done': ui.selectMode = false; ui.sel.clear(); render(); return;
     case 'select-all': visibleRowIds().forEach((x) => ui.sel.add(x)); paintSelection(); return;
@@ -3176,6 +3257,9 @@ function todoMenu(id, el) {
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ sep: 1 }, { label: 'Delete To-Do', icon: 'trash', danger: true, fn: () => trashItems([id]) });
+  } else if (t.blueprint) {
+    items.push({ label: 'Add To…', icon: 'move', fn: () => openAddTodoTemplateTo(id, el) });
+    items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(id) });
   } else if (t.isTemplate) {
     items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(id, el) });
     items.push({ label: 'Move…', icon: 'move', fn: () => openMove([id], el) });
@@ -3184,12 +3268,15 @@ function todoMenu(id, el) {
     items.push({ label: 'When…', icon: 'calendar', hint: 'S', fn: () => openWhen([id], el) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
+    if (t.status === 'open') items.push({ label: t.waitFor ? `Waiting on ${t.waitFor}…` : 'Waiting For…', icon: 'hourglass', hint: 'W', fn: () => openWaiting([id], el) });
+    if (t.waitFor) items.push({ label: 'Stop Waiting', icon: 'x', fn: () => stopWaiting([id]) });
     if (!t.templateId) items.push({ label: 'Also Add To…', icon: 'link', fn: () => openAlsoAddTo([id], el) });
     if (linkSiblings(t).some((x) => x.status === 'open') || (t.status === 'open' && linkSiblings(t).length)) items.push({ label: 'Complete Everywhere', icon: 'check', fn: () => completeEverywhere(id) });
     if (linkSiblings(t).length) items.push({ label: 'Unlink This Copy', icon: 'x', fn: () => unlinkTodo(id) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ label: 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
+    items.push({ label: 'Save as Template', icon: 'template', fn: () => saveTodoAsTemplate(t) });
     items.push({ sep: 1 });
     if (!t.logged && !t.trashed) items.push({ label: t.status === 'open' ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', fn: () => logItems([id]) });
     items.push(t.status === 'canceled' ? { label: 'Mark as Open', icon: 'reopen', fn: () => toggleComplete([id], 'canceled') } : { label: 'Mark as Canceled', icon: 'cancel', fn: () => toggleComplete([id], 'canceled') });
@@ -3202,6 +3289,15 @@ function projectMenu(p, el, extra = []) {
   const items = [...extra];
   if (isMobile() && p.status === 'open' && !p.trashed) items.push(selectModeItem(), { sep: 1 });
   const src = p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
+  if (p.blueprint && !p.trashed) {
+    items.push({ label: 'New Project from Template', icon: 'project', fn: () => newProjectFromTemplate(p.id) });
+    items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
+    items.push({ label: 'Default Area…', icon: 'area', fn: () => openMove([p.id], el, { title: 'Default Area', onPick: (tg) => commit('Default Area', () => { p.bpAreaId = tg.type === 'area' ? tg.id : null; touch(p); }) }) });
+    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
+    items.push({ label: 'All Templates', icon: 'template', fn: () => navigate('templates') });
+    items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(p.id) });
+    openMenu(el, items); return;
+  }
   if (p.isTemplate && !p.trashed) {
     items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
@@ -3219,12 +3315,17 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
     items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
+    if (!isMobile()) items.push({ label: ui.projBoard.has(p.id) ? 'Show as List' : 'Show Headings as Board', icon: 'columns', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); setProjectBoard(p.id, !ui.projBoard.has(p.id)); } });
+    items.push({ label: 'Add To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'], sec: `project:${p.id}:` }) });
+    items.push({ label: 'Save as Template', icon: 'template', fn: () => saveProjectAsTemplate(p) });
     items.push({ label: 'Share Project…', icon: 'share', fn: () => openShare({ type: 'items', ids: [p.id] }) });
+    items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
     items.push(src ? { label: 'Edit Repeating Project', icon: 'repeat', fn: () => navigate('project:' + src.id) } : { label: 'Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
   } else {
     if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
+    if (!p.trashed) items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
     if (!p.logged && !p.trashed) items.push({ label: 'Move to Logbook', icon: 'logbook', fn: () => logItems([p.id]) });
     items.push({ label: 'Reopen Project', icon: 'reopen', fn: () => reopenProject(p) });
   }
@@ -3239,18 +3340,21 @@ function areaMenu(a, el, extra = []) {
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
     ...boardMenuItems('a', a.id, isColMenu(extra)),
+    { label: 'Add from Template…', icon: 'template', fn: () => openTemplatePicker(el, { sec: `area:${a.id}`, areaId: a.id }) },
     { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
     { label: ui.sbCollapsed.size ? 'Show All Projects in Sidebar' : 'Hide All Projects in Sidebar', icon: 'layers', fn: () => setSidebarAreas(!ui.sbCollapsed.size) },
     { label: 'Collapse All Projects', icon: 'chevR', fn: () => setExpanded(areaProjectIds(a.id), false) },
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
+    { label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'area', id: a.id }) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
     { label: 'Rename', icon: 'edit', fn: () => { if (!(ui.view.type === 'area' && ui.view.id === a.id)) navigate('area:' + a.id); const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
     { sep: 1 }, { label: 'Delete Area…', icon: 'trash', danger: true, fn: () => deleteArea(a) },
   ]);
 }
-function headingMenu(h, el) {
+function headingMenu(h, el, extra = []) {
   if (!h) return;
   openMenu(el, [
+    ...extra,
     { label: 'New To-Do Here', icon: 'plus', fn: () => { const sec = `project:${h.projectId}:${h.id}`; const first = S.todos.filter((t) => t.headingId === h.id && !t.trashed).sort(byOrder)[0]; newTodo({ sec, place: { order: first ? first.order - 1 : 0 } }); } },
     { label: 'Move to Project…', icon: 'move', fn: () => openMove([], el, { heading: true, onPick: (t) => { if (t.type === 'project') moveHeading(h, t.id); } }) },
     { label: 'Convert to Project', icon: 'project', fn: () => headingToProject(h) },
@@ -3273,6 +3377,7 @@ function batchMenuItems(anchor) {
     { label: 'Move…', icon: 'move', hint: 'M', disabled: !todos.length, fn: () => endSelectAfter(openMove(todos, anchor)) },
     { label: 'Also Add To…', icon: 'link', disabled: !todos.length, fn: () => endSelectAfter(openAlsoAddTo(todos, anchor)) },
     { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
+    { label: 'Waiting For…', icon: 'hourglass', hint: 'W', disabled: !todos.length, fn: () => endSelectAfter(openWaiting(todos, anchor)) },
     { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: loggable.some((x) => x.status === 'open') ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', disabled: !loggable.length, fn: () => { logItems(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
@@ -3287,6 +3392,8 @@ document.addEventListener('contextmenu', (e) => {
     // sidebar projects and areas, and board column headers, get their menus too
     const sbi = e.target.closest('#sidebar .sb-item[data-kind="project"], #sidebar .sb-item[data-kind="area"]');
     if (sbi) { e.preventDefault(); const at = { x: e.clientX, y: e.clientY }; if (sbi.dataset.kind === 'project') projectMenu(getP(sbi.dataset.id), at); else areaMenu(getA(sbi.dataset.id), at); return; }
+    const hh = e.target.closest('#content .bcol-h[data-hcol]');
+    if (hh) { const btn = hh.querySelector('[data-action="hcol-menu"]'); if (btn) { e.preventDefault(); hcolMenu(btn); return; } }
     const bh = e.target.closest('#content .bcol-h[data-col]');
     if (bh) { e.preventDefault(); boardColMenu(bh.dataset.col, { x: e.clientX, y: e.clientY }); return; }
   }
@@ -3309,6 +3416,7 @@ function viewMenu(el) {
     openMenu(el, [...batch,
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
       { label: 'Fit All Widths Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w), fn: resetAllWidths },
+      { label: 'Status Report…', icon: 'report', disabled: !n, fn: () => openReport({ type: 'board' }) },
       { label: 'Remove All Columns', icon: 'x', disabled: !n, fn: () => { const prev = ui.board.slice(); ui.board = []; saveBoard(); render(); toast('Board cleared', { action: 'Undo', fn: () => { ui.board = prev; saveBoard(); render(); } }); } },
     ]);
     return;
@@ -3316,7 +3424,9 @@ function viewMenu(el) {
   if (isMobile() && !['logbook', 'trash', 'tag'].includes(v)) items.push(selectModeItem());
   if (v === 'today') items.push({ label: S.settings.groupToday ? 'Don’t Group by Project' : 'Group by Project & Area', icon: 'layers', fn: () => { S.settings.groupToday = !S.settings.groupToday; saveSoon(); render(); } });
   const unlogged = S.todos.concat(S.projects).some((x) => x.status !== 'open' && !x.logged);
+  if (['inbox', 'today', 'upcoming', 'anytime', 'someday', 'tag'].includes(v)) items.push({ label: 'New To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'] }) });
   if (v !== 'trash') items.push({ label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) });
+  if (v !== 'trash') items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'all' }) });
   items.push({ label: 'Log Completed Now', icon: 'logbook', disabled: !unlogged, fn: logCompletedNow });
   if (v === 'trash') items.push({ label: 'Empty Trash…', icon: 'trash', danger: true, fn: emptyTrash });
   items.push({ sep: 1 }, { label: 'Keyboard Shortcuts', icon: 'key', fn: openShortcuts }, { label: 'Settings', icon: 'gear', fn: openSettings });
@@ -3459,6 +3569,7 @@ document.addEventListener('keydown', (e) => {
     case 'o': e.preventDefault(); applyWhen(one, 'someday'); return;
     case 's': e.preventDefault(); openWhen(one, anchorFor(one[0])); return;
     case 'd': e.preventDefault(); openWhen(one, anchorFor(one[0]), 'deadline'); return;
+    case 'w': e.preventDefault(); openWaiting(one, anchorFor(one[0])); return;
     case '#': e.preventDefault(); openTagPicker(one, anchorFor(one[0])); return;
     case 'm': e.preventDefault(); openMove(todosSel.length ? todosSel : one, anchorFor(one[0])); return;
     case 'r': e.preventDefault(); if (todosSel.length === 1) { const t = getT(todosSel[0]); if (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed) openTplModal(t.templateId); else openRepeat(t.id, anchorFor(t.id)); } return;
@@ -3499,14 +3610,14 @@ function findResults(q, includeLog) {
   Object.entries(LISTS).forEach(([key, L]) => { if (!words.length || m(L.title)) out.push({ g: 'Lists', kind: 'list', key, title: L.title, icon: L.icon, color: L.color }); });
   S.areas.slice().sort(byOrder).forEach((a) => { if (words.length && m(aTitle(a))) out.push({ g: 'Areas', kind: 'area', key: 'area:' + a.id, title: aTitle(a), icon: 'area', color: 'var(--c-area)' }); });
   S.projects.filter((p) => !p.trashed && (p.status === 'open' || includeLog)).sort(byOrder).forEach((p) => {
-    if (!words.length ? p.status === 'open' && p.start !== 'someday' && !p.isTemplate : m(pTitle(p), p.notes)) out.push({ g: 'Projects', kind: 'project', key: 'project:' + p.id, title: pTitle(p), pie: projectProgress(p).frac, sub: [areaOf(p) ? aTitle(areaOf(p)) : '', p.isTemplate ? 'Repeating' : '', p.status !== 'open' ? 'Completed' : ''].filter(Boolean).join(' · ') });
+    if (!words.length ? p.status === 'open' && p.start !== 'someday' && !p.isTemplate : m(pTitle(p), p.notes)) out.push({ g: 'Projects', kind: 'project', key: 'project:' + p.id, title: pTitle(p), pie: projectProgress(p).frac, sub: [areaOf(p) ? aTitle(areaOf(p)) : '', p.blueprint ? 'Template' : p.isTemplate ? 'Repeating' : '', p.status !== 'open' ? 'Completed' : ''].filter(Boolean).join(' · ') });
   });
   if (words.length) {
     tagTree().forEach(({ tag }) => { if (m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: 'var(--muted)' }); });
     let n = 0;
     S.todos.filter((t) => !t.trashed && !t.isDraft && (t.isTemplate || t.status === 'open' || !t.logged || includeLog))
       .sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.modifiedAt - a.modifiedAt)
-      .forEach((t) => { if (n < 60 && m(t.title, t.notes, t.checklist.map((c) => c.title).join(' '))) { n++; out.push({ g: t.isTemplate ? 'Repeating' : 'To-Dos', kind: t.isTemplate ? 'template' : 'todo', id: t.id, title: t.title || 'New To-Do', icon: t.isTemplate ? 'repeat' : t.status === 'open' ? 'select' : 'logbook', color: t.status === 'open' ? 'var(--faint)' : 'var(--c-logbook)', sub: [parentLabel(t), t.when && t.start === 'anytime' ? fmtRel(t.when) : t.start === 'someday' ? 'Someday' : ''].filter(Boolean).join(' · ') }); } });
+      .forEach((t) => { if (n < 60 && m(t.title, t.notes, t.checklist.map((c) => c.title).join(' '))) { n++; out.push({ g: t.blueprint ? 'Templates' : t.isTemplate ? 'Repeating' : 'To-Dos', kind: t.isTemplate ? 'template' : 'todo', id: t.id, title: t.title || 'New To-Do', icon: t.blueprint ? 'template' : t.isTemplate ? 'repeat' : t.status === 'open' ? 'select' : 'logbook', color: t.status === 'open' ? 'var(--faint)' : 'var(--c-logbook)', sub: [parentLabel(t), t.when && t.start === 'anytime' ? fmtRel(t.when) : t.start === 'someday' ? 'Someday' : ''].filter(Boolean).join(' · ') }); } });
   }
   return out;
 }
@@ -3807,7 +3918,7 @@ function openShortcuts() {
   const k = (...keys) => keys.map((x) => `<kbd>${esc(x)}</kbd>`).join(' ');
   const rows = [
     ['Create', [['New to-do', k('N') + ' or ' + k('Space')], ['New heading (in a project)', k('⇧', 'N')], ['Quick Entry', k('Q')], ['Quick Find', k('/') + ' or ' + k(MODK + 'F')]]],
-    ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
+    ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
     ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing', [['Save and close', k('Return') + ' or ' + k(MODK + '↩')], ['Complete', k(MODK + 'K')], ['When…', k(MODK + 'S')], ['Deadline…', k(MODK + '⇧', 'D')], ['Add checklist', k(MODK + '⇧', 'C')], ['Move checklist item', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Paste several lines', 'one to-do per line']]],
   ];
@@ -4879,6 +4990,10 @@ function collectExport(scope) {
     else if (v.type === 'logbook') {
       title = 'Logbook'; forceDone = true; let cur = null;
       logbookItems().filter(f).slice(0, 500).forEach((x) => { const g = dayGroupLabel(stampDay(x.completedAt || Date.now())); if (g !== cur) { cur = g; B.push({ h: 2, text: g }); } B.push({ item: x }); });
+    } else if (v.type === 'waiting') {
+      title = 'Waiting'; const g = new Map();
+      waitingItems().filter(f).forEach((t) => { const k = t.waitFor.trim(); if (!g.has(k.toLowerCase())) g.set(k.toLowerCase(), { name: k, list: [] }); g.get(k.toLowerCase()).list.push(t); });
+      [...g.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach((x) => { B.push({ h: 2, text: x.name }); x.list.sort((a, b) => ((a.when || '9999') < (b.when || '9999') ? -1 : (a.when || '9999') > (b.when || '9999') ? 1 : byOrder(a, b))).forEach((t) => B.push({ item: t })); });
     } else if (v.type === 'project') return collectExport({ type: 'items', ids: [v.id] });
     else if (v.type === 'area') return collectExport({ type: 'area', id: v.id });
     else if (v.type === 'tag') {
@@ -4910,6 +5025,7 @@ function shareDates(x, o) {
   if (x.type === 'project') { const l = projectLine(x); return l ? [l] : []; }
   if (x.status === 'done') bits.push(x.completedAt ? 'done ' + fmtDate(stampDay(x.completedAt), { weekday: false }) : 'done');
   else if (x.status === 'canceled') bits.push('canceled');
+  else if (x.waitFor && x.type === 'todo') { bits.push('waiting on ' + x.waitFor); if (x.when) bits.push('follow up ' + (x.when <= T0() ? 'today' : fmtDate(x.when))); }
   else if (x.start === 'someday') bits.push('Someday');
   else if (isEveningItem(x)) bits.push('This Evening');
   else if (x.when && x.when <= T0()) bits.push('Today');
@@ -5218,6 +5334,8 @@ function projectChildrenHTML(p) {
    The columns are remembered per device (a Mac layout, not synced). */
 function loadBoard() {
   try { ui.board = JSON.parse(lsGet('sectis.board') || '[]').filter((c) => c && c.id && (c.t === 'p' || c.t === 'a')); } catch (e) { ui.board = []; }
+  try { ui.projBoard = new Set(JSON.parse(lsGet('sectis.pboard') || '[]')); } catch (e) { ui.projBoard = new Set(); }
+  try { ui.hcolW = JSON.parse(lsGet('sectis.hcolw') || '{}') || {}; } catch (e) { ui.hcolW = {}; }
 }
 function saveBoard() { lsSet('sectis.board', JSON.stringify(ui.board)); }
 function colShown(c) {
@@ -5263,10 +5381,13 @@ const clampW = (w) => Math.round(Math.max(COL_MIN, Math.min(COL_MAX, w)));
 function colEntry(key) { const [t, id] = key.split(':'); return (ui.board || []).find((c) => c.t === t && c.id === id); }
 function colStyle(c) { return c.w ? ` style="flex:0 0 ${clampW(c.w)}px;width:${clampW(c.w)}px"` : ''; }
 function resizeHandleHTML(c) { return `<div class="bcol-resize" data-colresize="${c.t}:${c.id}" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div>`; }
+/* Board columns keep their width in the board list; heading columns (h:headingId, n:projectId) in their own map */
+function getColW(key) { const c = colEntry(key); return c ? c.w || 0 : (ui.hcolW || {})[key] || 0; }
 function setColWidth(key, w) {
-  const c = colEntry(key); if (!c) return;
-  if (w) c.w = clampW(w); else delete c.w;
-  saveBoard(); render();
+  const c = colEntry(key);
+  if (c) { if (w) c.w = clampW(w); else delete c.w; saveBoard(); }
+  else { ui.hcolW = ui.hcolW || {}; if (w) ui.hcolW[key] = clampW(w); else delete ui.hcolW[key]; lsSet('sectis.hcolw', JSON.stringify(ui.hcolW)); }
+  render();
 }
 function resetAllWidths() { (ui.board || []).forEach((c) => delete c.w); saveBoard(); render(); }
 document.addEventListener('pointerdown', (e) => {
@@ -5368,6 +5489,50 @@ function boardNewSec() {
   return col ? col.dataset.newsec : null;
 }
 
+/* ---- a project's headings as columns ---- */
+function projectBoardOn(p) { return !!(p && ui.projBoard && ui.projBoard.has(p.id) && !isMobile() && !p.trashed); }
+function setProjectBoard(id, on) {
+  if (on) ui.projBoard.add(id); else ui.projBoard.delete(id);
+  lsSet('sectis.pboard', JSON.stringify([...ui.projBoard])); render();
+}
+function projectBoardHTML(p, items, headings, ctx) {
+  const open = p.status === 'open' && !p.trashed;
+  const col = (key, sec, titleHTML, list, menuBtn) => {
+    const w = getColW(key);
+    return `<section class="bcol hcol${w ? ' sized' : ''}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${w ? ` style="flex:0 0 ${w}px;width:${w}px"` : ''}>
+      <div class="bcol-h" data-hcol="${key}">${titleHTML}${list.filter((t) => t.status === 'open').length ? `<span class="bcol-count" title="Open to-dos">${list.filter((t) => t.status === 'open').length}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" title="New to-do" aria-label="New to-do">${ic('plus')}</button>` : ''}${menuBtn}</div>
+      <div class="bcol-body">${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}</div><div class="bcol-resize" data-colresize="${key}" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div></section>`;
+  };
+  const loose = items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder);
+  let html = '<div class="board hboard">';
+  if (loose.length || !headings.length) html += col(`n:${p.id}`, `project:${p.id}:`, `<div class="bcol-t"><div class="bcol-title static">No Heading</div></div>`, loose, `<button class="ib" data-action="hcol-menu" data-id="" data-col="n:${p.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`);
+  headings.forEach((h) => {
+    const list = items.filter((t) => t.headingId === h.id).sort(byOrder);
+    html += col(`h:${h.id}`, `project:${p.id}:${h.id}`,
+      `<div class="bcol-t"><textarea class="bcol-htitle" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea></div>`,
+      list, `<button class="ib" data-action="hcol-menu" data-id="${h.id}" data-col="h:${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button>`);
+  });
+  if (open) html += `<button class="bcol-new" data-action="hcol-new" data-id="${p.id}">${ic('plus')}<span>Add Heading</span></button>`;
+  return html + '</div>';
+}
+function moveHeadingCol(h, dir) {
+  const hs = S.headings.filter((x) => x.projectId === h.projectId && !x.archived).sort(byOrder);
+  const i = hs.indexOf(h), j = i + dir; if (i < 0 || j < 0 || j >= hs.length) return;
+  commit('Move Heading', () => { const o = hs[i].order; hs[i].order = hs[j].order; hs[j].order = o; if (hs[i].order === hs[j].order) hs[i].order += dir * 0.001; touch(hs[i]); touch(hs[j]); });
+}
+function hcolMenu(el) {
+  const key = el.dataset.col, h = el.dataset.id ? getH(el.dataset.id) : null;
+  const fit = { label: 'Fit Width Automatically', icon: 'columns', disabled: !getColW(key), fn: () => setColWidth(key, 0) };
+  if (!h) { openMenu(el, [fit]); return; }
+  const hs = S.headings.filter((x) => x.projectId === h.projectId && !x.archived).sort(byOrder), i = hs.indexOf(h);
+  headingMenu(h, el, [
+    { header: 'Column' },
+    { label: 'Move Left', icon: 'chevL', disabled: i <= 0, fn: () => moveHeadingCol(h, -1) },
+    { label: 'Move Right', icon: 'chevR', disabled: i >= hs.length - 1, fn: () => moveHeadingCol(h, 1) },
+    fit, { sep: 1 },
+  ]);
+}
+
 /* ---- picking columns ---- */
 function openBoardPicker(anchor) {
   const build = (q = '') => {
@@ -5398,6 +5563,374 @@ function openBoardPicker(anchor) {
         if (!isCoarse()) inp.focus({ preventScroll: true });
       });
       if (!isCoarse()) inp.focus({ preventScroll: true });
+    } });
+  return L;
+}
+
+/* ===================== Templates =====================
+   A template is a hidden project (with its headings and to-dos) or a hidden to-do (with its
+   checklist) that you copy whenever you need a fresh one. They're stored like repeating
+   templates (isTemplate) with blueprint: true and no repeat rule, so they sync like anything
+   else and stay out of every list. A project template remembers a default area (bpAreaId). */
+function isBlueprint(x) { return !!(x && x.isTemplate && x.blueprint); }
+function projectBlueprints() { return S.projects.filter((p) => isBlueprint(p) && !p.trashed).sort((a, b) => pTitle(a).localeCompare(pTitle(b))); }
+function todoBlueprints() { return S.todos.filter((t) => isBlueprint(t) && !t.trashed).sort((a, b) => (a.title || 'New To-Do').localeCompare(b.title || 'New To-Do')); }
+const freshChecklist = (list) => (list || []).map((c) => ({ id: uid(), title: c.title, done: false }));
+
+/* copy a project's headings and to-dos into another project */
+function copyProjectContents(from, to, opts = {}) {
+  const hmap = {};
+  S.headings.filter((h) => h.projectId === from.id && !h.archived).sort(byOrder).forEach((h) => {
+    const nh = { id: uid(), projectId: to.id, title: h.title, order: h.order, archived: false };
+    hmap[h.id] = nh.id; S.headings.push(nh); idx.heading.set(nh.id, nh);
+  });
+  S.todos.filter((c) => c.projectId === from.id && !c.trashed && !c.isTemplate && !c.isDraft && (opts.all || c.status === 'open')).sort(byOrder).forEach((c) => {
+    const t = makeTodo({
+      title: c.title, notes: c.notes, tags: c.tags.slice(), checklist: freshChecklist(c.checklist),
+      projectId: to.id, headingId: c.headingId ? hmap[c.headingId] || null : null,
+      start: c.start === 'someday' ? 'someday' : 'anytime', order: c.order, todayOrder: todayTop(),
+    });
+    S.todos.push(t); idx.todo.set(t.id, t);
+    if (!to.isTemplate) retag(t, new Set());
+  });
+}
+function saveProjectAsTemplate(p) {
+  let bp;
+  commit('Save as Template', () => {
+    bp = makeProject({ title: p.title, notes: p.notes, tags: p.tags.slice(), areaId: null, bpAreaId: p.areaId || null, isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.projects) });
+    S.projects.push(bp); idx.project.set(bp.id, bp);
+    copyProjectContents(p, bp, { all: true });
+  });
+  toast(`Saved “${pTitle(p)}” as a template`, { action: 'Edit Template', fn: () => navigate('project:' + bp.id) });
+}
+function saveTodoAsTemplate(t) {
+  let bp;
+  commit('Save as Template', () => {
+    bp = makeTodo({ title: t.title, notes: t.notes, tags: t.tags.slice(), checklist: freshChecklist(t.checklist), isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.todos.filter(isBlueprint)) });
+    S.todos.push(bp);
+  });
+  toast(`Saved “${t.title || 'New To-Do'}” as a template`, { action: 'Show Templates', fn: () => navigate('templates') });
+}
+function newProjectTemplate() {
+  let bp;
+  commit('New Template', () => { bp = makeProject({ title: '', isTemplate: true, blueprint: true, areaId: null, bpAreaId: null, start: 'anytime', order: endOrder(S.projects) }); S.projects.push(bp); });
+  navigate('project:' + bp.id); ui.focusAfter = '[data-fkey="ptitle"]'; render();
+}
+function newTodoTemplate() {
+  let bp;
+  commit('New Template', () => { bp = makeTodo({ title: '', isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.todos.filter(isBlueprint)) }); S.todos.push(bp); }, { render: false });
+  ui.focusAfter = `[data-fkey="title-${bp.id}"]`;
+  openTplModal(bp.id);
+}
+/* areaId: undefined uses the template's default area; null means no area */
+function newProjectFromTemplate(id, areaId) {
+  const bp = getP(id); if (!bp) return;
+  const area = areaId !== undefined ? areaId : (bp.bpAreaId && getA(bp.bpAreaId) ? bp.bpAreaId : null);
+  let p;
+  commit('New Project from Template', () => {
+    p = makeProject({ title: bp.title, notes: bp.notes, tags: bp.tags.slice(), areaId: area, start: 'anytime', order: endOrder(S.projects) });
+    S.projects.push(p); idx.project.set(p.id, p);
+    copyProjectContents(bp, p);
+  });
+  navigate('project:' + p.id);
+  const i = $('[data-fkey="ptitle"]'); if (i && !isCoarse()) { i.focus(); i.select(); }
+  toast(`Made a project from “${pTitle(bp)}”. Give it a new name if you like.`, { undo: true });
+  return p;
+}
+/* target: a Move-picker target ({type, id, headingId}), or { sec } for a section, or nothing for the current list */
+function newTodoFromTemplate(id, target) {
+  const bp = getT(id); if (!bp) return;
+  let props;
+  if (target && target.type) {
+    props = target.type === 'project' ? { start: 'anytime', projectId: target.id, headingId: target.headingId || null }
+      : target.type === 'area' ? { start: 'anytime', areaId: target.id } : { start: 'inbox' };
+  } else {
+    let sec = target && target.sec;
+    if (!sec && ui.view.type === 'board') sec = boardNewSec();
+    props = ['logbook', 'trash', 'templates'].includes(ui.view.type) && !sec ? { start: 'inbox' } : defaultsForView();
+    if (sec) Object.assign(props, sectionProps(sec) || {});
+    if (props._fromInbox && props.start === 'inbox') props.start = props._fromInbox;
+  }
+  for (const k of Object.keys(props)) if (k.startsWith('_') || props[k] === undefined) delete props[k];
+  const pj = props.projectId && getP(props.projectId);
+  if (pj && (pj.status !== 'open' || pj.trashed)) { toast('Reopen the project to add to-dos'); return; }
+  closeEditor({ noRender: true }); closeTplModal();
+  let t;
+  commit('New To-Do from Template', () => {
+    t = createTodoIn(Object.assign(props, { title: bp.title, notes: bp.notes, tags: Array.from(new Set((props.tags || []).concat(bp.tags))), checklist: freshChecklist(bp.checklist) }));
+  }, { render: false });
+  if (visibleInCurrentView(t) && !(isMobile() && ui.mobile === 'home')) { ui.editing = t.id; ui.sel = new Set([t.id]); ui.anchor = t.id; ui.scrollToEditor = true; render(); }
+  else { render(); toast(`Added “${t.title || 'New To-Do'}” to ${placeLabel(t)}`, { action: 'Show', fn: () => revealTodo(t.id) }); }
+  return t;
+}
+/* the "from template" menu; opts.kinds limits it to 'project' or 'todo', opts.sec / opts.areaId say where */
+function openTemplatePicker(anchor, opts = {}) {
+  const kinds = opts.kinds || ['project', 'todo'];
+  const projs = kinds.includes('project') ? projectBlueprints() : [], todos = kinds.includes('todo') ? todoBlueprints() : [];
+  if (!projs.length && !todos.length) {
+    toast(kinds.length === 1 && kinds[0] === 'project' ? 'No project templates yet. Use Save as Template in a project’s ••• menu.' : 'No templates yet. Use Save as Template in a project’s or to-do’s ••• menu.', { action: 'Templates', fn: () => navigate('templates') });
+    return null;
+  }
+  const items = [];
+  if (projs.length) { items.push({ header: 'New Project' }); projs.forEach((p) => items.push({ label: pTitle(p), icon: 'project', fn: () => newProjectFromTemplate(p.id, opts.areaId) })); }
+  if (todos.length) {
+    if (items.length) items.push({ sep: 1 });
+    items.push({ header: 'New To-Do' });
+    todos.forEach((t) => items.push({ label: t.title || 'New To-Do', icon: 'template', fn: () => newTodoFromTemplate(t.id, opts.sec ? { sec: opts.sec } : null) }));
+  }
+  items.push({ sep: 1 }, { label: 'Manage Templates', icon: 'template', fn: () => navigate('templates') });
+  return openMenu(anchor, items);
+}
+function openAddTodoTemplateTo(id, anchor) {
+  return openMove([], anchor, { title: 'Add To', onPick: (target) => newTodoFromTemplate(id, target) });
+}
+function deleteTemplate(id) {
+  const x = itemById(id); if (!x) return;
+  closeTplModal();
+  trashItems([id]);
+  if (ui.view.type === 'project' && ui.view.id === id) navigate('templates');
+}
+
+/* ---- the Templates list ---- */
+function viewTemplates() {
+  const projs = projectBlueprints(), todos = todoBlueprints();
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span><h1 class="lh-title">Templates</h1><button class="btn board-add" data-action="templates-new">${ic('plus')}<span>New Template</span></button></div>
+    <div class="lh-sub">Copy a whole project, or a to-do with its checklist, whenever you need a fresh one.</div><div class="list">`;
+  if (projs.length) {
+    html += `<div class="sec-h"><span>Projects</span></div>`;
+    html += projs.map((p) => {
+      const hs = S.headings.filter((h) => h.projectId === p.id && !h.archived).length;
+      const n = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft).length;
+      const area = p.bpAreaId && getA(p.bpAreaId);
+      const sub = [hs ? plural(hs, 'heading') : '', plural(n, 'to-do'), area ? 'Goes in ' + aTitle(area) : ''].filter(Boolean).join(' · ');
+      return `<div class="row tpl-row" data-nav="project:${p.id}" title="Edit this template">${ic('project', 'r-ic tpl-ic')}<div class="r-main"><div class="r-line"><span class="r-title${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${tagPills(p)}</div><div class="r-sub">${esc(sub)}</div></div><div class="r-right"><button class="btn tpl-use" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div></div>`;
+    }).join('');
+  }
+  if (todos.length) {
+    html += `<div class="sec-h"><span>To-Dos</span></div>`;
+    html += todos.map((t) => {
+      const sub = [t.checklist.length ? plural(t.checklist.length, 'checklist item') : '', t.notes && t.notes.trim() ? 'Notes' : ''].filter(Boolean).join(' · ');
+      return `<div class="row tpl-row" data-tpl="${t.id}" title="Edit this template">${ic('template', 'r-ic tpl-ic')}<div class="r-main"><div class="r-line"><span class="r-title${t.title ? '' : ' untitled'}">${esc(t.title || 'New To-Do')}</span>${tagPills(t)}</div>${sub ? `<div class="r-sub">${esc(sub)}</div>` : ''}</div><div class="r-right"><button class="btn tpl-use" data-action="use-ttemplate" data-id="${t.id}">Add To…</button></div></div>`;
+    }).join('');
+  }
+  html += '</div>';
+  if (!projs.length && !todos.length) html += emptyHTML('template', 'No templates yet', 'Choose <b>Save as Template</b> from a project’s or to-do’s ••• menu, or click <b>New Template</b>. Then use it from the <b>+ New List</b> menu or any list’s ••• menu.');
+  return html;
+}
+
+/* ===================== Waiting For =====================
+   A to-do can wait on someone (waitFor: a name; waitSince: the day it started waiting).
+   The follow-up date is simply the to-do's When date, so it comes back to Today then. */
+function isWaiting(t) { return !!(t && t.type === 'todo' && t.waitFor && t.status === 'open' && !t.trashed && !t.isTemplate); }
+function waitingItems() { return S.todos.filter((t) => isWaiting(t) && liveTodo(t) && inLiveProject(t)); }
+function waitNames() {
+  const seen = new Map();
+  S.todos.filter((t) => t.waitFor && !t.trashed).sort((a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0))
+    .forEach((t) => { const k = t.waitFor.trim(); if (k && !seen.has(k.toLowerCase())) seen.set(k.toLowerCase(), k); });
+  return [...seen.values()].slice(0, 10);
+}
+function setWaiting(ids, name, follow) {
+  const items = itemsFor(ids).filter((x) => x.type === 'todo' && !x.isTemplate && !isTplChild(x) && !x.trashed);
+  if (!items.length) return;
+  const T = T0();
+  commit('Waiting For', () => items.forEach((t) => {
+    if (!t.waitFor || t.waitFor.trim().toLowerCase() !== name.toLowerCase() || !t.waitSince) t.waitSince = T;
+    t.waitFor = name;
+    if (follow === 'clear') { if (t.when && t.when > T) t.when = null; if (t.start === 'inbox') t.start = 'anytime'; }
+    else if (follow) { t.start = 'anytime'; t.when = follow; t.evening = false; }
+    else if (t.start === 'inbox') t.start = 'anytime';
+    touch(t);
+  }));
+  const f = follow && follow !== 'clear' ? ` · follow up ${follow <= T ? 'today' : fmtRel(follow)}` : '';
+  toast(`${items.length > 1 ? plural(items.length, 'to-do') + ' waiting' : 'Waiting'} on ${name}${f}`, { undo: true });
+}
+function stopWaiting(ids) {
+  const items = itemsFor(ids).filter((x) => x.type === 'todo' && x.waitFor);
+  if (!items.length) return;
+  commit('Stop Waiting', () => items.forEach((t) => { t.waitFor = null; t.waitSince = null; touch(t); }));
+  toast(items.length > 1 ? `${plural(items.length, 'to-do')} no longer waiting` : 'No longer waiting', { undo: true });
+}
+function openWaiting(ids, anchor) {
+  const items = itemsFor(ids).filter((x) => x.type === 'todo' && !x.isTemplate && !isTplChild(x) && !x.trashed);
+  if (!items.length) { toast('Only to-dos can wait on someone'); return null; }
+  const cur = items[0], T = T0();
+  const keepDate = cur.waitFor && cur.when && cur.when > T ? cur.when : null;
+  const choices = [['tomorrow', 'Tomorrow', addDays(T, 1)], ['3d', 'In 3 Days', addDays(T, 3)], ['week', 'Next Week', addDays(T, 7)], ['2w', 'In 2 Weeks', addDays(T, 14)], ['none', 'No Date', 'clear']];
+  if (keepDate) choices.unshift(['keep', fmtDate(keepDate), keepDate]);
+  let pick = keepDate ? 'keep' : '3d';
+  const names = waitNames();
+  const L = openLayer({ anchor, cls: 'wait-pop', html: `<div class="pk-h">Waiting For</div>
+    <div class="wf-b">
+      <label class="wf-l" for="wf-who">Who are you waiting on?</label>
+      <input class="pk-in" id="wf-who" placeholder="A person, vendor or team" autocomplete="off" value="${esc(cur.waitFor || '')}" enterkeyhint="done">
+      ${names.length ? `<div class="wf-names">${names.map((n) => `<button class="tchip" data-name="${esc(n)}">${esc(n)}</button>`).join('')}</div>` : ''}
+      <div class="wf-l">Follow up</div>
+      <div class="wf-dates">${choices.map(([k, l]) => `<button class="tchip${k === pick ? ' on' : ''}" data-f="${k}">${esc(l)}</button>`).join('')}<label class="wf-pick tchip" title="Pick a date">${ic('calendar')}<input type="date" id="wf-date" aria-label="Follow-up date" min="${T}"></label></div>
+      <p class="note wf-note">It comes back to Today on the follow-up date.</p>
+    </div>
+    <div class="wf-f">${items.some((t) => t.waitFor) ? '<button class="btn" data-wf="stop">Stop Waiting</button>' : ''}<span class="spacer"></span><button class="btn primary" data-wf="save">Save</button></div>`,
+    onMount: (el) => {
+      const who = $('#wf-who', el), dt = $('#wf-date', el);
+      let custom = null;
+      const mark = () => { $$('[data-f]', el).forEach((b) => b.classList.toggle('on', b.dataset.f === pick)); $('.wf-pick', el).classList.toggle('on', pick === 'custom'); };
+      const save = () => {
+        const name = who.value.trim() || 'Someone';
+        const follow = pick === 'custom' ? custom : (choices.find((c) => c[0] === pick) || [])[2] || null;
+        closeLayer(L); setWaiting(items.map((t) => t.id), name, follow);
+      };
+      el.addEventListener('click', (e) => {
+        const n = e.target.closest('[data-name]'); if (n) { who.value = n.dataset.name; if (!isCoarse()) who.focus(); return; }
+        const f = e.target.closest('[data-f]'); if (f) { pick = f.dataset.f; mark(); return; }
+        const b = e.target.closest('[data-wf]'); if (!b) return;
+        if (b.dataset.wf === 'stop') { closeLayer(L); stopWaiting(items.map((t) => t.id)); return; }
+        save();
+      });
+      dt.addEventListener('change', () => { if (dt.value) { custom = dt.value; pick = 'custom'; mark(); } });
+      who.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+      if (!isCoarse()) { who.focus({ preventScroll: true }); who.select(); }
+    } });
+  return L;
+}
+
+/* ---- the Waiting list: grouped by who you're waiting on ---- */
+function viewWaiting() {
+  const items = waitingItems().filter(matchesTagFilter);
+  const groups = new Map();
+  items.forEach((t) => { const k = t.waitFor.trim(), key = k.toLowerCase(); if (!groups.has(key)) groups.set(key, { name: k, list: [] }); groups.get(key).list.push(t); });
+  const due = items.filter((t) => t.when && t.when <= T0()).length;
+  const sub = items.length ? `${plural(items.length, 'to-do')} waiting on ${plural(groups.size, 'person', 'people')}${due ? ` · ${due} to follow up today` : ''}` : '';
+  let html = headerHTML('waiting', sub) + tagBarHTML(waitingItems()) + '<div class="list">';
+  [...groups.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach((g) => {
+    const list = g.list.sort((a, b) => (a.when || '9999') < (b.when || '9999') ? -1 : (a.when || '9999') > (b.when || '9999') ? 1 : byOrder(a, b));
+    html += `<div class="sec-h"><span>${ic('hourglass')}${esc(g.name)}</span><span class="ghost-count">${list.length}</span></div>` + secHTML('waiting', list, { parent: true, when: true, noWait: true, waitInfo: true });
+  });
+  html += '</div>';
+  if (!items.length) html += emptyHTML('hourglass', 'Nothing waiting', 'When a to-do is waiting on someone else, choose <b>Waiting For…</b> from its ••• menu or press <b>W</b>. It comes back to Today on the follow-up date.');
+  return html;
+}
+
+/* ===================== Status report =====================
+   What got done in a period, what's coming up and who you're waiting on, grouped by project,
+   for everything or one area, project or the Board. Built as a share "doc" so the same
+   text, Markdown and print output is used. */
+const REPORT_PREF = 'sectis.report';
+function reportPrefs() {
+  let s = {}; try { s = JSON.parse(lsGet(REPORT_PREF) || '{}') || {}; } catch (e) { s = {}; }
+  return Object.assign({ period: 'week', format: 'text', done: true, next: true, waiting: true, dates: true, progress: true }, s);
+}
+function reportRange(period) {
+  const T = T0(), ws = weekStart(T);
+  if (period === 'last7') return { from: addDays(T, -6), to: T, label: 'Last 7 days' };
+  if (period === 'lastweek') return { from: addDays(ws, -7), to: addDays(ws, -1), label: 'Last week' };
+  if (period === 'last30') return { from: addDays(T, -29), to: T, label: 'Last 30 days' };
+  return { from: ws, to: T, label: 'This week' };
+}
+function rangeText(r) { return r.from === r.to ? fmtDate(r.from, { weekday: false }) : `${fmtDate(r.from, { weekday: false })} – ${fmtDate(r.to, { weekday: false })}`; }
+function reportScope(scope) {
+  if (scope.type === 'area' && getA(scope.id)) { const a = getA(scope.id); return { name: aTitle(a), level: 'area', has: (t) => (areaOf(t) || {}).id === a.id }; }
+  if (scope.type === 'project' && getP(scope.id)) { const p = getP(scope.id); return { name: pTitle(p), level: 'project', has: (t) => t.projectId === p.id }; }
+  if (scope.type === 'board') { const cols = boardCols(); return { name: 'Board', level: 'all', has: (t) => cols.some((c) => (c.t === 'p' ? t.projectId === c.id : (areaOf(t) || {}).id === c.id)) }; }
+  return { name: '', level: 'all', has: () => true };
+}
+/* group to-dos by project, then by area for to-dos outside projects; in sidebar order */
+function reportGroups(items) {
+  const groups = new Map();
+  for (const t of items) {
+    const p = t.projectId && getP(t.projectId), a = areaOf(t);
+    const key = p ? 'p:' + p.id : a ? 'a:' + a.id : 'o';
+    if (!groups.has(key)) groups.set(key, { p, a, list: [] });
+    groups.get(key).list.push(t);
+  }
+  const rank = (g) => [g.a ? 1 : 0, g.a ? g.a.order || 0 : 0, g.p ? 1 : 0, g.p ? g.p.order || 0 : 0];
+  return [...groups.values()].sort((x, y) => { const a = rank(x), b = rank(y); for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; });
+}
+function buildReport(scope, o) {
+  const sc = reportScope(scope), r = reportRange(o.period), T = T0();
+  const inRange = (ts) => { const d = stampDay(ts); return d >= r.from && d <= r.to; };
+  const base = (t) => !t.trashed && !t.isTemplate && !t.isDraft && !isTplChild(t) && sc.has(t);
+  let seen = new Set();
+  const once = (t) => { if (!t.linkId) return true; if (seen.has(t.linkId)) return false; seen.add(t.linkId); return true; }; // a linked to-do counts once
+  const done = S.todos.filter((t) => base(t) && t.status === 'done' && t.completedAt && inRange(t.completedAt)).sort((a, b) => a.completedAt - b.completedAt).filter(once);
+  seen = new Set();
+  const soon = addDays(T, 7), dueSoon = addDays(T, 14);
+  const key = (t) => [t.when && t.when <= soon ? (t.when < T ? T : t.when) : null, t.deadline && t.deadline <= dueSoon ? t.deadline : null].filter(Boolean).sort()[0] || '9999';
+  const next = S.todos.filter((t) => base(t) && t.status === 'open' && !t.waitFor && inLiveProject(t) && t.start !== 'someday' && ((t.when && t.when <= soon) || (t.deadline && t.deadline <= dueSoon)))
+    .sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : byOrder(a, b))).filter(once);
+  seen = new Set();
+  const waiting = S.todos.filter((t) => base(t) && isWaiting(t) && inLiveProject(t))
+    .sort((a, b) => a.waitFor.localeCompare(b.waitFor) || ((a.when || '9999') < (b.when || '9999') ? -1 : 1)).filter(once);
+  const B = [];
+  const label = (g, progress) => {
+    let s = g.p ? pTitle(g.p) : g.a ? aTitle(g.a) : 'Not in a project';
+    if (g.p && sc.level === 'all' && g.a) s += ` (${aTitle(g.a)})`;
+    if (progress && g.p) {
+      if (g.p.status === 'done') s += ' — project completed';
+      else { const pr = projectProgress(g.p); s += ` — ${pr.done} of ${pr.total} done`; }
+    }
+    return s;
+  };
+  const section = (title, items, progress) => {
+    if (!items.length) return;
+    B.push({ h: 2, text: title });
+    if (sc.level === 'project') { items.forEach((t) => B.push({ item: t })); return; }
+    reportGroups(items).forEach((g) => { B.push({ h: 3, text: label(g, progress) }); g.list.forEach((t) => B.push({ item: t })); });
+  };
+  if (o.done) section('Done', done, o.progress);
+  if (o.next) section('Coming Up', next, false);
+  if (o.waiting) section('Waiting On', waiting, false);
+  const counts = [o.done ? `${done.length} done` : '', o.next ? `${next.length} coming up` : '', o.waiting ? `${waiting.length} waiting` : ''].filter(Boolean);
+  let sub = `${r.label}, ${rangeText(r)}` + (counts.length ? ' · ' + counts.join(' · ') : '');
+  if (sc.level === 'project' && o.progress) { const pr = projectProgress(getP(scope.id)); sub += ` · ${pr.done} of ${pr.total} done overall`; }
+  return { title: sc.name ? `${sc.name} Status Report` : 'Status Report', sub, blocks: B, forceDone: true, n: done.length + next.length + waiting.length };
+}
+function reportText(doc, o) {
+  const so = { notes: false, checklist: false, dates: o.dates, tags: false, done: true };
+  return o.format === 'markdown' ? buildMarkdown(doc, so) : buildText(doc, so);
+}
+function openReport(scope = { type: 'all' }) {
+  if (ui.editing) closeEditor({ noRender: false });
+  const o = reportPrefs();
+  let doc = buildReport(scope, o);
+  const canPrint = SECTIS_WEB && !IN_FRAME, canShare = !IN_FRAME && typeof navigator.share === 'function';
+  const per = (v, l) => `<button data-rp-period="${v}" class="${o.period === v ? 'on' : ''}">${l}</button>`;
+  const opt = (k, l) => `<label class="sh-opt"><input type="checkbox" data-rp-opt="${k}" ${o[k] ? 'checked' : ''}> ${l}</label>`;
+  const fmt = (v, l) => `<button data-rp-fmt="${v}" class="${o.format === v ? 'on' : ''}">${l}</button>`;
+  const L = openLayer({ modal: true, cls: 'share-modal report-modal', html: `<div class="modal-h"><h2 id="rp-title"></h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>
+    <div class="modal-b">
+      <div class="seg rp-period" role="group" aria-label="Period">${per('week', 'This Week')}${per('last7', 'Last 7 Days')}${per('lastweek', 'Last Week')}${per('last30', 'Last 30 Days')}</div>
+      <div class="sh-opts">${opt('done', 'Done')}${opt('next', 'Coming Up')}${opt('waiting', 'Waiting On')}${opt('progress', 'Progress')}${opt('dates', 'Dates')}</div>
+      <div class="seg sh-fmt" role="group" aria-label="Format">${fmt('text', 'Text')}${fmt('markdown', 'Markdown')}</div>
+      <textarea class="ta" id="rp-out" readonly aria-label="Report"></textarea>
+      <p class="note" id="rp-note"></p>
+    </div>
+    <div class="modal-f">${canPrint ? '<button class="btn" data-rp="print" style="margin-right:auto">Print or PDF…</button>' : ''}<a class="btn" data-rp="email" href="#">Email</a><button class="btn${canShare ? '' : ' primary'}" data-rp="copy">Copy</button>${canShare ? '<button class="btn primary" data-rp="share">Share…</button>' : ''}</div>`,
+    onMount: (el) => {
+      const ta = $('#rp-out', el), note = $('#rp-note', el), mail = $('[data-rp="email"]', el);
+      const refresh = () => {
+        doc = buildReport(scope, o);
+        const text = reportText(doc, o);
+        ta.value = text;
+        $('#rp-title', el).textContent = doc.title;
+        $$('[data-rp-period]', el).forEach((b) => b.classList.toggle('on', b.dataset.rpPeriod === o.period));
+        $$('[data-rp-fmt]', el).forEach((b) => b.classList.toggle('on', b.dataset.rpFmt === o.format));
+        note.textContent = doc.n ? '' : 'Nothing to report for this period yet.';
+        mail.href = `mailto:?subject=${encodeURIComponent(`${doc.title}: ${reportRange(o.period).label.toLowerCase()}`)}&body=${encodeURIComponent(text)}`;
+        lsSet(REPORT_PREF, JSON.stringify(o));
+      };
+      refresh();
+      el.addEventListener('change', (e) => { const k = e.target.dataset.rpOpt; if (k) { o[k] = e.target.checked; refresh(); } });
+      el.addEventListener('click', async (e) => {
+        const p = e.target.closest('[data-rp-period]'); if (p) { o.period = p.dataset.rpPeriod; refresh(); return; }
+        const f = e.target.closest('[data-rp-fmt]'); if (f) { o.format = f.dataset.rpFmt; refresh(); return; }
+        const b = e.target.closest('[data-rp]'); if (!b) return;
+        const text = reportText(doc, o);
+        if (b.dataset.rp === 'email') return; // the link opens Mail
+        if (b.dataset.rp === 'copy') { copyText(text, ta, note); return; }
+        if (b.dataset.rp === 'print') { closeLayer(L); printDoc(doc, { notes: false, checklist: false, dates: o.dates, tags: false, done: true }); return; }
+        if (b.dataset.rp === 'share') {
+          try { await navigator.share({ title: doc.title, text }); } catch (err) { if (err && err.name !== 'AbortError') note.textContent = 'Sharing isn’t available here. Use Copy instead.'; }
+        }
+      });
     } });
   return L;
 }

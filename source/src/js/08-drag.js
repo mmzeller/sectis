@@ -101,7 +101,7 @@ function showLine(st, el, after, sec) {
   st.line.hidden = false;
 }
 function sectionAccepts(sec, kind) {
-  if (!sec || /^(logbook|trash|repeating|tag)/.test(sec)) return false;
+  if (!sec || /^(logbook|trash|repeating|tag|waiting)/.test(sec)) return false;
   const projectSec = sec.startsWith('areaprojects:') || sec.includes(':projects:');
   if (kind === 'project') return projectSec || /^(today|evening|upcoming)/.test(sec);
   return !projectSec;
@@ -236,6 +236,7 @@ function dropOnList(ids, key, kind, anchorEl) {
     case 'anytime': applyWhen(ids, 'anytime'); break;
     case 'someday': applyWhen(ids, 'someday'); break;
     case 'logbook': completeIds(ids); break;
+    case 'waiting': if (kind === 'todo') openWaiting(ids, anchorEl); break;
     case 'trash': trashItems(ids); break;
     case 'project': if (kind === 'todo') moveItems(ids, { type: 'project', id }); break;
     case 'area': moveItems(ids, { type: 'area', id }); break;
