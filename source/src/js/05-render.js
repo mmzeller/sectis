@@ -53,7 +53,7 @@ function renderShell() {
   app.classList.toggle('sel-mode', ui.selectMode);
   app.classList.toggle('touch', isCoarse());
   const magic = $('#magic');
-  const hide = (ui.sel.size > 1 && !isMobile()) || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash'].includes(ui.view.type));
+  const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash'].includes(ui.view.type));
   magic.classList.toggle('hidden-in', hide);
   const L = LISTS[ui.view.type];
   document.title = isMobile() && ui.mobile === 'home' ? 'Sectis' : `${L ? L.title : ui.view.type === 'project' ? pTitle(getP(ui.view.id)) : ui.view.type === 'area' ? aTitle(getA(ui.view.id)) : ui.view.type === 'tag' ? tagTitle(ui.view.id) : 'Sectis'} – Sectis`;
@@ -471,7 +471,7 @@ function viewTag(tag) {
 /* ---------- batch bar ---------- */
 function renderBatch() {
   const n = ui.sel.size;
-  const show = (n > 1 && !isMobile()) || ui.selectMode;
+  const show = n > 1 || ui.selectMode;
   const el = $('#batch');
   if (!show) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="batch" role="toolbar" aria-label="Selected to-dos"><span class="bcount">${n} selected</span>

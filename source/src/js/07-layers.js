@@ -18,7 +18,9 @@ function openLayer({ html, cls = '', anchor = null, modal = false, onMount, onCl
 }
 function placePop(el, anchor) {
   if (isMobile()) return;
-  const r = anchor && anchor.isConnected ? anchor.getBoundingClientRect() : { left: innerWidth / 2, right: innerWidth / 2, top: innerHeight / 3, bottom: innerHeight / 3, width: 0 };
+  const r = anchor && anchor.isConnected ? anchor.getBoundingClientRect()
+    : anchor && typeof anchor.x === 'number' ? { left: anchor.x, right: anchor.x, top: anchor.y, bottom: anchor.y, width: 0 } // a pointer position (right-click)
+    : { left: innerWidth / 2, right: innerWidth / 2, top: innerHeight / 3, bottom: innerHeight / 3, width: 0 };
   const pw = el.offsetWidth, ph = el.offsetHeight;
   let x = r.left + r.width / 2 - pw / 2; x = clamp(x, 12, innerWidth - pw - 12);
   let y = r.bottom + 6; if (y + ph > innerHeight - 12) y = Math.max(12, r.top - ph - 6);

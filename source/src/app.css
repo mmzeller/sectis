@@ -592,3 +592,5 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
   .ck-item .ck-more { margin-top: 3px; }
   .ck-item .ck-grip { margin-top: 2px; }
 }
+
+.pop:focus, .pop:focus-visible { outline: none; }

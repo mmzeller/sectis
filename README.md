@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.3.1
+Version 1.4.0
 
 ## What's in it
 
@@ -19,7 +19,7 @@ Version 1.3.1
 - **Quick Entry** (`Q`) that reads dates, deadlines and tags as you type: `Pay rent friday #Home !oct 31`
 - **Type a date** anywhere you pick one: `tom`, `fri`, `next week`, `in 3 days`, `oct 24`, `10/24`
 - **Drag and drop** to reorder, to move into projects and headings, or onto the sidebar to schedule, complete or delete. On iPhone, press and hold to drag
-- **Multi-select** (⌘-click or ⇧-click on a Mac, ••• → Select To-Dos on iPhone) with batch When, Move, Tags, Deadline, Complete and Delete
+- **Multi-select** (⌘-click or ⇧-click on a Mac, ••• → Select To-Dos on iPhone). With several selected, use the bar at the bottom, the ••• menu or a right-click to tag, schedule, move, set a deadline, complete or delete them all at once
 - **Undo** for everything (`⌘Z`)
 - **Keyboard shortcuts** for nearly everything. Press `?` in the app to see them all
 - **Light and dark** themes that follow your system, or pick one in Settings

@@ -614,6 +614,8 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
   .ck-item .ck-grip { margin-top: 2px; }
 }
 
+.pop:focus, .pop:focus-visible { outline: none; }
+
 </style>
 </head>
 <body>
@@ -631,7 +633,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.3.1';
+const APP_VERSION = '1.4.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1620,7 +1622,7 @@ function renderShell() {
   app.classList.toggle('sel-mode', ui.selectMode);
   app.classList.toggle('touch', isCoarse());
   const magic = $('#magic');
-  const hide = (ui.sel.size > 1 && !isMobile()) || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash'].includes(ui.view.type));
+  const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash'].includes(ui.view.type));
   magic.classList.toggle('hidden-in', hide);
   const L = LISTS[ui.view.type];
   document.title = isMobile() && ui.mobile === 'home' ? 'Sectis' : `${L ? L.title : ui.view.type === 'project' ? pTitle(getP(ui.view.id)) : ui.view.type === 'area' ? aTitle(getA(ui.view.id)) : ui.view.type === 'tag' ? tagTitle(ui.view.id) : 'Sectis'} – Sectis`;
@@ -2038,7 +2040,7 @@ function viewTag(tag) {
 /* ---------- batch bar ---------- */
 function renderBatch() {
   const n = ui.sel.size;
-  const show = (n > 1 && !isMobile()) || ui.selectMode;
+  const show = n > 1 || ui.selectMode;
   const el = $('#batch');
   if (!show) { el.innerHTML = ''; return; }
   el.innerHTML = `<div class="batch" role="toolbar" aria-label="Selected to-dos"><span class="bcount">${n} selected</span>
@@ -2236,7 +2238,9 @@ function openLayer({ html, cls = '', anchor = null, modal = false, onMount, onCl
 }
 function placePop(el, anchor) {
   if (isMobile()) return;
-  const r = anchor && anchor.isConnected ? anchor.getBoundingClientRect() : { left: innerWidth / 2, right: innerWidth / 2, top: innerHeight / 3, bottom: innerHeight / 3, width: 0 };
+  const r = anchor && anchor.isConnected ? anchor.getBoundingClientRect()
+    : anchor && typeof anchor.x === 'number' ? { left: anchor.x, right: anchor.x, top: anchor.y, bottom: anchor.y, width: 0 } // a pointer position (right-click)
+    : { left: innerWidth / 2, right: innerWidth / 2, top: innerHeight / 3, bottom: innerHeight / 3, width: 0 };
   const pw = el.offsetWidth, ph = el.offsetHeight;
   let x = r.left + r.width / 2 - pw / 2; x = clamp(x, 12, innerWidth - pw - 12);
   let y = r.bottom + 6; if (y + ph > innerHeight - 12) y = Math.max(12, r.top - ph - 6);
@@ -2809,7 +2813,8 @@ function rowClick(row, e) {
   const id = row.dataset.id, kind = row.dataset.kind;
   if (ui.selectMode) { ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); paintSelection(); return; }
   if (kind === 'project') { if (e.metaKey || e.ctrlKey || e.shiftKey) { ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); paintSelection(); return; } navigate(row.dataset.open); return; }
-  if (isMobile() || (isCoarse() && !e.metaKey)) { openEditor(id); return; }
+  const multi = e.metaKey || e.ctrlKey || e.shiftKey;
+  if (!multi && (isMobile() || isCoarse())) { openEditor(id); return; }
   if (ui.editing && ui.editing !== id) closeEditor({ noRender: true });
   if (e.metaKey || e.ctrlKey) { ui.sel.has(id) ? ui.sel.delete(id) : ui.sel.add(id); ui.anchor = id; }
   else if (e.shiftKey && ui.anchor) {
@@ -2871,8 +2876,8 @@ function handleAction(act, el, e) {
     case 'ck-del': ckRemove(id, el.dataset.ck, false); return;
     case 'ck-menu': checklistMenu(id, el.dataset.ck, el); return;
     case 'todo-menu': todoMenu(id, el); return;
-    case 'proj-menu': projectMenu(getP(id), el); return;
-    case 'area-menu': areaMenu(getA(id), el); return;
+    case 'proj-menu': projectMenu(getP(id), el, batchMenuItems(el)); return;
+    case 'area-menu': areaMenu(getA(id), el, batchMenuItems(el)); return;
     case 'heading-menu': headingMenu(getH(id), el); return;
     case 'view-menu': viewMenu(el); return;
     case 'reopen-project': reopenProject(getP(id)); return;
@@ -2929,9 +2934,9 @@ function todoMenu(id, el) {
   }
   openMenu(el, items);
 }
-function projectMenu(p, el) {
+function projectMenu(p, el, extra = []) {
   if (!p) return;
-  const items = [];
+  const items = [...extra];
   if (isMobile() && p.status === 'open' && !p.trashed) items.push(selectModeItem(), { sep: 1 });
   const src = p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   if (p.isTemplate && !p.trashed) {
@@ -2957,9 +2962,10 @@ function projectMenu(p, el) {
   items.push(p.trashed ? { label: 'Put Back', icon: 'reopen', fn: () => restoreItems([p.id]) } : { label: 'Delete Project', icon: 'trash', danger: true, fn: () => trashItems([p.id]) });
   openMenu(el, items);
 }
-function areaMenu(a, el) {
+function areaMenu(a, el, extra = []) {
   if (!a) return;
   openMenu(el, [
+    ...extra,
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
@@ -2978,11 +2984,40 @@ function headingMenu(h, el) {
   ]);
 }
 function selectModeItem() { return { label: 'Select To-Dos', icon: 'select', fn: () => { closeEditor({ noRender: true }); ui.selectMode = true; ui.sel.clear(); render(); } }; }
+/* actions for several selected to-dos: the bar at the bottom, the ••• menu and right-click all offer them */
+function batchMenuItems(anchor) {
+  const ids = selectedIds(); const n = ids.length;
+  if (n < 2) return [];
+  const todos = ids.filter((x) => getT(x));
+  const close = () => { if (ui.selectMode) { ui.selectMode = false; ui.sel.clear(); render(); } };
+  return [
+    { header: `${n} Selected` },
+    { label: 'Tags…', icon: 'tag', hint: '#', fn: () => endSelectAfter(openTagPicker(ids, anchor)) },
+    { label: 'When…', icon: 'calendar', hint: 'S', fn: () => endSelectAfter(openWhen(ids, anchor)) },
+    { label: 'Move…', icon: 'move', hint: 'M', disabled: !todos.length, fn: () => endSelectAfter(openMove(todos, anchor)) },
+    { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
+    { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
+    { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
+    { label: 'Delete', icon: 'trash', danger: true, fn: () => { trashItems(ids); ui.selectMode = false; render(); } },
+    { label: 'Clear Selection', icon: 'x', fn: () => { ui.sel.clear(); ui.selectMode = false; render(); } },
+    { sep: 1 },
+  ];
+}
+document.addEventListener('contextmenu', (e) => {
+  const row = e.target.closest('#content .row[data-id]');
+  if (!row || isCoarse() || layers.length || (D.st && D.st.active) || e.target.closest('input, textarea, .card')) return;
+  e.preventDefault();
+  const id = row.dataset.id, at = { x: e.clientX, y: e.clientY };
+  if (!ui.sel.has(id)) { if (ui.editing) closeEditor({ noRender: true }); ui.sel = new Set([id]); ui.anchor = id; paintSelection(); }
+  if (ui.sel.size > 1) { const items = batchMenuItems(at); items.pop(); openMenu(at, items); return; }
+  if (row.dataset.kind === 'project') projectMenu(getP(id), at); else todoMenu(id, at);
+});
 function viewMenu(el) {
   const v = ui.view.type;
-  const items = [];
-  if (v === 'project') { projectMenu(getP(ui.view.id), el); return; }
-  if (v === 'area') { areaMenu(getA(ui.view.id), el); return; }
+  const batch = batchMenuItems(el);
+  const items = [...batch];
+  if (v === 'project') { projectMenu(getP(ui.view.id), el, batch); return; }
+  if (v === 'area') { areaMenu(getA(ui.view.id), el, batch); return; }
   if (isMobile() && !['logbook', 'trash', 'tag'].includes(v)) items.push(selectModeItem());
   if (v === 'today') items.push({ label: S.settings.groupToday ? 'Don’t Group by Project' : 'Group by Project & Area', icon: 'layers', fn: () => { S.settings.groupToday = !S.settings.groupToday; saveSoon(); render(); } });
   const unlogged = S.todos.concat(S.projects).some((x) => x.status !== 'open' && !x.logged);
