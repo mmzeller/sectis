@@ -220,6 +220,9 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tchip.on[class*="tc-"] { background: color-mix(in srgb, var(--tc) var(--tg-tint), transparent); border-color: color-mix(in srgb, var(--tc) 55%, transparent); color: color-mix(in srgb, var(--tc) var(--tg-ink), var(--fg)); }
 .row.done .r-title, .row.canceled .r-title { color: var(--muted); }
 .row.canceled .r-title { text-decoration: line-through; }
+/* a project or area name being renamed in place */
+.rename-in { font: inherit; font-weight: 600; color: var(--fg); background: var(--card); border: 1px solid var(--accent); border-radius: 6px; padding: 1px 6px; margin: -2px 0 -2px -7px; width: calc(100% - 4px); max-width: 560px; outline: none; box-shadow: 0 0 0 3px var(--accent-tint); }
+.bcol-t .rename-in { margin: -2px 0 -2px -7px; font-size: 15px; font-weight: 650; }
 /* priority: !!! high, !! medium, ! low, before the title */
 .r-pri { flex: none; margin-right: 5px; font-weight: 800; letter-spacing: -.5px; }
 .r-pri.p3, .pri-bangs.p3, .chip.pri.p3 .pri-bangs { color: var(--red); }
@@ -881,7 +884,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.27.0';
+const APP_VERSION = '1.28.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -2173,7 +2176,7 @@ function projRowHTML(p, ctx = {}) {
   let line = '';
   if (ctx.star && isScheduledToday(p)) line += isEveningItem(p) ? ic('moon', 'r-moon') : ic('star', 'r-star');
   if (ctx.when && p.start === 'anytime' && p.when && p.when > T0()) line += `<span class="r-when">${esc(fmtRel(p.when))}</span>`;
-  line += priMarkHTML(p) + `<span class="r-title${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${tagPills(p)}`;
+  line += priMarkHTML(p) + (renamingNow('p', p.id) ? renameInputHTML('p', p) : `<span class="r-title${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${tagPills(p)}`);
   const sub = [ctx.parent ? parentLabel(p) : '', pr.open ? plural(pr.open, 'to-do') : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(p) + (p.trashed ? `<button class="restore" data-action="restore" data-id="${p.id}">Put Back</button>` : '');
@@ -3372,6 +3375,7 @@ document.addEventListener('click', (e) => {
   if (D.suppressClick) { D.suppressClick = false; e.preventDefault(); e.stopPropagation(); return; }
   if (!e.target.isConnected) return; // a layer handled this click and removed itself
   const inLayer = e.target.closest('#layer');
+  if (e.target.closest('.rename-in')) return; // typing a new name
   const a = e.target.closest('[data-action]');
   if (!inLayer && ui.editing && !e.target.closest('.card') && !e.target.closest('#toasts')) {
     const isTool = a && a.dataset.id === ui.editing;
@@ -3397,7 +3401,7 @@ document.addEventListener('dblclick', (e) => {
   const row = e.target.closest('#content .row[data-kind="todo"]');
   if (row && !e.target.closest('.cb, .card, .restore, .r-ck-btn, .r-cklist .ck-box')) { openEditor(row.dataset.id, { focus: 'title' }); }
   const prow = e.target.closest('#content .prow[data-expandable]');
-  if (prow && !e.target.closest('.disc, .open-proj')) navigate(prow.dataset.open);
+  if (prow && !e.target.closest('.disc, .open-proj, .rename-in')) navigate(prow.dataset.open);
 });
 
 function anchorFor(id) { return document.querySelector(`#content .row[data-id="${CSS.escape(id)}"], #content .card[data-id="${CSS.escape(id)}"]`) || $('#content .lh') || $('#content'); }
@@ -3535,6 +3539,7 @@ function todoMenu(id, el) {
 function projectMenu(p, el, extra = []) {
   if (!p) return;
   const items = [...extra];
+  if (!p.trashed) items.push(renameMenuItem('p', p.id));
   if (isMobile() && p.status === 'open' && !p.trashed) items.push(selectModeItem(), { sep: 1 });
   const src = p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   if (p.blueprint && !p.trashed) {
@@ -3589,6 +3594,7 @@ function areaMenu(a, el, extra = []) {
   if (!a) return;
   openMenu(el, [
     ...extra,
+    renameMenuItem('a', a.id),
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
@@ -3602,7 +3608,6 @@ function areaMenu(a, el, extra = []) {
     { label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'area', id: a.id }) },
     ...(sintrInUse() ? [recordInSintrItem(aTitle(a), { type: 'area', id: a.id, title: aTitle(a) })] : []),
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
-    { label: 'Rename', icon: 'edit', fn: () => { if (!(ui.view.type === 'area' && ui.view.id === a.id)) navigate('area:' + a.id); const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
     { sep: 1 }, { label: 'Delete Area…', icon: 'trash', danger: true, fn: () => deleteArea(a) },
   ]);
 }
@@ -5841,7 +5846,7 @@ function boardColHTML(c) {
     const area = p.areaId && getA(p.areaId);
     const sec = `project:${p.id}:`;
     return `<section class="bcol${open ? '' : ' closed'}${c.w ? ' sized' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colStyle(c)}>
-      <div class="bcol-h" data-col="p:${p.id}">${pieIc(pr.frac, 'bcol-ic')}<div class="bcol-t"><button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button><div class="bcol-sub">${open ? (area ? esc(aTitle(area)) : 'Project') : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
+      <div class="bcol-h" data-col="p:${p.id}">${pieIc(pr.frac, 'bcol-ic')}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button>`}<div class="bcol-sub">${open ? (area ? esc(aTitle(area)) : 'Project') : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
       <div class="bcol-body">${boardProjectBody(p)}</div>${resizeHandleHTML(c)}</section>`;
   }
   const a = getA(c.id);
@@ -5853,7 +5858,7 @@ function boardColHTML(c) {
   if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(projs).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
   return `<section class="bcol${c.w ? ' sized' : ''}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colStyle(c)}>
-    <div class="bcol-h" data-col="a:${a.id}"><span class="ic bcol-ic" style="color:var(--c-area)">${I.area}</span><div class="bcol-t"><button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button><div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
+    <div class="bcol-h" data-col="a:${a.id}"><span class="ic bcol-ic" style="color:var(--c-area)">${I.area}</span><div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
     <div class="bcol-body">${body}</div>${resizeHandleHTML(c)}</section>`;
 }
 function boardProjectBody(p) {
@@ -6671,6 +6676,49 @@ function checklistMenuItems(ids) {
   }
   return out;
 }
+
+/* ===================== Rename in place =====================
+   Rename in a project's or area's ••• and right-click menus edits the name right where it is:
+   a project's row (in an area, Today or any list) or a column on the Board. Return or clicking
+   away saves, Esc cancels. Anywhere else (the sidebar, or the project's own ••• menu) it opens
+   the project or area with its name selected, ready to type over. */
+const renamingNow = (t, id) => !!(ui.renaming && ui.renaming.t === t && ui.renaming.id === id);
+function renameInputHTML(t, x) {
+  const v = ui.renaming && ui.renaming.value != null ? ui.renaming.value : x.title || '';
+  return `<input class="rename-in" data-rename="${t}:${x.id}" data-fkey="rn-${x.id}" value="${esc(v)}" placeholder="${t === 'p' ? 'New Project' : 'New Area'}" aria-label="Name" autocomplete="off" spellcheck="false" enterkeyhint="done">`;
+}
+function startRename(t, id) {
+  const x = t === 'p' ? getP(id) : getA(id); if (!x) return;
+  if (ui.editing) closeEditor({ noRender: true });
+  ui.renaming = { t, id, value: null };
+  render();
+  const inp = $(`#content [data-rename="${t}:${CSS.escape(id)}"]`);
+  if (inp) { inp.focus(); inp.select(); return; }
+  ui.renaming = null; // not shown here: open it, with its name ready to change
+  navigate(t === 'p' ? 'project:' + id : 'area:' + id);
+  const title = $(`[data-fkey="${t === 'p' ? 'ptitle' : 'atitle'}"]`);
+  if (title) { title.focus(); title.select(); }
+}
+function finishRename(inp, save) {
+  if (!inp || !ui.renaming) return;
+  const [t, id] = inp.dataset.rename.split(':');
+  ui.renaming = null;
+  const x = t === 'p' ? getP(id) : getA(id), v = inp.value.trim();
+  if (save && x && v && v !== x.title) commit(t === 'p' ? 'Rename Project' : 'Rename Area', () => { x.title = v; touch(x); });
+  else render();
+}
+function renameMenuItem(t, id) { return { label: 'Rename', icon: 'edit', fn: () => startRename(t, id) }; }
+document.addEventListener('keydown', (e) => {
+  const inp = e.target.closest && e.target.closest('.rename-in'); if (!inp) return;
+  e.stopPropagation(); // typing a name isn't a shortcut
+  if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); finishRename(inp, true); }
+  else if (e.key === 'Escape') { e.preventDefault(); finishRename(inp, false); }
+}, true);
+document.addEventListener('input', (e) => { if (e.target.classList && e.target.classList.contains('rename-in') && ui.renaming) ui.renaming.value = e.target.value; }, true);
+document.addEventListener('focusout', (e) => {
+  const inp = e.target.closest && e.target.closest('.rename-in');
+  if (inp && ui.renaming && inp.isConnected) setTimeout(() => { if (ui.renaming && document.activeElement !== inp) finishRename(inp, true); }, 0);
+});
 
 /* ===================== Start ===================== */
 init();

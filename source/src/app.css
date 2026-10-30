@@ -199,6 +199,9 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tchip.on[class*="tc-"] { background: color-mix(in srgb, var(--tc) var(--tg-tint), transparent); border-color: color-mix(in srgb, var(--tc) 55%, transparent); color: color-mix(in srgb, var(--tc) var(--tg-ink), var(--fg)); }
 .row.done .r-title, .row.canceled .r-title { color: var(--muted); }
 .row.canceled .r-title { text-decoration: line-through; }
+/* a project or area name being renamed in place */
+.rename-in { font: inherit; font-weight: 600; color: var(--fg); background: var(--card); border: 1px solid var(--accent); border-radius: 6px; padding: 1px 6px; margin: -2px 0 -2px -7px; width: calc(100% - 4px); max-width: 560px; outline: none; box-shadow: 0 0 0 3px var(--accent-tint); }
+.bcol-t .rename-in { margin: -2px 0 -2px -7px; font-size: 15px; font-weight: 650; }
 /* priority: !!! high, !! medium, ! low, before the title */
 .r-pri { flex: none; margin-right: 5px; font-weight: 800; letter-spacing: -.5px; }
 .r-pri.p3, .pri-bangs.p3, .chip.pri.p3 .pri-bangs { color: var(--red); }

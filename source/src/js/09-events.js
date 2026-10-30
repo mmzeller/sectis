@@ -37,6 +37,7 @@ document.addEventListener('click', (e) => {
   if (D.suppressClick) { D.suppressClick = false; e.preventDefault(); e.stopPropagation(); return; }
   if (!e.target.isConnected) return; // a layer handled this click and removed itself
   const inLayer = e.target.closest('#layer');
+  if (e.target.closest('.rename-in')) return; // typing a new name
   const a = e.target.closest('[data-action]');
   if (!inLayer && ui.editing && !e.target.closest('.card') && !e.target.closest('#toasts')) {
     const isTool = a && a.dataset.id === ui.editing;
@@ -62,7 +63,7 @@ document.addEventListener('dblclick', (e) => {
   const row = e.target.closest('#content .row[data-kind="todo"]');
   if (row && !e.target.closest('.cb, .card, .restore, .r-ck-btn, .r-cklist .ck-box')) { openEditor(row.dataset.id, { focus: 'title' }); }
   const prow = e.target.closest('#content .prow[data-expandable]');
-  if (prow && !e.target.closest('.disc, .open-proj')) navigate(prow.dataset.open);
+  if (prow && !e.target.closest('.disc, .open-proj, .rename-in')) navigate(prow.dataset.open);
 });
 
 function anchorFor(id) { return document.querySelector(`#content .row[data-id="${CSS.escape(id)}"], #content .card[data-id="${CSS.escape(id)}"]`) || $('#content .lh') || $('#content'); }
@@ -200,6 +201,7 @@ function todoMenu(id, el) {
 function projectMenu(p, el, extra = []) {
   if (!p) return;
   const items = [...extra];
+  if (!p.trashed) items.push(renameMenuItem('p', p.id));
   if (isMobile() && p.status === 'open' && !p.trashed) items.push(selectModeItem(), { sep: 1 });
   const src = p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   if (p.blueprint && !p.trashed) {
@@ -254,6 +256,7 @@ function areaMenu(a, el, extra = []) {
   if (!a) return;
   openMenu(el, [
     ...extra,
+    renameMenuItem('a', a.id),
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
@@ -267,7 +270,6 @@ function areaMenu(a, el, extra = []) {
     { label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'area', id: a.id }) },
     ...(sintrInUse() ? [recordInSintrItem(aTitle(a), { type: 'area', id: a.id, title: aTitle(a) })] : []),
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
-    { label: 'Rename', icon: 'edit', fn: () => { if (!(ui.view.type === 'area' && ui.view.id === a.id)) navigate('area:' + a.id); const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
     { sep: 1 }, { label: 'Delete Area…', icon: 'trash', danger: true, fn: () => deleteArea(a) },
   ]);
 }
