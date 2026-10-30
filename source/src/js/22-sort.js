@@ -1,9 +1,9 @@
 /* ===================== Sorting and compact rows =====================
-   Each list can be sorted by deadline, date, title or when it was added, instead of the
+   Each list can be sorted by priority, deadline, date, title or when it was added, instead of the
    order you arrange by hand. The choice is per list and per device (sectis.sort).
    Compact rows (Settings → Row spacing) fit more on screen. */
-const SORTS = [['manual', 'Manual Order'], ['deadline', 'Deadline'], ['when', 'Date'], ['title', 'Title'], ['added', 'Recently Added']];
-const SORT_LABEL = { manual: 'Manual', deadline: 'Deadline', when: 'Date', title: 'Title', added: 'Recently Added' };
+const SORTS = [['manual', 'Manual Order'], ['priority', 'Priority'], ['deadline', 'Deadline'], ['when', 'Date'], ['title', 'Title'], ['added', 'Recently Added']];
+const SORT_LABEL = { manual: 'Manual', priority: 'Priority', deadline: 'Deadline', when: 'Date', title: 'Title', added: 'Recently Added' };
 const SORT_SEC = /^(inbox|today|evening|anytime|someday|project|area|tag|waiting)/; // not Upcoming or the Logbook, which have their own order
 function loadSorts() { try { ui.sorts = JSON.parse(lsGet('sectis.sort') || '{}') || {}; } catch (e) { ui.sorts = {}; } }
 function sortKeyFor(v = ui.view) { return v.id ? `${v.type}:${v.id}` : v.type; }
@@ -20,12 +20,15 @@ function sortItems(items, mode) {
   const name = (x) => (x.type === 'project' ? pTitle(x) : x.title || '');
   // items without the value keep their hand-arranged order, after the rest
   const by = (f) => items.slice().sort((a, b) => { const x = f(a), y = f(b); if (x === y) return 0; if (x == null) return 1; if (y == null) return -1; return x < y ? -1 : 1; });
+  if (mode === 'priority') return by((x) => (prio(x) ? 4 - prio(x) : null)); // High first
   if (mode === 'deadline') return by((x) => x.deadline || null);
   if (mode === 'when') return by((x) => (x.start === 'someday' ? '9999-12-31' : x.when ? (x.when < T ? T : x.when) : null));
   if (mode === 'title') return items.slice().sort((a, b) => name(a).localeCompare(name(b), undefined, { numeric: true, sensitivity: 'base' }));
   if (mode === 'added') return items.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   return items;
 }
+/* a list of rows in the current sort (an area's projects, which aren't a to-do section) */
+function sortedRows(items) { const m = currentSort(); return m === 'manual' ? items : sortItems(items, m); }
 function sortMenuItem(anchor) { return { label: 'Sort By…', icon: 'sort', hint: SORT_LABEL[currentSort()], fn: () => openSortMenu(anchor) }; }
 function openSortMenu(anchor) {
   const cur = currentSort();

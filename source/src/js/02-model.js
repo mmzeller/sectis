@@ -92,12 +92,12 @@ function touch(x) { x.modifiedAt = Date.now(); }
 /* ---- shapes ---- */
 function newTodoShape() {
   return { id: '', type: 'todo', title: '', notes: '', status: 'open', start: 'inbox', when: null, evening: false, deadline: null, reminder: null,
-    projectId: null, areaId: null, headingId: null, tags: [], checklist: [], order: 0, todayOrder: 0, createdAt: 0, modifiedAt: 0,
+    projectId: null, areaId: null, headingId: null, tags: [], checklist: [], order: 0, todayOrder: 0, createdAt: 0, modifiedAt: 0, priority: 0,
     completedAt: null, logged: false, trashed: false, isTemplate: false, repeat: null, next: null, templateId: null, sample: false, linkId: null };
 }
 function newProjectShape() {
   return { id: '', type: 'project', title: '', notes: '', status: 'open', start: 'anytime', when: null, evening: false, deadline: null, reminder: null,
-    areaId: null, tags: [], order: 0, todayOrder: 0, createdAt: 0, modifiedAt: 0, completedAt: null, logged: false, trashed: false, sample: false,
+    areaId: null, tags: [], order: 0, todayOrder: 0, createdAt: 0, modifiedAt: 0, completedAt: null, logged: false, trashed: false, sample: false, priority: 0,
     isTemplate: false, repeat: null, next: null, templateId: null };
 }
 function makeTodo(props) { const now = Date.now(); return Object.assign(newTodoShape(), { id: uid(), createdAt: now, modifiedAt: now }, props); }

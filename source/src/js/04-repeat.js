@@ -114,7 +114,7 @@ function spawnInstance(tpl, date) {
   if (getT(id)) return getT(id);
   const inst = makeTodo({
     id,
-    title: tpl.title, notes: tpl.notes, tags: tpl.tags.slice(),
+    title: tpl.title, notes: tpl.notes, tags: tpl.tags.slice(), priority: tpl.priority || 0,
     checklist: (tpl.checklist || []).map((c) => ({ id: uid(), title: c.title, done: false })),
     projectId: tpl.projectId, areaId: tpl.areaId, headingId: tpl.headingId,
     start: 'anytime', when: date, evening: !!r.evening, reminder: r.reminder || null,
@@ -134,7 +134,7 @@ function spawnProjectInstance(tpl, date) {
   syncHint(tpl.id);
   if (getP(id)) return getP(id);
   const p = makeProject({
-    id, title: tpl.title, notes: tpl.notes, tags: tpl.tags.slice(), areaId: tpl.areaId,
+    id, title: tpl.title, notes: tpl.notes, tags: tpl.tags.slice(), areaId: tpl.areaId, priority: tpl.priority || 0,
     start: 'anytime', when: date, evening: !!r.evening, reminder: r.reminder || null,
     deadline: r.deadlineDays != null && r.deadlineDays !== '' ? addDays(date, +r.deadlineDays) : null,
     templateId: tpl.id, order: tpl.order + 0.001, todayOrder: todayTop(), sample: tpl.sample,
@@ -147,7 +147,7 @@ function spawnProjectInstance(tpl, date) {
   });
   S.todos.filter((c) => c.projectId === tpl.id && !c.trashed && !c.isTemplate && !c.isDraft && c.status === 'open').forEach((c) => {
     const t = makeTodo({
-      id: `${c.id}-${date}`, title: c.title, notes: c.notes, tags: c.tags.slice(),
+      id: `${c.id}-${date}`, title: c.title, notes: c.notes, tags: c.tags.slice(), priority: c.priority || 0,
       checklist: (c.checklist || []).map((k, i) => ({ id: `${c.id}-${date}-${i}`, title: k.title, done: false })),
       projectId: p.id, headingId: c.headingId ? hmap[c.headingId] || null : null,
       start: c.start === 'someday' ? 'someday' : 'anytime', order: c.order, todayOrder: c.todayOrder, sample: c.sample,

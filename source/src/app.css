@@ -199,6 +199,14 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tchip.on[class*="tc-"] { background: color-mix(in srgb, var(--tc) var(--tg-tint), transparent); border-color: color-mix(in srgb, var(--tc) 55%, transparent); color: color-mix(in srgb, var(--tc) var(--tg-ink), var(--fg)); }
 .row.done .r-title, .row.canceled .r-title { color: var(--muted); }
 .row.canceled .r-title { text-decoration: line-through; }
+/* priority: !!! high, !! medium, ! low, before the title */
+.r-pri { flex: none; margin-right: 5px; font-weight: 800; letter-spacing: -.5px; }
+.r-pri.p3, .pri-bangs.p3, .chip.pri.p3 .pri-bangs { color: var(--red); }
+.r-pri.p2, .pri-bangs.p2, .chip.pri.p2 .pri-bangs { color: var(--c-waiting); }
+.r-pri.p1, .pri-bangs.p1, .chip.pri.p1 .pri-bangs { color: var(--c-inbox); }
+.row.done .r-pri, .row.canceled .r-pri { color: var(--faint); }
+.pri-bangs { font-weight: 800; letter-spacing: -.5px; }
+.qe-p .pri-bangs { margin-right: 4px; }
 .row.ghost { opacity: .55; cursor: pointer; }
 .row.ghost:hover { opacity: .8; }
 .row.trashed-row .r-title { color: var(--muted); }

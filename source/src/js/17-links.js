@@ -31,6 +31,7 @@ function propagateLinks() {
       if (t === src) continue;
       if (t.title !== src.title) { t.title = src.title; changed = true; }
       if (t.notes !== src.notes) { t.notes = src.notes; changed = true; }
+      if ((t.priority || 0) !== (src.priority || 0)) { t.priority = src.priority || 0; changed = true; }
       if (t.tags.join() !== src.tags.join()) { t.tags = src.tags.slice(); changed = true; }
       if (ckKey(t.checklist) !== ckKey(src.checklist)) {
         const done = new Map(t.checklist.map((c) => [c.id, c.done]));

@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.19.0';
+const APP_VERSION = '1.20.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -156,6 +156,7 @@ const I = {
   more: svg('<circle class="fill" cx="5.5" cy="12" r="1.7"/><circle class="fill" cx="12" cy="12" r="1.7"/><circle class="fill" cx="18.5" cy="12" r="1.7"/>'),
   sort: svg('<path d="M7.5 4.5v15M4.3 16.3l3.2 3.2 3.2-3.2M16.5 19.5v-15M13.3 7.7l3.2-3.2 3.2 3.2"/>'),
   blank: svg(''),
+  priority: svg('<path d="M6 18.5v-4M12 18.5v-8.5M18 18.5v-13"/>'),
   report: svg('<rect x="4.5" y="3.5" width="15" height="17" rx="2.5"/><path d="M8.5 15.5v-3M12 15.5v-6M15.5 15.5v-4.5"/>'),
   hourglass: svg('<path d="M6.5 3.5h11M6.5 20.5h11M8 3.5v2.4c0 2.3 1.7 3.7 4 6.1-2.3 2.4-4 3.8-4 6.1v2.4M16 3.5v2.4c0 2.3-1.7 3.7-4 6.1 2.3 2.4 4 3.8 4 6.1v2.4"/>'),
   template: svg('<rect x="4.5" y="3.5" width="15" height="17" rx="2.5" stroke-dasharray="3.2 2.4"/><path d="M8.5 9.5h7M8.5 13h7M8.5 16.5h4"/>'),

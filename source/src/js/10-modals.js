@@ -78,8 +78,9 @@ function inlineDateOK(phrase) {
   return true;
 }
 function parseEntry(raw) {
-  const out = { title: raw, tags: [], when: null, deadline: null, whenText: '', deadlineText: '' };
+  const out = { title: raw, tags: [], when: null, deadline: null, whenText: '', deadlineText: '', priority: 0 };
   let s = ' ' + raw + ' ';
+  s = s.replace(/\s(!{1,3})(?=\s)/, (m, b) => { out.priority = b.length; return ' '; }); // ! low, !! medium, !!! high
   s = s.replace(/\s#([^\s#!]+)(?=\s)/g, (m, name) => { out.tags.push(name.replace(/[.,;:]+$/, '')); return ' '; });
   const bang = s.match(/\s!(\S+(?: \S+){0,2})/);
   if (bang) {
@@ -103,7 +104,7 @@ function openQuickEntry(prefill = '') {
   if (ui.editing) closeEditor({ noRender: false });
   const draft = makeTodo({ start: 'inbox', isDraft: true });
   S.todos.push(draft); idx.todo.set(draft.id, draft);
-  const ignore = { when: false, deadline: false, tags: false };
+  const ignore = { when: false, deadline: false, tags: false, priority: false };
   let saved = false, parsed = null;
   const L = openLayer({ modal: true, cls: 'qe-modal top',
     html: `<div class="qe"><div class="c-top"><span class="cb" aria-hidden="true"></span><textarea class="qe-title" id="qe-title" placeholder="New To-Do" autocomplete="off" aria-label="Title" enterkeyhint="done" rows="1" data-autosize data-oneline></textarea></div>
@@ -113,7 +114,7 @@ function openQuickEntry(prefill = '') {
         <button class="ib" data-qe="tags" title="Tags" aria-label="Tags">${ic('tag')}</button><button class="ib" data-qe="deadline" title="Deadline" aria-label="Deadline">${ic('flag')}</button>
         <button class="ib" data-qe="when" title="When" aria-label="When">${ic('calendar')}</button><button class="ib" data-qe="move" title="List" aria-label="Choose list">${ic('move')}</button></div></div>
       <div class="qe-dest" id="qe-dest"></div></div></div>
-      <div class="modal-f"><span class="note" style="margin-right:auto;align-self:center">${S.settings.parseEntry ? 'Try “Call Sam tomorrow #Errand !fri”' : ''}</span><button class="btn" data-qe="cancel">Cancel</button><button class="btn primary" data-qe="save">Save</button></div>`,
+      <div class="modal-f"><span class="note" style="margin-right:auto;align-self:center">${S.settings.parseEntry ? 'Try “Call Sam tomorrow #Errand !fri !!”' : ''}</span><button class="btn" data-qe="cancel">Cancel</button><button class="btn primary" data-qe="save">Save</button></div>`,
     onClose: () => { if (!saved) { S.todos = S.todos.filter((x) => x.id !== draft.id); reindex(); } },
     onMount: (el) => {
       const ti = $('#qe-title', el), no = $('#qe-notes', el);
@@ -124,6 +125,7 @@ function openQuickEntry(prefill = '') {
         const chips = [];
         if (parsed && parsed.when && !ignore.when && x.start === 'inbox' && !x.when) chips.push(`<span class="qe-p">${ic('calendar')}${esc(parsed.when.date ? fmtRel(parsed.when.date) : describeParsed({ special: parsed.when }))}<button data-ign="when" aria-label="Ignore date">${ic('x')}</button></span>`);
         if (parsed && parsed.deadline && !ignore.deadline && !x.deadline) chips.push(`<span class="qe-p">${ic('flag')}Deadline ${esc(fmtRel(parsed.deadline))}<button data-ign="deadline" aria-label="Ignore deadline">${ic('x')}</button></span>`);
+        if (parsed && parsed.priority && !ignore.priority && !prio(x)) chips.push(`<span class="qe-p"><b class="pri-bangs p${parsed.priority}">${'!'.repeat(parsed.priority)}</b>${PRIORITY_NAMES[parsed.priority]} Priority<button data-ign="priority" aria-label="Ignore priority">${ic('x')}</button></span>`);
         if (parsed && parsed.tags.length && !ignore.tags) chips.push(`<span class="qe-p">${ic('tag')}${parsed.tags.map(esc).join(', ')}<button data-ign="tags" aria-label="Ignore tags">${ic('x')}</button></span>`);
         $('#qe-parsed', el).innerHTML = chips.join('');
         $('#qe-chips', el).innerHTML = whenChipHTML(x).replace(/data-action="(when|clear-when)"/g, 'data-qe="$1"') + deadlineChipHTML(x).replace(/data-action="(deadline|clear-deadline)"/g, 'data-qe="$1"') + x.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="tg ${tcls(g)}">${esc(g.title)}</span>`).join('');
@@ -135,10 +137,11 @@ function openQuickEntry(prefill = '') {
         if (!raw.trim() && !no.value.trim()) { closeLayer(L); return; }
         commit('Quick Entry', () => {
           const pz = S.settings.parseEntry ? parseEntry(raw) : null;
-          x.title = pz && ((pz.when && !ignore.when && x.start === 'inbox' && !x.when) || (pz.deadline && !ignore.deadline && !x.deadline) || (pz.tags.length && !ignore.tags)) ? rebuildTitle(raw, pz, ignore) : raw.trim();
+          x.title = pz && ((pz.when && !ignore.when && x.start === 'inbox' && !x.when) || (pz.deadline && !ignore.deadline && !x.deadline) || (pz.tags.length && !ignore.tags) || (pz.priority && !ignore.priority && !prio(x))) ? rebuildTitle(raw, pz, ignore) : raw.trim();
           x.notes = no.value;
           if (pz && pz.when && !ignore.when && x.start === 'inbox' && !x.when) scheduleItems(x, pz.when);
           if (pz && pz.deadline && !ignore.deadline && !x.deadline) x.deadline = pz.deadline;
+          if (pz && pz.priority && !ignore.priority && !prio(x)) x.priority = pz.priority;
           if (pz && pz.tags.length && !ignore.tags) pz.tags.forEach((n) => { const tg = findOrCreateTag(n); if (tg && !x.tags.includes(tg.id)) x.tags.push(tg.id); });
           delete x.isDraft;
           x.order = topOrder(S.todos.filter((y) => y !== x && !y.trashed && containerKey(y) === containerKey(x)));
@@ -176,6 +179,7 @@ function rebuildTitle(raw, pz, ignore) {
   let t = pz.title;
   if (ignore.tags && pz.tags.length) t += ' ' + pz.tags.map((x) => '#' + x).join(' ');
   if (ignore.deadline && pz.deadlineText) t += ' !' + pz.deadlineText;
+  if (ignore.priority && pz.priority) t += ' ' + '!'.repeat(pz.priority);
   if (ignore.when && pz.whenText) t += ' ' + pz.whenText;
   return t.trim() || raw.trim();
 }
@@ -428,7 +432,7 @@ function openShortcuts() {
   const k = (...keys) => keys.map((x) => `<kbd>${esc(x)}</kbd>`).join(' ');
   const rows = [
     ['Create', [['New to-do', k('N') + ' or ' + k('Space')], ['New heading (in a project)', k('⇧', 'N')], ['Quick Entry', k('Q')], ['Quick Find', k('/') + ' or ' + k(MODK + 'F')]]],
-    ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
+    ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
     ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing', [['Save and close', k('Return') + ' or ' + k(MODK + '↩')], ['Complete', k(MODK + 'K')], ['When…', k(MODK + 'S')], ['Deadline…', k(MODK + '⇧', 'D')], ['Add checklist', k(MODK + '⇧', 'C')], ['Move checklist item', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Paste several lines', 'one to-do per line']]],
   ];

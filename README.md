@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.19.0
+Version 1.20.0
 
 ## What's in it
 
@@ -22,14 +22,15 @@ Version 1.19.0
 - **Status report**: ••• → **Status Report…** in any list, area, project or the Board gives what got done, what's coming up and who you're waiting on for this week, last week or the last 7 or 30 days, ready to copy, email, share or print
 - **Tags**, nestable, with a tag bar on every list to filter it. In **Settings → Manage Tags**, drag a tag's grip (or press ⌘↑ / ⌘↓ in its name) to put tags in your own order, or use **Sort A to Z**; the tag bar, the tag picker and the tags on each to-do all follow that order. Each tag has a soft color, shown everywhere it appears: click its dot in Manage Tags to change it. New tags get a color no other tag is using yet, and a nested tag shares its parent's color unless you give it its own. To-dos added to or moved into a project or area take on its tags (switchable in Settings). Lists show only a to-do's own tags, not the ones it gets from its project or area or ones named after the project or area it's in; change this in **Settings → Tags shown in lists** (Own Only, All or None)
 - **Quick Find** (`/`) for lists, projects, tags and to-dos, including the Logbook
-- **Quick Entry** (`Q`) that reads dates, deadlines and tags as you type: `Pay rent friday #Home !oct 31`
+- **Quick Entry** (`Q`) that reads dates, deadlines, tags and priority as you type: `Pay rent friday #Home !oct 31 !!`
 - **Type a date** anywhere you pick one: `tom`, `fri`, `next week`, `in 3 days`, `oct 24`, `10/24`
 - **Drag and drop** to reorder, to move into projects and headings, or onto the sidebar to schedule, complete or delete. On iPhone, press and hold to drag
 - **Multi-select** (⌘-click or ⇧-click on a Mac, ••• → Select To-Dos on iPhone). With several selected, use the bar at the bottom, the ••• menu or a right-click to tag, schedule, move, set a deadline, complete or delete them all at once
 - **Undo** for everything (`⌘Z`)
 - **Keyboard shortcuts** for nearly everything. Press `?` in the app to see them all
 - **Board** (Mac): put projects and areas side by side in columns, like a kanban board. Use **Add Column**, **Add to Board** in any project or area's ••• menu (or right-click it in the sidebar), or an area's **Open as Board** to lay out all its projects. Drag to-dos between columns, check them off, or add new ones with each column's +. Drag a column's right edge to make it wider or narrower (double-click the edge to fit automatically). Press `8` to open it
-- **Sort any list** by deadline, date, title or recently added from its ••• menu (**Sort By…**), or keep your own manual order. Each list remembers its sort on each device
+- **Priority** (optional): High, Medium or Low on any to-do or project, shown as **!!!**, **!!** or **!** before its title. Press `P`, use **Priority…** in the ••• or right-click menu (or a selection's), the bars button in an open to-do, or type `!!!`, `!!` or `!` in Quick Entry
+- **Sort any list** by priority, deadline, date, title or recently added from its ••• menu (**Sort By…**), or keep your own manual order. **Priority** puts High first; items with the same priority keep your order and ones without go last. In an area it sorts its projects too Each list remembers its sort on each device
 - **Compact rows** (Settings → Row spacing, or the Board's ••• menu) fit more to-dos on screen
 - **Light and dark** themes that follow your system, or pick one in Settings
 - **Share and export**: send any list, area, project, selection or single to-do as text (Messages, Mail, Notes), Markdown, or a spreadsheet file, or print it / save as PDF. Use the share button at the top of any list, project or area, or **Share…** in the ••• menus, the selection bar and a to-do's own menu
@@ -157,7 +158,7 @@ The installed app checks for a new version when you bring it to the front (and e
 | Open selected to-do | `Return` |
 | Complete / Cancel | `K` or `⌘K` / `⌥K` |
 | Today / This Evening / Anytime / Someday | `T` / `E` / `A` / `O` |
-| When / Deadline / Tags / Move / Repeat / Waiting For | `S` / `D` / `#` / `M` / `R` / `W` |
+| When / Deadline / Priority / Tags / Move / Repeat / Waiting For | `S` / `D` / `P` / `#` / `M` / `R` / `W` |
 | Move up or down | `⌘↑` `⌘↓` |
 | Go to Inbox … Trash, Board | `1` … `8` |
 | Delete | `⌫` |

@@ -180,7 +180,7 @@ function convertToProject(id) {
   const t = getT(id); if (!t) return;
   let p;
   commit('Convert to Project', () => {
-    p = makeProject({ title: t.title, notes: t.notes, areaId: t.areaId || (projectOf(t) && projectOf(t).areaId) || null, tags: t.tags.slice(), start: t.start === 'someday' ? 'someday' : 'anytime', when: t.when, deadline: t.deadline, order: endOrder(S.projects) });
+    p = makeProject({ title: t.title, notes: t.notes, priority: t.priority || 0, areaId: t.areaId || (projectOf(t) && projectOf(t).areaId) || null, tags: t.tags.slice(), start: t.start === 'someday' ? 'someday' : 'anytime', when: t.when, deadline: t.deadline, order: endOrder(S.projects) });
     S.projects.push(p);
     (t.checklist || []).forEach((c, i) => S.todos.push(makeTodo({ title: c.title, projectId: p.id, start: 'anytime', status: c.done ? 'done' : 'open', completedAt: c.done ? Date.now() : null, order: i })));
     S.todos = S.todos.filter((x) => x !== t);

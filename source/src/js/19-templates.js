@@ -17,7 +17,7 @@ function copyProjectContents(from, to, opts = {}) {
   });
   S.todos.filter((c) => c.projectId === from.id && !c.trashed && !c.isTemplate && !c.isDraft && (opts.all || c.status === 'open')).sort(byOrder).forEach((c) => {
     const t = makeTodo({
-      title: c.title, notes: c.notes, tags: c.tags.slice(), checklist: freshChecklist(c.checklist),
+      title: c.title, notes: c.notes, tags: c.tags.slice(), priority: c.priority || 0, checklist: freshChecklist(c.checklist),
       projectId: to.id, headingId: c.headingId ? hmap[c.headingId] || null : null,
       start: c.start === 'someday' ? 'someday' : 'anytime', order: c.order, todayOrder: todayTop(),
     });
@@ -28,7 +28,7 @@ function copyProjectContents(from, to, opts = {}) {
 function saveProjectAsTemplate(p) {
   let bp;
   commit('Save as Template', () => {
-    bp = makeProject({ title: p.title, notes: p.notes, tags: p.tags.slice(), areaId: null, bpAreaId: p.areaId || null, isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.projects) });
+    bp = makeProject({ title: p.title, notes: p.notes, tags: p.tags.slice(), priority: p.priority || 0, areaId: null, bpAreaId: p.areaId || null, isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.projects) });
     S.projects.push(bp); idx.project.set(bp.id, bp);
     copyProjectContents(p, bp, { all: true });
   });
@@ -37,7 +37,7 @@ function saveProjectAsTemplate(p) {
 function saveTodoAsTemplate(t) {
   let bp;
   commit('Save as Template', () => {
-    bp = makeTodo({ title: t.title, notes: t.notes, tags: t.tags.slice(), checklist: freshChecklist(t.checklist), isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.todos.filter(isBlueprint)) });
+    bp = makeTodo({ title: t.title, notes: t.notes, tags: t.tags.slice(), priority: t.priority || 0, checklist: freshChecklist(t.checklist), isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.todos.filter(isBlueprint)) });
     S.todos.push(bp);
   });
   toast(`Saved “${t.title || 'New To-Do'}” as a template`, { action: 'Show Templates', fn: () => navigate('templates') });
@@ -59,7 +59,7 @@ function newProjectFromTemplate(id, areaId) {
   const area = areaId !== undefined ? areaId : (bp.bpAreaId && getA(bp.bpAreaId) ? bp.bpAreaId : null);
   let p;
   commit('New Project from Template', () => {
-    p = makeProject({ title: bp.title, notes: bp.notes, tags: bp.tags.slice(), areaId: area, start: 'anytime', order: endOrder(S.projects) });
+    p = makeProject({ title: bp.title, notes: bp.notes, tags: bp.tags.slice(), priority: bp.priority || 0, areaId: area, start: 'anytime', order: endOrder(S.projects) });
     S.projects.push(p); idx.project.set(p.id, p);
     copyProjectContents(bp, p);
   });
@@ -88,7 +88,7 @@ function newTodoFromTemplate(id, target) {
   closeEditor({ noRender: true }); closeTplModal();
   let t;
   commit('New To-Do from Template', () => {
-    t = createTodoIn(Object.assign(props, { title: bp.title, notes: bp.notes, tags: Array.from(new Set((props.tags || []).concat(bp.tags))), checklist: freshChecklist(bp.checklist) }));
+    t = createTodoIn(Object.assign(props, { title: bp.title, notes: bp.notes, priority: bp.priority || 0, tags: Array.from(new Set((props.tags || []).concat(bp.tags))), checklist: freshChecklist(bp.checklist) }));
   }, { render: false });
   if (visibleInCurrentView(t) && !(isMobile() && ui.mobile === 'home')) { ui.editing = t.id; ui.sel = new Set([t.id]); ui.anchor = t.id; ui.scrollToEditor = true; render(); }
   else { render(); toast(`Added “${t.title || 'New To-Do'}” to ${placeLabel(t)}`, { action: 'Show', fn: () => revealTodo(t.id) }); }

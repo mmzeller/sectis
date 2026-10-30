@@ -76,6 +76,8 @@ function handleAction(act, el, e) {
     case 'deadline': openWhen([id], el, 'deadline'); return;
     case 'clear-when': applyWhen([id], 'clear'); return;
     case 'clear-deadline': applyDeadline([id], null); return;
+    case 'priority': openPriority(ui.sel.has(id) && ui.sel.size > 1 ? selectedIds() : [id], el); return;
+    case 'clear-priority': setPriority([id], 0); return;
     case 'tags': openTagPicker([id], el); return;
     case 'area-tags': openTagPicker([id], el, 'area'); return;
     case 'remove-tag': removeTag(id, el.dataset.tag); return;
@@ -165,12 +167,14 @@ function todoMenu(id, el) {
     items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(id) });
   } else if (t.isTemplate) {
     items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(id, el) });
+    items.push(priorityMenuItem([id], el, ''));
     items.push({ label: 'Move…', icon: 'move', fn: () => openMove([id], el) });
     items.push({ sep: 1 }, { label: 'Stop Repeating', icon: 'x', danger: true, fn: () => stopRepeating(id) });
   } else {
     items.push({ label: 'When…', icon: 'calendar', hint: 'S', fn: () => openWhen([id], el) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
+    items.push(priorityMenuItem([id], el));
     if (t.status === 'open') items.push({ label: t.waitFor ? `Waiting on ${t.waitFor}…` : 'Waiting For…', icon: 'hourglass', hint: 'W', fn: () => openWaiting([id], el) });
     if (t.waitFor) items.push({ label: 'Stop Waiting', icon: 'x', fn: () => stopWaiting([id]) });
     if (!t.templateId) items.push({ label: 'Also Add To…', icon: 'link', fn: () => openAlsoAddTo([id], el) });
@@ -215,6 +219,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Complete Project', icon: 'check', fn: () => completeProjectFlow(p, 'done') });
     items.push({ label: 'When…', icon: 'calendar', fn: () => openWhen([p.id], el) });
     items.push({ label: 'Deadline…', icon: 'flag', fn: () => openWhen([p.id], el, 'deadline') });
+    items.push(priorityMenuItem([p.id], el, ''));
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
@@ -285,6 +290,7 @@ function batchMenuItems(anchor) {
     { label: 'Move…', icon: 'move', hint: 'M', disabled: !todos.length, fn: () => endSelectAfter(openMove(todos, anchor)) },
     { label: 'Also Add To…', icon: 'link', disabled: !todos.length, fn: () => endSelectAfter(openAlsoAddTo(todos, anchor)) },
     { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
+    { label: 'Priority…', icon: 'priority', hint: 'P', fn: () => endSelectAfter(openPriority(ids, anchor)) },
     { label: 'Waiting For…', icon: 'hourglass', hint: 'W', disabled: !todos.length, fn: () => endSelectAfter(openWaiting(todos, anchor)) },
     { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
@@ -481,6 +487,7 @@ document.addEventListener('keydown', (e) => {
     case 's': e.preventDefault(); openWhen(one, anchorFor(one[0])); return;
     case 'd': e.preventDefault(); openWhen(one, anchorFor(one[0]), 'deadline'); return;
     case 'w': e.preventDefault(); openWaiting(one, anchorFor(one[0])); return;
+    case 'p': if (one.length) { e.preventDefault(); openPriority(one, anchorFor(one[0])); } return;
     case '#': e.preventDefault(); openTagPicker(one, anchorFor(one[0])); return;
     case 'm': e.preventDefault(); openMove(todosSel.length ? todosSel : one, anchorFor(one[0])); return;
     case 'r': e.preventDefault(); if (todosSel.length === 1) { const t = getT(todosSel[0]); if (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed) openTplModal(t.templateId); else openRepeat(t.id, anchorFor(t.id)); } return;
