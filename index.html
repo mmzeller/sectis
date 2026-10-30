@@ -878,7 +878,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.25.0';
+const APP_VERSION = '1.26.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1550,6 +1550,41 @@ function convertToProject(id) {
     S.todos = S.todos.filter((x) => x !== t);
   });
   ui.editing = null; navigate('project:' + p.id);
+}
+
+/* A to-do in a project becomes a heading in the same spot, and its checklist items become the
+   to-dos under it (done ones stay done). They take on the to-do's tags, date, deadline and
+   priority. Headings have no notes, so a to-do with notes goes to the Trash (where they stay);
+   one without is simply replaced. Several at once keep their order. */
+const canBeHeading = (t) => !!(t && t.projectId && t.status === 'open' && !t.trashed && !t.isTemplate && !t.isDraft && getP(t.projectId) && getP(t.projectId).status === 'open' && !getP(t.projectId).trashed);
+function convertToHeading(ids) {
+  const todos = ids.map(getT).filter(canBeHeading).sort(byOrder);
+  if (!todos.length) return;
+  let made = 0, kids = 0; const keptNotes = [];
+  commit(todos.length > 1 ? 'Convert to Headings' : 'Convert to Heading', () => {
+    // where each new heading goes: right after the heading its to-do was under, or before the first heading
+    const groups = new Map();
+    todos.forEach((t) => { const k = t.projectId + ':' + (t.headingId && getH(t.headingId) && !getH(t.headingId).archived ? t.headingId : ''); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); });
+    groups.forEach((list, k) => {
+      const [pid, hid] = k.split(':');
+      const hs = S.headings.filter((h) => h.projectId === pid && !h.archived).sort(byOrder);
+      const i = hid ? hs.findIndex((h) => h.id === hid) : -1;
+      const orders = orderBetween(i >= 0 ? hs[i].order : null, hs[i + 1] ? hs[i + 1].order : null, list.length);
+      list.forEach((t, j) => {
+        const h = { id: uid(), projectId: pid, title: t.title || 'New Heading', order: orders[j], archived: false };
+        S.headings.push(h); made++;
+        (t.checklist || []).forEach((c, n) => {
+          const x = makeTodo({ title: c.title, projectId: pid, headingId: h.id, start: t.start === 'someday' ? 'someday' : 'anytime', when: t.when, evening: t.evening, deadline: t.deadline,
+            priority: t.priority || 0, tags: t.tags.slice(), status: c.done ? 'done' : 'open', completedAt: c.done ? Date.now() : null, order: n, todayOrder: t.todayOrder + n * 0.001 });
+          S.todos.push(x); kids++;
+        });
+        if ((t.notes || '').trim()) { t.trashed = true; touch(t); keptNotes.push(t.title || 'New To-Do'); } else S.todos = S.todos.filter((x) => x !== t);
+      });
+    });
+  });
+  ui.editing = null; ui.sel.clear();
+  toast(`${made > 1 ? `${made} to-dos are now headings` : `“${todos[0].title || 'New To-Do'}” is now a heading`}${kids ? ` with ${plural(kids, 'to-do')} under ${made > 1 ? 'them' : 'it'}` : ''}${!keptNotes.length ? '' : made === 1 ? '. Its notes are in the Trash' : `. Notes from ${keptNotes.map((x) => `“${x}”`).join(' and ')} are in the Trash`}`, { undo: true });
+  render();
 }
 
 /* ---- projects, areas, headings ---- */
@@ -3485,6 +3520,7 @@ function todoMenu(id, el) {
     items.push(...checklistMenuItems([id]));
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ label: 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
+    if (canBeHeading(t)) items.push({ label: 'Convert to Heading', icon: 'heading', fn: () => convertToHeading([id]) });
     items.push({ label: 'Save as Template', icon: 'template', fn: () => saveTodoAsTemplate(t) });
     items.push({ sep: 1 });
     if (!t.logged && !t.trashed) items.push({ label: t.status === 'open' ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', fn: () => logItems([id]) });
@@ -3600,6 +3636,7 @@ function batchMenuItems(anchor) {
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: loggable.some((x) => x.status === 'open') ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', disabled: !loggable.length, fn: () => { logItems(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: 'Delete', icon: 'trash', danger: true, fn: () => { trashItems(ids); ui.selectMode = false; render(); } },
+    ...(todos.length === n && todos.every((x) => canBeHeading(getT(x))) ? [{ label: 'Convert to Headings', icon: 'heading', fn: () => { convertToHeading(ids); close(); } }] : []),
     ...checklistMenuItems(ids).map((it) => Object.assign(it, { fn: ((f) => () => { f(); close(); })(it.fn) })),
     { label: 'Share…', icon: 'share', fn: () => openShare({ type: 'items', ids }) },
     { label: 'Clear Selection', icon: 'x', fn: () => { ui.sel.clear(); ui.selectMode = false; render(); } },

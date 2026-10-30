@@ -188,6 +188,7 @@ function todoMenu(id, el) {
     items.push(...checklistMenuItems([id]));
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ label: 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
+    if (canBeHeading(t)) items.push({ label: 'Convert to Heading', icon: 'heading', fn: () => convertToHeading([id]) });
     items.push({ label: 'Save as Template', icon: 'template', fn: () => saveTodoAsTemplate(t) });
     items.push({ sep: 1 });
     if (!t.logged && !t.trashed) items.push({ label: t.status === 'open' ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', fn: () => logItems([id]) });
@@ -303,6 +304,7 @@ function batchMenuItems(anchor) {
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: loggable.some((x) => x.status === 'open') ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', disabled: !loggable.length, fn: () => { logItems(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: 'Delete', icon: 'trash', danger: true, fn: () => { trashItems(ids); ui.selectMode = false; render(); } },
+    ...(todos.length === n && todos.every((x) => canBeHeading(getT(x))) ? [{ label: 'Convert to Headings', icon: 'heading', fn: () => { convertToHeading(ids); close(); } }] : []),
     ...checklistMenuItems(ids).map((it) => Object.assign(it, { fn: ((f) => () => { f(); close(); })(it.fn) })),
     { label: 'Share…', icon: 'share', fn: () => openShare({ type: 'items', ids }) },
     { label: 'Clear Selection', icon: 'x', fn: () => { ui.sel.clear(); ui.selectMode = false; render(); } },
