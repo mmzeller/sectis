@@ -511,10 +511,12 @@ function nudge(ids, dir) {
   const row = $(`#content .row[data-id="${CSS.escape(ids[0])}"]`); if (!row) return;
   const sec = row.closest('[data-sec]'); if (!sec || !sectionAccepts(sec.dataset.sec, 'todo')) return;
   const ok = sec.dataset.ok || 'order';
-  const rows = $$(':scope > .row[data-id]', sec); const i = rows.indexOf(row); const j = i + dir;
-  if (j < 0 || j >= rows.length) return;
-  const others = rows.filter((r) => r !== row);
-  const prev = rowItem(others[dir < 0 ? j - 1 : j]), next = rowItem(others[dir < 0 ? j : j + 1]);
   const x = getT(ids[0]);
+  if (sinksDone() && x.status !== 'open') return; // completed ones sit at the bottom
+  const rows = placeRows($$(':scope > .row[data-id]', sec)); const i = rows.indexOf(row); const j = i + dir;
+  if (i < 0 || j < 0 || j >= rows.length) return;
+  const others = rows.filter((r) => r !== row);
+  // with the row taken out, its new spot is between others[j - 1] and others[j], moving up or down
+  const prev = rowItem(others[j - 1]), next = rowItem(others[j]);
   commit('Reorder', () => { x[ok] = orderBetween(prev ? prev[ok] : null, next ? next[ok] : null)[0]; });
 }

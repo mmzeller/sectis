@@ -213,6 +213,7 @@ function ghostProjRowHTML(p, date) {
 function secHTML(sec, items, ctx = {}, okey = 'order') {
   const mode = currentSort();
   if (mode !== 'manual' && SORT_SEC.test(sec)) items = sortItems(items, mode);
+  if (SINK_SEC.test(sec)) items = sinkDone(items);
   return `<div class="sec" data-sec="${sec}" data-ok="${okey}">${items.map((x) => rowHTML(x, ctx)).join('')}</div>`;
 }
 

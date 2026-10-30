@@ -69,7 +69,7 @@ function containerKey(t) { return t.projectId ? `p:${t.projectId}:${t.headingId 
 
 function setStatus(x, status) {
   if (status === 'open') { x.status = 'open'; x.completedAt = null; x.logged = false; }
-  else { x.status = status; x.completedAt = Date.now(); x.logged = false; if (x.templateId) onInstanceDone(x); }
+  else { x.status = status; x.completedAt = Date.now(); x.logged = false; if (x.templateId) onInstanceDone(x); holdDone(x.id); }
   touch(x);
 }
 function toggleComplete(ids, status = 'done') {

@@ -189,7 +189,8 @@ function performDrop(st, t) {
     if (st.kind !== 'magic' && currentSort() !== 'manual' && SORT_SEC.test(t.sec) && st.src && st.src.closest('[data-sec]') === t.secEl) { sortedHint(); return; } // can't hand-arrange a sorted list
     const secEl = t.secEl, ok = secEl.dataset.ok || 'order';
     const rows = $$(':scope > .row[data-id]', secEl).filter((r) => !ids.includes(r.dataset.id));
-    const prev = rowItem(rows[t.index - 1]), next = rowItem(rows[t.index]);
+    const above = placeRows(rows.slice(0, t.index)), below = placeRows(rows.slice(t.index));
+    const prev = rowItem(above[above.length - 1]), next = rowItem(below[0]);
     const n = st.kind === 'magic' ? 1 : ids.length;
     const vals = orderBetween(prev ? prev[ok] : null, next ? next[ok] : null, n);
     if (st.kind === 'magic') { newTodo({ sec: t.sec, place: { [ok]: vals[0] } }); return; }

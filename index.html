@@ -876,7 +876,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.20.0';
+const APP_VERSION = '1.21.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1087,7 +1087,7 @@ const ui = {
 };
 
 function defaultSettings() {
-  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable' };
+  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom' };
 }
 function emptyState() {
   return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
@@ -1431,7 +1431,7 @@ function containerKey(t) { return t.projectId ? `p:${t.projectId}:${t.headingId 
 
 function setStatus(x, status) {
   if (status === 'open') { x.status = 'open'; x.completedAt = null; x.logged = false; }
-  else { x.status = status; x.completedAt = Date.now(); x.logged = false; if (x.templateId) onInstanceDone(x); }
+  else { x.status = status; x.completedAt = Date.now(); x.logged = false; if (x.templateId) onInstanceDone(x); holdDone(x.id); }
   touch(x);
 }
 function toggleComplete(ids, status = 'done') {
@@ -2109,6 +2109,7 @@ function ghostProjRowHTML(p, date) {
 function secHTML(sec, items, ctx = {}, okey = 'order') {
   const mode = currentSort();
   if (mode !== 'manual' && SORT_SEC.test(sec)) items = sortItems(items, mode);
+  if (SINK_SEC.test(sec)) items = sinkDone(items);
   return `<div class="sec" data-sec="${sec}" data-ok="${okey}">${items.map((x) => rowHTML(x, ctx)).join('')}</div>`;
 }
 
@@ -2584,7 +2585,9 @@ function newTodo(opts = {}) {
       if (sp) {
         Object.assign(props, sp);
         const ok = sec.dataset.ok || 'order';
-        const nxt = rowItem(nextRowEl(row));
+        let nRow = nextRowEl(row);
+        if (sinksDone()) while (nRow && (rowItem(nRow) || {}).status !== 'open') nRow = nextRowEl(nRow); // past the completed ones at the bottom
+        const nxt = rowItem(nRow);
         place[ok] = orderBetween(ref[ok], nxt && nxt.type === 'todo' ? nxt[ok] : null)[0];
         if (ok === 'order') place.todayOrder = orderBetween(ref.todayOrder, null)[0];
         if (ok === 'todayOrder') place.order = orderBetween(ref.order, null)[0];
@@ -3179,7 +3182,8 @@ function performDrop(st, t) {
     if (st.kind !== 'magic' && currentSort() !== 'manual' && SORT_SEC.test(t.sec) && st.src && st.src.closest('[data-sec]') === t.secEl) { sortedHint(); return; } // can't hand-arrange a sorted list
     const secEl = t.secEl, ok = secEl.dataset.ok || 'order';
     const rows = $$(':scope > .row[data-id]', secEl).filter((r) => !ids.includes(r.dataset.id));
-    const prev = rowItem(rows[t.index - 1]), next = rowItem(rows[t.index]);
+    const above = placeRows(rows.slice(0, t.index)), below = placeRows(rows.slice(t.index));
+    const prev = rowItem(above[above.length - 1]), next = rowItem(below[0]);
     const n = st.kind === 'magic' ? 1 : ids.length;
     const vals = orderBetween(prev ? prev[ok] : null, next ? next[ok] : null, n);
     if (st.kind === 'magic') { newTodo({ sec: t.sec, place: { [ok]: vals[0] } }); return; }
@@ -3757,11 +3761,13 @@ function nudge(ids, dir) {
   const row = $(`#content .row[data-id="${CSS.escape(ids[0])}"]`); if (!row) return;
   const sec = row.closest('[data-sec]'); if (!sec || !sectionAccepts(sec.dataset.sec, 'todo')) return;
   const ok = sec.dataset.ok || 'order';
-  const rows = $$(':scope > .row[data-id]', sec); const i = rows.indexOf(row); const j = i + dir;
-  if (j < 0 || j >= rows.length) return;
-  const others = rows.filter((r) => r !== row);
-  const prev = rowItem(others[dir < 0 ? j - 1 : j]), next = rowItem(others[dir < 0 ? j : j + 1]);
   const x = getT(ids[0]);
+  if (sinksDone() && x.status !== 'open') return; // completed ones sit at the bottom
+  const rows = placeRows($$(':scope > .row[data-id]', sec)); const i = rows.indexOf(row); const j = i + dir;
+  if (i < 0 || j < 0 || j >= rows.length) return;
+  const others = rows.filter((r) => r !== row);
+  // with the row taken out, its new spot is between others[j - 1] and others[j], moving up or down
+  const prev = rowItem(others[j - 1]), next = rowItem(others[j]);
   commit('Reorder', () => { x[ok] = orderBetween(prev ? prev[ok] : null, next ? next[ok] : null)[0]; });
 }
 
@@ -3963,6 +3969,7 @@ function openSettings() {
     <div class="set-sec"><h3>Appearance</h3><div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']])}</div><div class="set-row"><span class="lbl">Row spacing<small>Compact fits more to-dos on screen, handy on the Board. Each device keeps its own.</small></span>${seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']])}</div></div>
     <div class="set-sec"><h3>Lists</h3>
       <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
+      <div class="set-row"><span class="lbl">Completed to-dos<small>Move to Bottom puts checked to-dos below the rest of their list. Unchecking one puts it back where it was.</small></span>${seg('doneSink', [['bottom', 'Move to Bottom'], ['stay', 'Stay in Place']])}</div>
       <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
       <div class="set-row"><span class="lbl">To-dos take on the tags of their project and area<small>When you add or move a to-do into a project or area, it gets that place’s tags. Moving it elsewhere swaps them.</small></span>${sw('inheritTags')}</div>
       <div class="set-row"><span class="lbl">Tags shown in lists<small>Own Only hides the tags a to-do already gets from its project or area, so lists stay clean. Open a to-do to see all of its tags.</small></span>${seg('rowTags', [['own', 'Own Only'], ['all', 'All'], ['none', 'None']])}</div>
@@ -6259,7 +6266,30 @@ function sortItems(items, mode) {
   return items;
 }
 /* a list of rows in the current sort (an area's projects, which aren't a to-do section) */
-function sortedRows(items) { const m = currentSort(); return m === 'manual' ? items : sortItems(items, m); }
+function sortedRows(items) { const m = currentSort(); return sinkDone(m === 'manual' ? items : sortItems(items, m)); }
+
+/* Completed to-dos sink to the bottom of their list, the last one checked at the very bottom
+   (Settings → Completed to-dos). Only how they're shown changes: each keeps its place, so
+   unchecking one puts it right back. One just checked stays put for a moment first. */
+const SINK_SEC = /^(inbox|today|evening|upcoming|anytime|someday|project|area|tag|waiting)/; // not the Logbook or Trash
+const sinksDone = () => (S.settings.doneSink || 'bottom') === 'bottom';
+function sinkDone(items) {
+  if (!sinksDone()) return items;
+  const held = ui.justDone || new Set();
+  const isDone = (x) => x.status !== 'open' && !held.has(x.id);
+  const done = items.filter(isDone);
+  if (!done.length) return items;
+  return items.filter((x) => !isDone(x)).concat(done.sort((a, b) => (a.completedAt || 0) - (b.completedAt || 0)));
+}
+function holdDone(id) {
+  ui.justDone = ui.justDone || new Set();
+  ui.justDone.add(id);
+  clearTimeout(ui.justDoneTimer);
+  ui.justDoneTimer = setTimeout(() => { ui.justDone.clear(); if (sinksDone()) render(); }, S.settings.logMode === 'immediate' ? 1600 : 800);
+}
+/* placing rows by hand (drag, ⌘↑ / ⌘↓, a new to-do below another): completed ones shown at the
+   bottom don't count, so the spot is set among the open ones */
+function placeRows(rows) { return sinksDone() ? rows.filter((r) => { const x = rowItem(r); return x && x.status === 'open'; }) : rows; }
 function sortMenuItem(anchor) { return { label: 'Sort By…', icon: 'sort', hint: SORT_LABEL[currentSort()], fn: () => openSortMenu(anchor) }; }
 function openSortMenu(anchor) {
   const cur = currentSort();

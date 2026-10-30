@@ -103,7 +103,9 @@ function newTodo(opts = {}) {
       if (sp) {
         Object.assign(props, sp);
         const ok = sec.dataset.ok || 'order';
-        const nxt = rowItem(nextRowEl(row));
+        let nRow = nextRowEl(row);
+        if (sinksDone()) while (nRow && (rowItem(nRow) || {}).status !== 'open') nRow = nextRowEl(nRow); // past the completed ones at the bottom
+        const nxt = rowItem(nRow);
         place[ok] = orderBetween(ref[ok], nxt && nxt.type === 'todo' ? nxt[ok] : null)[0];
         if (ok === 'order') place.todayOrder = orderBetween(ref.todayOrder, null)[0];
         if (ok === 'todayOrder') place.order = orderBetween(ref.order, null)[0];

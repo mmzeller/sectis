@@ -28,7 +28,30 @@ function sortItems(items, mode) {
   return items;
 }
 /* a list of rows in the current sort (an area's projects, which aren't a to-do section) */
-function sortedRows(items) { const m = currentSort(); return m === 'manual' ? items : sortItems(items, m); }
+function sortedRows(items) { const m = currentSort(); return sinkDone(m === 'manual' ? items : sortItems(items, m)); }
+
+/* Completed to-dos sink to the bottom of their list, the last one checked at the very bottom
+   (Settings → Completed to-dos). Only how they're shown changes: each keeps its place, so
+   unchecking one puts it right back. One just checked stays put for a moment first. */
+const SINK_SEC = /^(inbox|today|evening|upcoming|anytime|someday|project|area|tag|waiting)/; // not the Logbook or Trash
+const sinksDone = () => (S.settings.doneSink || 'bottom') === 'bottom';
+function sinkDone(items) {
+  if (!sinksDone()) return items;
+  const held = ui.justDone || new Set();
+  const isDone = (x) => x.status !== 'open' && !held.has(x.id);
+  const done = items.filter(isDone);
+  if (!done.length) return items;
+  return items.filter((x) => !isDone(x)).concat(done.sort((a, b) => (a.completedAt || 0) - (b.completedAt || 0)));
+}
+function holdDone(id) {
+  ui.justDone = ui.justDone || new Set();
+  ui.justDone.add(id);
+  clearTimeout(ui.justDoneTimer);
+  ui.justDoneTimer = setTimeout(() => { ui.justDone.clear(); if (sinksDone()) render(); }, S.settings.logMode === 'immediate' ? 1600 : 800);
+}
+/* placing rows by hand (drag, ⌘↑ / ⌘↓, a new to-do below another): completed ones shown at the
+   bottom don't count, so the spot is set among the open ones */
+function placeRows(rows) { return sinksDone() ? rows.filter((r) => { const x = rowItem(r); return x && x.status === 'open'; }) : rows; }
 function sortMenuItem(anchor) { return { label: 'Sort By…', icon: 'sort', hint: SORT_LABEL[currentSort()], fn: () => openSortMenu(anchor) }; }
 function openSortMenu(anchor) {
   const cur = currentSort();
