@@ -876,7 +876,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.21.0';
+const APP_VERSION = '1.22.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1087,7 +1087,7 @@ const ui = {
 };
 
 function defaultSettings() {
-  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom' };
+  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true };
 }
 function emptyState() {
   return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
@@ -3179,10 +3179,12 @@ function performDrop(st, t) {
   const ids = st.ids;
   if (t.type === 'list') return dropOnList(ids, t.key, st.kind, t.el);
   if (t.type === 'sec') {
-    if (st.kind !== 'magic' && currentSort() !== 'manual' && SORT_SEC.test(t.sec) && st.src && st.src.closest('[data-sec]') === t.secEl) { sortedHint(); return; } // can't hand-arrange a sorted list
+    if (st.kind !== 'magic' && !handOrdered() && SORT_SEC.test(t.sec) && st.src && st.src.closest('[data-sec]') === t.secEl) { sortedHint(); return; } // can't hand-arrange a sorted list
     const secEl = t.secEl, ok = secEl.dataset.ok || 'order';
     const rows = $$(':scope > .row[data-id]', secEl).filter((r) => !ids.includes(r.dataset.id));
-    const above = placeRows(rows.slice(0, t.index)), below = placeRows(rows.slice(t.index));
+    const lead = SORT_SEC.test(t.sec) ? itemById(ids[0]) : null; // in a list sorted by priority, it goes among its own priority
+    let above = placeRows(rows.slice(0, t.index), lead), below = placeRows(rows.slice(t.index), lead);
+    if (lead && !above.length && !below.length) { above = placeRows(rows.slice(0, t.index)); below = placeRows(rows.slice(t.index)); } // none of its priority there yet
     const prev = rowItem(above[above.length - 1]), next = rowItem(below[0]);
     const n = st.kind === 'magic' ? 1 : ids.length;
     const vals = orderBetween(prev ? prev[ok] : null, next ? next[ok] : null, n);
@@ -3757,13 +3759,13 @@ function moveSelection(dir, extend) {
 }
 function nudge(ids, dir) {
   if (ids.length !== 1) return;
-  if (currentSort() !== 'manual') { sortedHint(); return; }
+  if (!handOrdered()) { sortedHint(); return; }
   const row = $(`#content .row[data-id="${CSS.escape(ids[0])}"]`); if (!row) return;
   const sec = row.closest('[data-sec]'); if (!sec || !sectionAccepts(sec.dataset.sec, 'todo')) return;
   const ok = sec.dataset.ok || 'order';
   const x = getT(ids[0]);
   if (sinksDone() && x.status !== 'open') return; // completed ones sit at the bottom
-  const rows = placeRows($$(':scope > .row[data-id]', sec)); const i = rows.indexOf(row); const j = i + dir;
+  const rows = placeRows($$(':scope > .row[data-id]', sec), SORT_SEC.test(sec.dataset.sec) ? x : null); const i = rows.indexOf(row); const j = i + dir;
   if (i < 0 || j < 0 || j >= rows.length) return;
   const others = rows.filter((r) => r !== row);
   // with the row taken out, its new spot is between others[j - 1] and others[j], moving up or down
@@ -3969,6 +3971,7 @@ function openSettings() {
     <div class="set-sec"><h3>Appearance</h3><div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']])}</div><div class="set-row"><span class="lbl">Row spacing<small>Compact fits more to-dos on screen, handy on the Board. Each device keeps its own.</small></span>${seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']])}</div></div>
     <div class="set-sec"><h3>Lists</h3>
       <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
+      <div class="set-row"><span class="lbl">Keep higher priorities on top<small>Lists you haven’t sorted another way show High, then Medium, then Low, then the rest. Drag or use ⌘↑ / ⌘↓ to arrange them within each priority. Each list’s Sort By… still changes it.</small></span>${sw('prioTop')}</div>
       <div class="set-row"><span class="lbl">Completed to-dos<small>Move to Bottom puts checked to-dos below the rest of their list. Unchecking one puts it back where it was.</small></span>${seg('doneSink', [['bottom', 'Move to Bottom'], ['stay', 'Stay in Place']])}</div>
       <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
       <div class="set-row"><span class="lbl">To-dos take on the tags of their project and area<small>When you add or move a to-do into a project or area, it gets that place’s tags. Moving it elsewhere swaps them.</small></span>${sw('inheritTags')}</div>
@@ -5778,6 +5781,7 @@ function boardColMenu(key, el) {
     { label: 'Move Left', icon: 'chevL', disabled: i <= 0, fn: () => boardMove(t, id, -1) },
     { label: 'Move Right', icon: 'chevR', disabled: i < 0 || i >= cols.length - 1, fn: () => boardMove(t, id, 1) },
     { label: 'Fit Width Automatically', icon: 'columns', disabled: !(colEntry(key) || {}).w, fn: () => setColWidth(key, 0) },
+    sortMenuItem(el, 'Sort Board By…'),
     { label: 'Remove from Board', icon: 'x', fn: () => boardRemove(t, id) },
     { sep: 1 },
   ];
@@ -5830,7 +5834,7 @@ function hcolMenu(el) {
     { header: 'Column' },
     { label: 'Move Left', icon: 'chevL', disabled: i <= 0, fn: () => moveHeadingCol(h, -1) },
     { label: 'Move Right', icon: 'chevR', disabled: i >= hs.length - 1, fn: () => moveHeadingCol(h, 1) },
-    fit, { sep: 1 },
+    fit, sortMenuItem(el, 'Sort Project By…'), { sep: 1 },
   ]);
 }
 
@@ -6246,11 +6250,16 @@ const SORT_SEC = /^(inbox|today|evening|anytime|someday|project|area|tag|waiting
 function loadSorts() { try { ui.sorts = JSON.parse(lsGet('sectis.sort') || '{}') || {}; } catch (e) { ui.sorts = {}; } }
 function sortKeyFor(v = ui.view) { return v.id ? `${v.type}:${v.id}` : v.type; }
 function sortableView(v = ui.view) { return ['inbox', 'today', 'anytime', 'someday', 'project', 'area', 'tag', 'waiting', 'board'].includes(v.type); }
-function currentSort() { return sortableView() ? (ui.sorts || {})[sortKeyFor()] || 'manual' : 'manual'; }
+/* Lists you haven't sorted another way keep higher priorities on top (Settings → Keep higher
+   priorities on top), so a list with no priorities looks just as you arranged it. */
+function defaultSort() { return S.settings.prioTop === false ? 'manual' : 'priority'; }
+function currentSort() { return sortableView() ? (ui.sorts || {})[sortKeyFor()] || defaultSort() : 'manual'; }
+/* sorts you can still arrange by hand: Manual, and Priority within each priority */
+const handOrdered = (mode = currentSort()) => mode === 'manual' || mode === 'priority';
 function setSort(mode) {
   ui.sorts = ui.sorts || {};
   const k = sortKeyFor();
-  if (mode === 'manual') delete ui.sorts[k]; else ui.sorts[k] = mode;
+  if (mode === defaultSort()) delete ui.sorts[k]; else ui.sorts[k] = mode;
   lsSet('sectis.sort', JSON.stringify(ui.sorts)); render();
 }
 function sortItems(items, mode) {
@@ -6289,15 +6298,20 @@ function holdDone(id) {
 }
 /* placing rows by hand (drag, ⌘↑ / ⌘↓, a new to-do below another): completed ones shown at the
    bottom don't count, so the spot is set among the open ones */
-function placeRows(rows) { return sinksDone() ? rows.filter((r) => { const x = rowItem(r); return x && x.status === 'open'; }) : rows; }
-function sortMenuItem(anchor) { return { label: 'Sort By…', icon: 'sort', hint: SORT_LABEL[currentSort()], fn: () => openSortMenu(anchor) }; }
+function placeRows(rows, x = null) {
+  let out = sinksDone() ? rows.filter((r) => { const y = rowItem(r); return y && y.status === 'open'; }) : rows;
+  // sorted by priority: a to-do is arranged among the ones with the same priority
+  if (x && currentSort() === 'priority') out = out.filter((r) => { const y = rowItem(r); return y && prio(y) === prio(x); });
+  return out;
+}
+function sortMenuItem(anchor, label = 'Sort By…') { return { label, icon: 'sort', hint: SORT_LABEL[currentSort()], fn: () => openSortMenu(anchor) }; }
 function openSortMenu(anchor) {
   const cur = currentSort();
   return openMenu(anchor, [{ header: 'Sort By' }, ...SORTS.map(([v, l]) => ({ label: l, icon: v === cur ? 'check' : 'blank', fn: () => setSort(v) }))]);
 }
 /* a small "Sorted by …" button in the list header, so a sorted list never looks like it lost your order */
 function addSortPill() {
-  const mode = currentSort(); if (mode === 'manual') return;
+  const mode = currentSort(); if (mode === defaultSort()) return; // the usual order needs no note
   const lh = $('#content .lh'); if (!lh) return;
   const b = document.createElement('button');
   b.className = 'sort-pill'; b.dataset.action = 'sort-menu'; b.title = 'Sorted by ' + SORT_LABEL[mode] + '. Click to change.';

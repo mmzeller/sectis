@@ -8,11 +8,16 @@ const SORT_SEC = /^(inbox|today|evening|anytime|someday|project|area|tag|waiting
 function loadSorts() { try { ui.sorts = JSON.parse(lsGet('sectis.sort') || '{}') || {}; } catch (e) { ui.sorts = {}; } }
 function sortKeyFor(v = ui.view) { return v.id ? `${v.type}:${v.id}` : v.type; }
 function sortableView(v = ui.view) { return ['inbox', 'today', 'anytime', 'someday', 'project', 'area', 'tag', 'waiting', 'board'].includes(v.type); }
-function currentSort() { return sortableView() ? (ui.sorts || {})[sortKeyFor()] || 'manual' : 'manual'; }
+/* Lists you haven't sorted another way keep higher priorities on top (Settings → Keep higher
+   priorities on top), so a list with no priorities looks just as you arranged it. */
+function defaultSort() { return S.settings.prioTop === false ? 'manual' : 'priority'; }
+function currentSort() { return sortableView() ? (ui.sorts || {})[sortKeyFor()] || defaultSort() : 'manual'; }
+/* sorts you can still arrange by hand: Manual, and Priority within each priority */
+const handOrdered = (mode = currentSort()) => mode === 'manual' || mode === 'priority';
 function setSort(mode) {
   ui.sorts = ui.sorts || {};
   const k = sortKeyFor();
-  if (mode === 'manual') delete ui.sorts[k]; else ui.sorts[k] = mode;
+  if (mode === defaultSort()) delete ui.sorts[k]; else ui.sorts[k] = mode;
   lsSet('sectis.sort', JSON.stringify(ui.sorts)); render();
 }
 function sortItems(items, mode) {
@@ -51,15 +56,20 @@ function holdDone(id) {
 }
 /* placing rows by hand (drag, ⌘↑ / ⌘↓, a new to-do below another): completed ones shown at the
    bottom don't count, so the spot is set among the open ones */
-function placeRows(rows) { return sinksDone() ? rows.filter((r) => { const x = rowItem(r); return x && x.status === 'open'; }) : rows; }
-function sortMenuItem(anchor) { return { label: 'Sort By…', icon: 'sort', hint: SORT_LABEL[currentSort()], fn: () => openSortMenu(anchor) }; }
+function placeRows(rows, x = null) {
+  let out = sinksDone() ? rows.filter((r) => { const y = rowItem(r); return y && y.status === 'open'; }) : rows;
+  // sorted by priority: a to-do is arranged among the ones with the same priority
+  if (x && currentSort() === 'priority') out = out.filter((r) => { const y = rowItem(r); return y && prio(y) === prio(x); });
+  return out;
+}
+function sortMenuItem(anchor, label = 'Sort By…') { return { label, icon: 'sort', hint: SORT_LABEL[currentSort()], fn: () => openSortMenu(anchor) }; }
 function openSortMenu(anchor) {
   const cur = currentSort();
   return openMenu(anchor, [{ header: 'Sort By' }, ...SORTS.map(([v, l]) => ({ label: l, icon: v === cur ? 'check' : 'blank', fn: () => setSort(v) }))]);
 }
 /* a small "Sorted by …" button in the list header, so a sorted list never looks like it lost your order */
 function addSortPill() {
-  const mode = currentSort(); if (mode === 'manual') return;
+  const mode = currentSort(); if (mode === defaultSort()) return; // the usual order needs no note
   const lh = $('#content .lh'); if (!lh) return;
   const b = document.createElement('button');
   b.className = 'sort-pill'; b.dataset.action = 'sort-menu'; b.title = 'Sorted by ' + SORT_LABEL[mode] + '. Click to change.';

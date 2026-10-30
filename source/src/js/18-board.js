@@ -146,6 +146,7 @@ function boardColMenu(key, el) {
     { label: 'Move Left', icon: 'chevL', disabled: i <= 0, fn: () => boardMove(t, id, -1) },
     { label: 'Move Right', icon: 'chevR', disabled: i < 0 || i >= cols.length - 1, fn: () => boardMove(t, id, 1) },
     { label: 'Fit Width Automatically', icon: 'columns', disabled: !(colEntry(key) || {}).w, fn: () => setColWidth(key, 0) },
+    sortMenuItem(el, 'Sort Board By…'),
     { label: 'Remove from Board', icon: 'x', fn: () => boardRemove(t, id) },
     { sep: 1 },
   ];
@@ -198,7 +199,7 @@ function hcolMenu(el) {
     { header: 'Column' },
     { label: 'Move Left', icon: 'chevL', disabled: i <= 0, fn: () => moveHeadingCol(h, -1) },
     { label: 'Move Right', icon: 'chevR', disabled: i >= hs.length - 1, fn: () => moveHeadingCol(h, 1) },
-    fit, { sep: 1 },
+    fit, sortMenuItem(el, 'Sort Project By…'), { sep: 1 },
   ]);
 }
 

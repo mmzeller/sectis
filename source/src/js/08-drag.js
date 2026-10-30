@@ -186,10 +186,12 @@ function performDrop(st, t) {
   const ids = st.ids;
   if (t.type === 'list') return dropOnList(ids, t.key, st.kind, t.el);
   if (t.type === 'sec') {
-    if (st.kind !== 'magic' && currentSort() !== 'manual' && SORT_SEC.test(t.sec) && st.src && st.src.closest('[data-sec]') === t.secEl) { sortedHint(); return; } // can't hand-arrange a sorted list
+    if (st.kind !== 'magic' && !handOrdered() && SORT_SEC.test(t.sec) && st.src && st.src.closest('[data-sec]') === t.secEl) { sortedHint(); return; } // can't hand-arrange a sorted list
     const secEl = t.secEl, ok = secEl.dataset.ok || 'order';
     const rows = $$(':scope > .row[data-id]', secEl).filter((r) => !ids.includes(r.dataset.id));
-    const above = placeRows(rows.slice(0, t.index)), below = placeRows(rows.slice(t.index));
+    const lead = SORT_SEC.test(t.sec) ? itemById(ids[0]) : null; // in a list sorted by priority, it goes among its own priority
+    let above = placeRows(rows.slice(0, t.index), lead), below = placeRows(rows.slice(t.index), lead);
+    if (lead && !above.length && !below.length) { above = placeRows(rows.slice(0, t.index)); below = placeRows(rows.slice(t.index)); } // none of its priority there yet
     const prev = rowItem(above[above.length - 1]), next = rowItem(below[0]);
     const n = st.kind === 'magic' ? 1 : ids.length;
     const vals = orderBetween(prev ? prev[ok] : null, next ? next[ok] : null, n);
