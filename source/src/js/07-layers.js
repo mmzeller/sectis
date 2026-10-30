@@ -91,7 +91,7 @@ function listKeys(el, sel, input) {
 }
 
 /* ---- calendar ---- */
-function calHTML(y, m, selected, allowPast) {
+function calHTML(y, m, selected, allowPast, maxDate = null) {
   const ws = S.settings.weekStart || 0, T = T0();
   const first = new Date(y, m, 1).getDay(), offset = (first - ws + 7) % 7, n = daysInMonth(y, m);
   let cells = '';
@@ -100,8 +100,8 @@ function calHTML(y, m, selected, allowPast) {
   for (let d = 1; d <= n; d++) {
     const s = dateFromParts(y, m, d);
     const cls = ['cal-d'];
-    if (s === T) cls.push('today'); if (s === selected) cls.push('sel'); if (!allowPast && s < T) cls.push('past');
-    cells += `<button class="${cls.join(' ')}" data-date="${s}" aria-label="${fmtDate(s)}">${s === T ? '★' : d}</button>`;
+    if (s === T) cls.push('today'); if (s === selected) cls.push('sel'); if ((!allowPast && s < T) || (maxDate && s > maxDate)) cls.push('past');
+    cells += `<button class="${cls.join(' ')}" data-date="${s}"${maxDate && s > maxDate ? ' disabled' : ''} aria-label="${fmtDate(s)}">${s === T ? '★' : d}</button>`;
   }
   return `<div class="cal-h"><button class="ib" data-cal="-1" aria-label="Previous month">${ic('chevL')}</button><span>${MONTHS[m]} ${y}</span><button class="ib" data-cal="1" aria-label="Next month">${ic('chevR')}</button></div><div class="cal-g">${cells}</div>`;
 }

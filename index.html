@@ -372,6 +372,8 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .cal-d:hover { background: var(--hover); }
 .cal-d.out { color: var(--faint); }
 .cal-d.past { color: var(--faint); opacity: .5; pointer-events: none; }
+.chip.donec .chip-main .ic { color: var(--c-logbook); }
+.chip.donec.canceled .chip-main .ic { color: var(--muted); }
 .cal-d.today { color: var(--c-today); font-weight: 700; }
 .cal-d.today::after { content: "★"; font-size: 0; }
 .cal-d.sel { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
@@ -876,7 +878,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.22.0';
+const APP_VERSION = '1.23.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -2154,7 +2156,7 @@ function cardHTML(t) {
   const tags = t.tags.length ? `<div class="c-tags">${inTagOrder(t.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg ${tcls(g)}" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
   const links = linkSiblings(t).map((s) => `<span class="chip linkc${s.status !== 'open' ? ' done' : ''}"><button class="chip-main" data-action="reveal" data-id="${s.id}" title="Go to this copy">${ic('link')}<span>${s.status === 'open' ? 'Also in' : s.status === 'done' ? 'Done in' : 'Canceled in'} ${esc(placeLabel(s))}</span></button></span>`).join('');
   const wait = t.waitFor && !tpl ? `<span class="chip waitc"><button class="chip-main" data-action="waiting" data-id="${t.id}" title="Change who or when">${ic('hourglass')}<span>Waiting on ${esc(t.waitFor)}${t.waitSince ? ` since ${esc(fmtDate(t.waitSince, { weekday: false }))}` : ''}</span></button><button class="chip-x" data-action="stop-waiting" data-id="${t.id}" aria-label="Stop waiting">${ic('x')}</button></span>` : '';
-  const chips = whenChipHTML(t) + wait + repeatChipHTML(t) + deadlineChipHTML(t) + (tplChild ? '' : priorityChipHTML(t)) + links;
+  const chips = completedChipHTML(t) + whenChipHTML(t) + wait + repeatChipHTML(t) + deadlineChipHTML(t) + (tplChild ? '' : priorityChipHTML(t)) + links;
   const tools = [
     `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>`,
     !ckOpen ? `<button class="ib" data-action="ck-open" data-id="${t.id}" title="Checklist" aria-label="Checklist">${ic('checklist')}</button>` : '',
@@ -2385,7 +2387,7 @@ function viewProject(p) {
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these headings, to-dos and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
   else if (p.isTemplate) html += `<div class="lh-banner rp-banner">${ic('repeat')}<span><b>Repeating project.</b> ${esc(ruleSummary(p.repeat))}${p.next ? `. Next copy ${esc(fmtRel(p.next))}` : p.repeat && p.repeat.mode === 'after' ? '. The next copy comes after you complete the current one' : '. This repeat has ended'}. Changes here apply to future copies.</span><button class="link-btn" data-action="repeat" data-id="${p.id}">Change</button></div>`;
-  else if (p.status !== 'open') html += `<div class="lh-banner"><b>${p.status === 'done' ? 'Completed' : 'Canceled'}</b> ${p.completedAt ? 'on ' + esc(fmtDate(stampDay(p.completedAt))) : ''} <button class="link-btn" data-action="reopen-project" data-id="${p.id}">Reopen</button></div>`;
+  else if (p.status !== 'open') html += `<div class="lh-banner"><b>${p.status === 'done' ? 'Completed' : 'Canceled'}</b> ${p.completedAt ? `on <button class="link-btn" data-action="completed-date" data-id="${p.id}" title="Change the date">${esc(fmtDate(stampDay(p.completedAt)))}</button> ·` : ''} <button class="link-btn" data-action="reopen-project" data-id="${p.id}">Reopen</button></div>`;
   html += notesBlockHTML('project-notes', p.id, 'pnotes', p.notes, 'lh-notes', 'Project notes');
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(live);
@@ -2761,7 +2763,7 @@ function listKeys(el, sel, input) {
 }
 
 /* ---- calendar ---- */
-function calHTML(y, m, selected, allowPast) {
+function calHTML(y, m, selected, allowPast, maxDate = null) {
   const ws = S.settings.weekStart || 0, T = T0();
   const first = new Date(y, m, 1).getDay(), offset = (first - ws + 7) % 7, n = daysInMonth(y, m);
   let cells = '';
@@ -2770,8 +2772,8 @@ function calHTML(y, m, selected, allowPast) {
   for (let d = 1; d <= n; d++) {
     const s = dateFromParts(y, m, d);
     const cls = ['cal-d'];
-    if (s === T) cls.push('today'); if (s === selected) cls.push('sel'); if (!allowPast && s < T) cls.push('past');
-    cells += `<button class="${cls.join(' ')}" data-date="${s}" aria-label="${fmtDate(s)}">${s === T ? '★' : d}</button>`;
+    if (s === T) cls.push('today'); if (s === selected) cls.push('sel'); if ((!allowPast && s < T) || (maxDate && s > maxDate)) cls.push('past');
+    cells += `<button class="${cls.join(' ')}" data-date="${s}"${maxDate && s > maxDate ? ' disabled' : ''} aria-label="${fmtDate(s)}">${s === T ? '★' : d}</button>`;
   }
   return `<div class="cal-h"><button class="ib" data-cal="-1" aria-label="Previous month">${ic('chevL')}</button><span>${MONTHS[m]} ${y}</span><button class="ib" data-cal="1" aria-label="Next month">${ic('chevR')}</button></div><div class="cal-g">${cells}</div>`;
 }
@@ -3347,6 +3349,7 @@ function handleAction(act, el, e) {
     case 'heading-menu': headingMenu(getH(id), el); return;
     case 'view-menu': viewMenu(el); return;
     case 'reopen-project': reopenProject(getP(id)); return;
+    case 'completed-date': openCompletedDate(ui.sel.has(id) && ui.sel.size > 1 ? selectedIds() : [id], el); return;
     case 'toggle-expand': {
       const on = !ui.expanded.has(id);
       if (e.altKey && ui.view.type === 'area') setExpanded(areaProjectIds(ui.view.id), on); else setExpanded([id], on);
@@ -3423,6 +3426,7 @@ function todoMenu(id, el) {
     items.push({ label: 'Move…', icon: 'move', fn: () => openMove([id], el) });
     items.push({ sep: 1 }, { label: 'Stop Repeating', icon: 'x', danger: true, fn: () => stopRepeating(id) });
   } else {
+    if (t.status !== 'open') items.push(completedMenuItem([id], el), { sep: 1 });
     items.push({ label: 'When…', icon: 'calendar', hint: 'S', fn: () => openWhen([id], el) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
@@ -3489,6 +3493,7 @@ function projectMenu(p, el, extra = []) {
   } else {
     if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
     if (!p.trashed) items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
+    if (completedMenuItem([p.id], el)) items.push(completedMenuItem([p.id], el));
     if (!p.logged && !p.trashed) items.push({ label: 'Move to Logbook', icon: 'logbook', fn: () => logItems([p.id]) });
     items.push({ label: 'Reopen Project', icon: 'reopen', fn: () => reopenProject(p) });
   }
@@ -3543,6 +3548,7 @@ function batchMenuItems(anchor) {
     { label: 'Also Add To…', icon: 'link', disabled: !todos.length, fn: () => endSelectAfter(openAlsoAddTo(todos, anchor)) },
     { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
     { label: 'Priority…', icon: 'priority', hint: 'P', fn: () => endSelectAfter(openPriority(ids, anchor)) },
+    ...(completedItems(ids).length ? [completedMenuItem(ids, anchor, endSelectAfter)] : []),
     { label: 'Waiting For…', icon: 'hourglass', hint: 'W', disabled: !todos.length, fn: () => endSelectAfter(openWaiting(todos, anchor)) },
     { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
@@ -6407,6 +6413,116 @@ function openPriority(ids, anchor) {
 function priorityMenuItem(ids, anchor, hint = 'P') {
   const items = ids.map(itemById).filter(Boolean), one = items.length === 1 && prio(items[0]);
   return { label: one ? `Priority: ${PRIORITY_NAMES[one]}…` : 'Priority…', icon: 'priority', hint, fn: () => openPriority(ids, anchor) };
+}
+
+/* ===================== Completion date =====================
+   When a to-do or project was completed (or canceled) can be changed, for something done weeks
+   ago and only now checked off. Typed dates look back: "fri" is last Friday, "oct 2" the most
+   recent October 2, "3 weeks ago" works too. The Logbook, status reports and the order of
+   completed to-dos all follow the new date. */
+function parsePastDate(raw) {
+  const T = T0();
+  const s = String(raw || '').trim().toLowerCase().replace(/\s+/g, ' ').replace(/[.,]+$/, '');
+  if (!s) return null;
+  if (['today', 'tod', 'now'].includes(s)) return T;
+  if (s === 'last week') return addDays(T, -7);
+  let m;
+  if ((m = s.match(/^(\d{1,3})\s*(d|days?|w|wks?|weeks?|m|mos?|months?|y|yrs?|years?)(?: ago)?$/)) || (s === 'last month' && (m = [0, '1', 'm'])) || (s === 'last year' && (m = [0, '1', 'y']))) {
+    const n = +m[1], u = m[2][0];
+    if (u === 'd') return addDays(T, -n);
+    if (u === 'w') return addDays(T, -7 * n);
+    const d = pd(T), tot = d.getFullYear() * 12 + d.getMonth() - (u === 'm' ? n : 12 * n);
+    const y = Math.floor(tot / 12), mo = ((tot % 12) + 12) % 12;
+    return dateFromParts(y, mo, Math.min(d.getDate(), daysInMonth(y, mo)));
+  }
+  if ((m = s.match(/^(last |on |this )?([a-z]+)$/))) {
+    const wd = matchWeekday(m[2]);
+    if (wd >= 0) { let d = m[1] === 'last ' ? addDays(T, -1) : T; while (dow(d) !== wd) d = addDays(d, -1); return d; }
+  }
+  if ((m = s.match(/^(?:the )?(\d{1,2})(?:st|nd|rd|th)?$/))) { // the 15th: this month's, or the last one that's passed
+    const n = +m[1], d0 = pd(T); let y = d0.getFullYear(), mo = d0.getMonth();
+    for (let i = 0; i < 14; i++) { if (n <= daysInMonth(y, mo)) { const c = dateFromParts(y, mo, n); if (c <= T) return c; } if (--mo < 0) { mo = 11; y--; } }
+    return null;
+  }
+  const p = parseDateText(s);
+  if (!p) return null;
+  if (p.special === 'today' || p.special === 'evening') return T;
+  if (!p.date) return null;
+  if (p.date <= T) return p.date;
+  // a month and day still ahead this year means last year's; "tomorrow", "next week" or a date with its year can't be
+  const monthDay = s.split(/[\s,]+/).some((w) => matchMonth(w) >= 0) || /^\d{1,2}[/-]\d{1,2}$/.test(s);
+  if (!monthDay || /\d{4}/.test(s)) return null;
+  let d = p.date;
+  for (let i = 0; i < 2 && d > T; i++) { const x = pd(d), y = x.getFullYear() - 1; d = dateFromParts(y, x.getMonth(), Math.min(x.getDate(), daysInMonth(y, x.getMonth()))); }
+  return d <= T ? d : null;
+}
+const completedItems = (ids) => ids.map(itemById).filter((x) => x && x.status !== 'open' && !x.isTemplate);
+function completedLabel(x) { return x.status === 'canceled' ? 'Canceled' : 'Completed'; }
+function completedChipHTML(x) {
+  if (x.status === 'open' || !x.completedAt || x.isTemplate) return '';
+  return `<span class="chip donec ${x.status}"><button class="chip-main" data-action="completed-date" data-id="${x.id}" title="Change the date">${ic(x.status === 'canceled' ? 'x' : 'check')}<span>${completedLabel(x)} ${esc(fmtDate(stampDay(x.completedAt)))}</span></button></span>`;
+}
+function completedMenuItem(ids, anchor, after = (L) => L) {
+  const items = completedItems(ids); if (!items.length) return null;
+  return { label: items.every((x) => x.status === 'canceled') ? 'Date Canceled…' : 'Date Completed…', icon: 'calendar', fn: () => after(openCompletedDate(ids, anchor)) };
+}
+function openCompletedDate(ids, anchor) {
+  const items = completedItems(ids); if (!items.length) return null;
+  const T = T0(), sel = stampDay(items[0].completedAt || Date.now());
+  let shown = sel, cy = pd(sel).getFullYear(), cm = pd(sel).getMonth();
+  const title = items.every((x) => x.status === 'canceled') ? 'Canceled On' : 'Completed On';
+  const cal = () => calHTML(cy, cm, shown, true, T);
+  const L = openLayer({ anchor, cls: 'picker done-picker', html: `<div class="pk-h">${title}</div>
+    <input class="pk-in" id="cd-in" placeholder="yesterday, last fri, oct 2, 3 weeks ago…" autocomplete="off" aria-label="Type a date">
+    <div class="pk-hint" id="cd-hint"></div>
+    <button class="pk-opt today${sel === T ? ' on' : ''}" data-cd="0">${ic('star')}Today</button><button class="pk-opt${sel === addDays(T, -1) ? ' on' : ''}" data-cd="-1">${ic('calendar')}Yesterday</button>
+    <div class="cal" id="cd-cal">${cal()}</div>`,
+    onMount: (el) => {
+      const inp = $('#cd-in', el), hint = $('#cd-hint', el);
+      const apply = (d) => { closeLayer(L); setCompletedDate(ids, d); };
+      inp.addEventListener('input', () => {
+        const d = parsePastDate(inp.value);
+        hint.textContent = inp.value.trim() ? (d ? '→ ' + fmtDate(d) : 'Try “last fri”, “oct 2” or “3 weeks ago”') : '';
+        hint.classList.toggle('bad', !d);
+        if (d) { shown = d; cy = pd(d).getFullYear(); cm = pd(d).getMonth(); $('#cd-cal', el).innerHTML = cal(); }
+      });
+      inp.addEventListener('keydown', (e) => { if (e.key !== 'Enter') return; e.preventDefault(); const d = parsePastDate(inp.value); if (d) apply(d); });
+      el.addEventListener('click', (e) => {
+        const c = e.target.closest('[data-cal]');
+        if (c) { cm += +c.dataset.cal; if (cm < 0) { cm = 11; cy--; } if (cm > 11) { cm = 0; cy++; } $('#cd-cal', el).innerHTML = cal(); return; }
+        const d = e.target.closest('[data-date]'); if (d && !d.disabled) { apply(d.dataset.date); return; }
+        const b = e.target.closest('[data-cd]'); if (b) apply(addDays(T, +b.dataset.cd));
+      });
+      if (!isCoarse()) inp.focus({ preventScroll: true });
+    } });
+  return L;
+}
+function setCompletedDate(ids, day) {
+  const items = completedItems(ids); if (!items.length || !day) return;
+  const now = Date.now(), wasLogged = new Map(items.map((x) => [x.id, x.logged]));
+  let repeatMoved = false;
+  commit('Change Completion Date', () => items.forEach((x) => {
+    const was = new Date(x.completedAt || now), d = pd(day);
+    d.setHours(was.getHours(), was.getMinutes(), was.getSeconds(), 0); // same time of day, never in the future
+    x.completedAt = Math.min(d.getTime(), now);
+    touch(x);
+    if (retimeRepeat(x, day)) repeatMoved = true;
+  }));
+  if (repeatMoved && generateRepeats()) render();
+  const nowLogged = items.filter((x) => x.logged && !wasLogged.get(x.id)).length; // older ones go to the Logbook (daily logging)
+  const what = items.length > 1 ? `${items.length} items marked` : 'Marked';
+  toast(`${what} ${items.every((x) => x.status === 'canceled') ? 'canceled' : 'completed'} on ${fmtDate(day)}${nowLogged ? ' and moved to the Logbook' : ''}`,
+    nowLogged && ui.view.type !== 'logbook' ? { action: 'Show', fn: () => navigate('logbook') } : {});
+}
+/* "Repeat after completion": the next copy counts from the new date, if this is the latest copy */
+function retimeRepeat(x, day) {
+  const tpl = x.templateId && itemById(x.templateId);
+  if (!tpl || !tpl.isTemplate || tpl.trashed || !tpl.repeat || tpl.repeat.mode !== 'after' || !tpl.next) return false;
+  const list = x.type === 'project' ? S.projects : S.todos;
+  if (list.some((t) => t.templateId === tpl.id && t !== x && !t.trashed && (t.status === 'open' || (t.createdAt || 0) > (x.createdAt || 0)))) return false;
+  const next = addInterval(tpl.repeat, day);
+  if (ruleEnded(tpl.repeat, next) || next === tpl.next) return false;
+  tpl.next = next; return true;
 }
 
 /* ===================== Start ===================== */

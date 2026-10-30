@@ -351,6 +351,8 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .cal-d:hover { background: var(--hover); }
 .cal-d.out { color: var(--faint); }
 .cal-d.past { color: var(--faint); opacity: .5; pointer-events: none; }
+.chip.donec .chip-main .ic { color: var(--c-logbook); }
+.chip.donec.canceled .chip-main .ic { color: var(--muted); }
 .cal-d.today { color: var(--c-today); font-weight: 700; }
 .cal-d.today::after { content: "★"; font-size: 0; }
 .cal-d.sel { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
