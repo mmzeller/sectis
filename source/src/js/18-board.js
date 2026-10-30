@@ -103,7 +103,7 @@ function viewBoard() {
     return html + emptyHTML('columns', 'See your lists side by side',
       'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');
   }
-  return html + `<div class="board" data-cols="${cols.length}">${cols.map(boardColHTML).join('')}</div>`;
+  return html + `<div class="board" data-hscroll="board" data-cols="${cols.length}">${cols.map(boardColHTML).join('')}</div>`;
 }
 function boardColHTML(c) {
   const more = `<button class="ib" data-action="bcol-menu" data-col="${c.t}:${c.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`;
@@ -173,7 +173,7 @@ function projectBoardHTML(p, items, headings, ctx) {
       <div class="bcol-body">${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}</div><div class="bcol-resize" data-colresize="${key}" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div></section>`;
   };
   const loose = items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder);
-  let html = '<div class="board hboard">';
+  let html = `<div class="board hboard" data-hscroll="hboard:${p.id}">`;
   if (loose.length || !headings.length) html += col(`n:${p.id}`, `project:${p.id}:`, `<div class="bcol-t"><div class="bcol-title static">No Heading</div></div>`, loose, `<button class="ib" data-action="hcol-menu" data-id="" data-col="n:${p.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`);
   headings.forEach((h) => {
     const list = items.filter((t) => t.headingId === h.id).sort(byOrder);

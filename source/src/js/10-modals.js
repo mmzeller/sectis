@@ -272,34 +272,85 @@ function removeSample() {
   toast('Sample to-dos removed', { undo: true });
 }
 
-/* ---- Tag manager ---- */
+/* ---- Tag manager ----
+   Drag a tag's grip (or ⌘↑ / ⌘↓ in its name) to reorder it among the tags beside it; a tag's
+   children move with it. Sort A to Z puts every level in alphabetical order, with Undo. */
 function openTagManager() {
-  let armed = null;
+  let armed = null, undoAZ = null; // undoAZ: each tag's order before the last Sort A to Z
   const build = () => {
-    const tree = tagTree();
-    const rows = tree.map(({ tag, depth }) => {
+    const tree = tagTree(), seen = new Set();
+    const rowHTML = (tag) => {
       const desc = tagDescendants(tag.id);
-      const opts = tree.filter((n) => !desc.has(n.tag.id)).map((n) => `<option value="${n.tag.id}" ${tag.parentId === n.tag.id ? 'selected' : ''}>${'  '.repeat(n.depth)}${esc(n.tag.title)}</option>`).join('');
+      const opts = tree.filter((n) => !desc.has(n.tag.id)).map((n) => `<option value="${n.tag.id}" ${tagParent(tag) === n.tag.id ? 'selected' : ''}>${'  '.repeat(n.depth)}${esc(n.tag.title)}</option>`).join('');
       const used = S.todos.filter((t) => t.tags.includes(tag.id) && !t.trashed).length;
-      return `<div class="tm-row" style="padding-left:${depth * 18}px"><input class="field" data-tm-title="${tag.id}" value="${esc(tag.title)}" aria-label="Tag name"><select data-tm-parent="${tag.id}" aria-label="Parent tag"><option value="">No parent</option>${opts}</select><button class="ib${armed === tag.id ? ' del-armed' : ''}" data-tm-del="${tag.id}" aria-label="Delete tag" title="${plural(used, 'to-do')}">${armed === tag.id ? 'Delete' : ic('trash')}</button></div>`;
-    }).join('');
-    return `<div class="modal-h"><h2>Tags</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${rows || '<p class="note">No tags yet.</p>'}<div class="tm-row" style="margin-top:8px"><input class="field" id="tm-new" placeholder="New tag name" aria-label="New tag name"><button class="btn" data-tm-add="1">Add</button></div><p class="note">Nest a tag under a parent to filter by the whole group. Filtering by “Home” also shows to-dos tagged with its children.</p></div>`;
+      return `<div class="tm-row"><span class="tm-grip" data-tmgrip="${tag.id}" title="Drag to reorder" aria-hidden="true">${ic('grip')}</span><input class="field" data-tm-title="${tag.id}" value="${esc(tag.title)}" aria-label="Tag name"><select data-tm-parent="${tag.id}" aria-label="Parent tag"><option value="">No parent</option>${opts}</select><button class="ib${armed === tag.id ? ' del-armed' : ''}" data-tm-del="${tag.id}" aria-label="Delete tag" title="${plural(used, 'to-do')}">${armed === tag.id ? 'Delete' : ic('trash')}</button></div>`;
+    };
+    const group = (tag, depth) => {
+      seen.add(tag.id);
+      const kids = depth < 6 ? tagKids(tag.id).filter((k) => !seen.has(k.id)) : [];
+      return `<div class="tm-grp" data-tm-grp="${tag.id}">${rowHTML(tag)}${kids.length ? `<div class="tm-kids">${kids.map((k) => group(k, depth + 1)).join('')}</div>` : ''}</div>`;
+    };
+    let rows = tagKids(null).map((t) => group(t, 0)).join('');
+    S.tags.forEach((t) => { if (!seen.has(t.id)) rows += group(t, 0); });
+    const az = undoAZ ? `<button class="btn" data-tm-az="undo">Undo Sort</button>`
+      : `<button class="btn" data-tm-az="1"${S.tags.length > 1 ? '' : ' disabled'} title="Sort every tag, and the tags under each one, A to Z">Sort A to Z</button>`;
+    return `<div class="modal-h"><h2>Tags</h2>${az}<button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${rows ? `<div class="tm-list">${rows}</div>` : '<p class="note">No tags yet.</p>'}<div class="tm-row" style="margin-top:8px"><input class="field" id="tm-new" placeholder="New tag name" aria-label="New tag name"><button class="btn" data-tm-add="1">Add</button></div><p class="note">Drag the grip to reorder tags; this is the order they appear in everywhere. Nest a tag under a parent to filter by the whole group. Filtering by “Home” also shows to-dos tagged with its children.</p></div>`;
   };
-  const L = openLayer({ modal: true, cls: 'narrow', html: build(), onMount: (el) => {
-    const redraw = () => { el.innerHTML = build(); };
-    const add = () => { const i = $('#tm-new', el); const v = i.value.trim(); if (!v) return; commit('New Tag', () => findOrCreateTag(v)); redraw(); $('#tm-new', el).focus(); };
+  const L = openLayer({ modal: true, cls: 'narrow tm-modal', html: build(), onMount: (el) => {
+    const redraw = (focusId) => {
+      const st = el.scrollTop; el.innerHTML = build(); el.scrollTop = st;
+      if (focusId) { const f = el.querySelector(`[data-tm-title="${CSS.escape(focusId)}"]`); if (f) f.focus({ preventScroll: false }); }
+    };
+    const changed = () => { undoAZ = null; };
+    const add = () => { const i = $('#tm-new', el); const v = i.value.trim(); if (!v) return; changed(); commit('New Tag', () => findOrCreateTag(v)); redraw(); $('#tm-new', el).focus(); };
+    const setOrder = (label, ids) => commit(label, () => ids.forEach((id, i) => { const t = getTag(id); if (t) t.order = i; }));
+    const rename = (field) => { const t = getTag(field.dataset.tmTitle), v = field.value.trim(); if (t && v && v !== t.title) commit('Rename Tag', () => { t.title = v; }); };
     el.addEventListener('change', (e) => {
       const tId = e.target.dataset.tmTitle, pId = e.target.dataset.tmParent;
-      if (tId) { const t = getTag(tId); const v = e.target.value.trim(); if (t && v) commit('Rename Tag', () => { t.title = v; }); }
-      if (pId) { const t = getTag(pId); if (t) commit('Nest Tag', () => { t.parentId = e.target.value || null; }); redraw(); }
+      if (tId) rename(e.target);
+      if (pId) {
+        const t = getTag(pId);
+        if (t) { changed(); commit('Nest Tag', () => { const np = e.target.value || null; t.parentId = np; t.order = endOrder(S.tags.filter((x) => x !== t && tagParent(x) === np)); }); }
+        redraw();
+      }
     });
-    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'tm-new') { e.preventDefault(); add(); } else if (e.key === 'Enter' && e.target.dataset.tmTitle) e.target.blur(); });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.id === 'tm-new') { e.preventDefault(); add(); return; }
+      const id = e.target.dataset.tmTitle; if (!id) return;
+      if (e.key === 'Enter') { e.target.blur(); return; }
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+        e.preventDefault();
+        const t = getTag(id); if (!t) return;
+        rename(e.target);
+        const sibs = tagKids(tagParent(t)).map((x) => x.id), i = sibs.indexOf(id), j = i + (e.key === 'ArrowUp' ? -1 : 1);
+        if (i < 0 || j < 0 || j >= sibs.length) return;
+        [sibs[i], sibs[j]] = [sibs[j], sibs[i]];
+        changed(); setOrder('Move Tag', sibs); redraw(id);
+      }
+    });
     el.addEventListener('click', (e) => {
       if (e.target.closest('[data-tm-add]')) { add(); return; }
+      const az = e.target.closest('[data-tm-az]');
+      if (az) {
+        if (az.dataset.tmAz === 'undo') {
+          const prev = undoAZ; undoAZ = null;
+          commit('Undo Sort', () => S.tags.forEach((t) => { if (prev.has(t.id)) t.order = prev.get(t.id); }));
+        } else {
+          const prev = new Map(S.tags.map((t) => [t.id, t.order]));
+          commit('Sort Tags A to Z', () => {
+            const groups = new Map();
+            S.tags.forEach((t) => { const k = tagParent(t) || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); });
+            groups.forEach((list) => list.sort(byTitle).forEach((t, i) => { t.order = i; }));
+          });
+          undoAZ = prev;
+        }
+        redraw(); return;
+      }
       const d = e.target.closest('[data-tm-del]'); if (!d) return;
       const id = d.dataset.tmDel;
       if (armed !== id) { armed = id; redraw(); return; }
       const tag = getTag(id);
+      changed();
       commit('Delete Tag', () => {
         S.tags.forEach((t) => { if (t.parentId === id) t.parentId = tag.parentId || null; });
         S.tags = S.tags.filter((t) => t.id !== id);
@@ -308,7 +359,47 @@ function openTagManager() {
       });
       armed = null; redraw();
     });
+    // drag a grip to reorder a tag (and its children) among the tags beside it
+    el.addEventListener('pointerdown', (e) => {
+      const grip = e.target.closest('[data-tmgrip]'); if (!grip) return;
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      const grp = grip.closest('.tm-grp'), list = grp && grp.parentElement; if (!list) return;
+      e.preventDefault();
+      if (document.activeElement && document.activeElement.dataset && document.activeElement.dataset.tmTitle) rename(document.activeElement);
+      const sibs = () => $$(':scope > .tm-grp', list);
+      const start = sibs().map((x) => x.dataset.tmGrp).join();
+      grp.classList.add('tm-dragging'); document.body.classList.add('dragging-active');
+      let y = e.clientY, raf = 0;
+      const place = () => {
+        let before = null;
+        for (const g of sibs()) {
+          if (g === grp) continue;
+          const r = $(':scope > .tm-row', g).getBoundingClientRect();
+          if (y < r.top + r.height / 2) { before = g; break; }
+        }
+        if (before ? grp.nextElementSibling !== before : list.lastElementChild !== grp) list.insertBefore(grp, before);
+      };
+      const edge = () => { // scroll the window of tags when held near its top or bottom
+        const r = el.getBoundingClientRect(), dy = y < r.top + 40 ? -8 : y > r.bottom - 40 ? 8 : 0;
+        if (dy) { el.scrollTop += dy; place(); }
+        raf = requestAnimationFrame(edge);
+      };
+      raf = requestAnimationFrame(edge);
+      const move = (ev) => { if (ev.cancelable) ev.preventDefault(); y = ev.clientY; place(); };
+      const up = () => {
+        cancelAnimationFrame(raf);
+        document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); document.removeEventListener('pointercancel', up);
+        grp.classList.remove('tm-dragging'); document.body.classList.remove('dragging-active');
+        const ids = sibs().map((x) => x.dataset.tmGrp);
+        if (ids.join() === start) return;
+        changed(); setOrder('Reorder Tags', ids); redraw();
+      };
+      document.addEventListener('pointermove', move, { passive: false });
+      document.addEventListener('pointerup', up);
+      document.addEventListener('pointercancel', up);
+    });
   } });
+  return L;
 }
 
 /* ---- Keyboard shortcuts ---- */

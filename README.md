@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.17.0
+Version 1.18.0
 
 ## What's in it
 
@@ -20,7 +20,7 @@ Version 1.17.0
 - **Headings as a board** (Mac): the columns button at the top of a project shows each heading as a column. Drag cards between columns to change their heading, add headings with **Add Heading**, rename them in place, and reorder or resize columns
 - **Waiting For**: press `W` (or ••• → **Waiting For…**) to note who a to-do is waiting on and when to follow up. The **Waiting** list groups them by person, and each comes back to Today on its follow-up date
 - **Status report**: ••• → **Status Report…** in any list, area, project or the Board gives what got done, what's coming up and who you're waiting on for this week, last week or the last 7 or 30 days, ready to copy, email, share or print
-- **Tags**, nestable, with a tag bar on every list to filter it. To-dos added to or moved into a project or area take on its tags (switchable in Settings). Lists show only a to-do's own tags, not the ones it gets from its project or area or ones named after the project or area it's in; change this in **Settings → Tags shown in lists** (Own Only, All or None)
+- **Tags**, nestable, with a tag bar on every list to filter it. In **Settings → Manage Tags**, drag a tag's grip (or press ⌘↑ / ⌘↓ in its name) to put tags in your own order, or use **Sort A to Z**; the tag bar, the tag picker and the tags on each to-do all follow that order. To-dos added to or moved into a project or area take on its tags (switchable in Settings). Lists show only a to-do's own tags, not the ones it gets from its project or area or ones named after the project or area it's in; change this in **Settings → Tags shown in lists** (Own Only, All or None)
 - **Quick Find** (`/`) for lists, projects, tags and to-dos, including the Logbook
 - **Quick Entry** (`Q`) that reads dates, deadlines and tags as you type: `Pay rent friday #Home !oct 31`
 - **Type a date** anywhere you pick one: `tom`, `fri`, `next week`, `in 3 days`, `oct 24`, `10/24`

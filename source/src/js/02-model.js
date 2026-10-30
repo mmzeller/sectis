@@ -24,7 +24,9 @@ function normalizeState(s) {
   out.areas = out.areas.filter((a) => a && a.id).map((a) => Object.assign({ title: '', tags: [], order: 0 }, a, { tags: a.tags || [] }));
   return out;
 }
+let tagRankCache = null; // tag order for inTagOrder; cleared whenever anything changes
 function reindex() {
+  tagRankCache = null;
   for (const k in idx) idx[k].clear();
   S.todos.forEach((t) => idx.todo.set(t.id, t));
   S.projects.forEach((p) => idx.project.set(p.id, p));
@@ -180,16 +182,27 @@ function projectProgress(p) {
 }
 
 /* ---- tags ---- */
+/* Tags keep the order set in Manage Tags (drag, or Sort A to Z), and every list of tags follows it. */
+const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' });
+const byTagOrder = (a, b) => (a.order || 0) - (b.order || 0) || byTitle(a, b);
+/* a tag's parent, or null when it has none or its parent is gone */
+function tagParent(t) { return t.parentId && t.parentId !== t.id && getTag(t.parentId) ? t.parentId : null; }
+function tagKids(pid) { return S.tags.filter((t) => tagParent(t) === pid).sort(byTagOrder); }
 function tagTree() {
-  const out = [];
+  const out = [], seen = new Set();
   const walk = (pid, depth) => {
-    S.tags.filter((t) => (t.parentId || null) === pid).sort((a, b) => a.order - b.order || a.title.localeCompare(b.title))
-      .forEach((t) => { out.push({ tag: t, depth }); if (depth < 6) walk(t.id, depth + 1); });
+    tagKids(pid).forEach((t) => { if (seen.has(t.id)) return; seen.add(t.id); out.push({ tag: t, depth }); if (depth < 6) walk(t.id, depth + 1); });
   };
   walk(null, 0);
-  // orphans whose parent vanished
-  S.tags.forEach((t) => { if (!out.find((o) => o.tag === t)) out.push({ tag: t, depth: 0 }); });
+  // tags caught in a loop of parents
+  S.tags.forEach((t) => { if (!seen.has(t.id)) out.push({ tag: t, depth: 0 }); });
   return out;
+}
+/* tag ids in the Manage Tags order (for the tags shown on a to-do) */
+function inTagOrder(ids) {
+  if (!tagRankCache) { tagRankCache = new Map(); tagTree().forEach((n, i) => tagRankCache.set(n.tag.id, i)); }
+  const r = (id) => (tagRankCache.has(id) ? tagRankCache.get(id) : 1e9);
+  return ids.slice().sort((a, b) => r(a) - r(b));
 }
 function tagDescendants(id) { const set = new Set([id]); let grew = true; while (grew) { grew = false; for (const t of S.tags) if (t.parentId && set.has(t.parentId) && !set.has(t.id)) { set.add(t.id); grew = true; } } return set; }
 function effectiveTags(x) {

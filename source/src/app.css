@@ -402,6 +402,14 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tm-row input.field { flex: 1; min-width: 0; padding: 5px 8px; }
 .tm-row select { padding: 5px 6px; border-radius: 8px; background: var(--hover); border: 0; max-width: 40%; }
 .tm-row .ib.del-armed { color: #fff; background: var(--red); width: auto; padding: 0 8px; font-size: 12px; font-weight: 600; }
+.tm-modal .modal-h .btn { flex: none; }
+.tm-kids { margin-left: 18px; }
+.tm-grp.tm-dragging { position: relative; z-index: 2; background: var(--pop); border-radius: 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, .14); }
+.tm-grip { flex: none; width: 18px; height: 28px; margin-right: -4px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); opacity: .45; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity .12s; }
+.tm-grip .ic { width: 14px; height: 14px; }
+.tm-row:hover .tm-grip, .tm-dragging .tm-grip { opacity: .9; }
+@media (pointer: coarse) { .tm-grip { opacity: .7; } }
+@media (max-width: 760px) { .tm-grip { width: 28px; height: 36px; margin-right: -6px; } .tm-kids { margin-left: 14px; } }
 
 /* Repeat editor */
 #rp-body > .seg { margin-bottom: 8px; }

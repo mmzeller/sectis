@@ -18,6 +18,7 @@ const aTitle = (a) => (a && a.title) || 'New Area';
 
 function render() {
   if (!S) return;
+  tagRankCache = null;
   autoLog();
   applyTheme();
   const f = captureFocus();
@@ -124,7 +125,7 @@ function parentLabel(x) {
 function shownTagIds(x) {
   const mode = S.settings.rowTags || 'own';
   if (mode === 'none') return [];
-  if (mode === 'all') return x.tags;
+  if (mode === 'all') return inTagOrder(x.tags);
   const hide = new Set(), names = new Set();
   const nm = (s) => (s || '').trim().toLowerCase();
   const place = (t) => { // a to-do's project and area
@@ -141,7 +142,7 @@ function shownTagIds(x) {
     if (a) { a.tags.forEach((id) => hide.add(id)); names.add(nm(a.title)); }
   }
   names.delete('');
-  return x.tags.filter((id) => { if (hide.has(id)) return false; const g = getTag(id); return !(g && names.has(nm(g.title))); });
+  return inTagOrder(x.tags.filter((id) => { if (hide.has(id)) return false; const g = getTag(id); return !(g && names.has(nm(g.title))); }));
 }
 function tagPills(x) { return shownTagIds(x).map((id) => getTag(id)).filter(Boolean).map((t) => `<span class="tg">${esc(t.title)}</span>`).join(''); }
 function deadlineHTML(x) { if (!x.deadline || x.isTemplate) return ''; const d = deadlineInfo(x.deadline); return `<span class="dl${d.due && x.status === 'open' ? ' due' : ''}" title="Deadline ${fmtDate(x.deadline)}">${ic('flag')}${esc(d.text)}</span>`; }
@@ -252,7 +253,7 @@ function cardHTML(t) {
   const tpl = t.isTemplate, tplChild = isTplChild(t);
   const ckOpen = t.checklist.length || ui.ckOpen === t.id;
   const ck = ckOpen ? `<div class="ck">${t.checklist.map((c) => checklistItemHTML(t, c, tpl)).join('')}<div class="ck-item"><span class="ck-box" style="opacity:.4"></span><textarea class="ck-input" data-edit="ck-new" data-id="${t.id}" data-fkey="cknew-${t.id}" placeholder="Add item" enterkeyhint="next" aria-label="New checklist item" rows="1" data-autosize data-oneline></textarea></div></div>` : '';
-  const tags = t.tags.length ? `<div class="c-tags">${t.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
+  const tags = t.tags.length ? `<div class="c-tags">${inTagOrder(t.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
   const links = linkSiblings(t).map((s) => `<span class="chip linkc${s.status !== 'open' ? ' done' : ''}"><button class="chip-main" data-action="reveal" data-id="${s.id}" title="Go to this copy">${ic('link')}<span>${s.status === 'open' ? 'Also in' : s.status === 'done' ? 'Done in' : 'Canceled in'} ${esc(placeLabel(s))}</span></button></span>`).join('');
   const wait = t.waitFor && !tpl ? `<span class="chip waitc"><button class="chip-main" data-action="waiting" data-id="${t.id}" title="Change who or when">${ic('hourglass')}<span>Waiting on ${esc(t.waitFor)}${t.waitSince ? ` since ${esc(fmtDate(t.waitSince, { weekday: false }))}` : ''}</span></button><button class="chip-x" data-action="stop-waiting" data-id="${t.id}" aria-label="Stop waiting">${ic('x')}</button></span>` : '';
   const chips = whenChipHTML(t) + wait + repeatChipHTML(t) + deadlineChipHTML(t) + links;
@@ -312,8 +313,13 @@ function renderMain() {
     case 'waiting': html = viewWaiting(); break;
     default: html = viewToday();
   }
+  // Boards scroll sideways inside the page. Each change redraws the page, which would put a board
+  // back at its first column, so remember how far each board was scrolled and put it back.
+  const sideways = {};
+  $$('#content [data-hscroll]').forEach((el) => { sideways[el.dataset.hscroll] = el.scrollLeft; });
   $('#content').classList.toggle('board-view', ui.view.type === 'board' || (ui.view.type === 'project' && projectBoardOn(getP(ui.view.id))));
   $('#content').innerHTML = mobileBarHTML() + html;
+  $$('#content [data-hscroll]').forEach((el) => { const x = sideways[el.dataset.hscroll]; if (x) el.scrollLeft = x; });
   addSortPill();
 }
 function viewInbox() {
