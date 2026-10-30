@@ -60,10 +60,26 @@ function applySectionProps(x, props) {
 function rowItem(row) { return row ? itemById(row.dataset.id) : null; }
 function nextRowEl(row) { let n = row.nextElementSibling; while (n && !n.matches('.row[data-id]')) n = n.nextElementSibling; return n; }
 
+/* the project whose row is selected in the list, if one is */
+function selectedProjectRow() {
+  const id = ui.anchor && ui.sel.has(ui.anchor) ? ui.anchor : null;
+  const p = id && getP(id);
+  const row = p && document.querySelector(`#content .row[data-kind="project"][data-id="${CSS.escape(id)}"]`);
+  return row ? { p, row } : null;
+}
 function newTodo(opts = {}) {
   if (ui.view.type === 'templates') { newTodoTemplate(); return; }
   if (['logbook', 'trash', 'waiting'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
   if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) { toast('Reopen the project to add to-dos'); return; } }
+  // A selected project row (an area's projects, an area's column on the Board, Today…) takes the new
+  // to-do, wherever the row is. An expandable row opens so the new to-do shows under it.
+  const selP = !opts.sec && !opts.place && selectedProjectRow();
+  if (selP) {
+    const { p, row } = selP;
+    if (p.trashed || p.status !== 'open') { toast('Reopen the project to add to-dos'); return; }
+    if (row.dataset.expandable && !ui.expanded.has(p.id)) { ui.expanded.add(p.id); lsSet('sectis.expanded', JSON.stringify([...ui.expanded])); }
+    opts = Object.assign({}, opts, { sec: `project:${p.id}:` });
+  }
   if (ui.view.type === 'board' && !opts.sec && !opts.place) {
     // a selected to-do decides the spot below; otherwise its column (or the first column) does
     const row = ui.anchor && ui.sel.has(ui.anchor) && document.querySelector(`#content .row[data-id="${CSS.escape(ui.anchor)}"]`);

@@ -169,7 +169,7 @@ function openTagPicker(ids, anchor, kind = 'item') {
     const ql = q.trim().toLowerCase();
     const rows = tagTree().filter((n) => !ql || n.tag.title.toLowerCase().includes(ql)).map((n) => {
       const ts = targets(); const count = ts.filter((x) => x.tags.includes(n.tag.id)).length;
-      return `<button class="pick-i" data-tag="${n.tag.id}" style="padding-left:${10 + n.depth * 16}px">${ic('tag')}<span>${esc(n.tag.title)}</span>${count === ts.length && count ? `<span class="check">${ic('check')}</span>` : count ? '<span class="partial">–</span>' : ''}</button>`;
+      return `<button class="pick-i" data-tag="${n.tag.id}" style="padding-left:${10 + n.depth * 16}px">${ic('tag', 'tc-ic ' + tcls(n.tag))}<span>${esc(n.tag.title)}</span>${count === ts.length && count ? `<span class="check">${ic('check')}</span>` : count ? '<span class="partial">–</span>' : ''}</button>`;
     }).join('');
     const exact = S.tags.some((t) => t.title.toLowerCase() === ql);
     return rows + (ql && !exact ? `<button class="pick-i" data-new="1">${ic('plus')}<span>Create tag “${esc(q.trim())}”</span></button>` : '') + (!rows && !ql ? '<p class="note" style="padding:6px 10px">No tags yet. Type a name to create one.</p>' : '');

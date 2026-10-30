@@ -198,6 +198,30 @@ function tagTree() {
   S.tags.forEach((t) => { if (!seen.has(t.id)) out.push({ tag: t, depth: 0 }); });
   return out;
 }
+/* Tag colors: a soft tint. Each top-level tag gets the least-used color when it's made (or first seen,
+   for tags from before colors or from Sintr) and keeps it; change it in Manage Tags. A nested tag shares its
+   parent's color unless you give it its own. Gray means no color. */
+const TAG_COLORS = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'indigo', 'purple', 'pink'];
+const TAG_COLOR_NAMES = { red: 'Red', orange: 'Orange', yellow: 'Yellow', green: 'Green', teal: 'Teal', blue: 'Blue', indigo: 'Indigo', purple: 'Purple', pink: 'Pink', gray: 'Gray' };
+const TAG_COLOR_TURN = ['blue', 'orange', 'green', 'purple', 'red', 'teal', 'pink', 'yellow', 'indigo']; // neighbors look different
+function nextTagColor() {
+  const used = new Map(TAG_COLOR_TURN.map((c) => [c, 0]));
+  S.tags.forEach((t) => { if (!tagParent(t) && used.has(t.color)) used.set(t.color, used.get(t.color) + 1); });
+  return TAG_COLOR_TURN.reduce((best, c) => (used.get(c) < used.get(best) ? c : best), TAG_COLOR_TURN[0]);
+}
+/* gives every top-level tag without a color one; true when it changed anything */
+function ensureTagColors() {
+  let changed = false;
+  tagTree().forEach(({ tag }) => { if (!tagParent(tag) && !TAG_COLOR_NAMES[tag.color]) { tag.color = nextTagColor(); changed = true; } });
+  return changed;
+}
+function tagColor(t, depth = 0) {
+  if (!t) return 'gray';
+  if (TAG_COLOR_NAMES[t.color]) return t.color;
+  const p = tagParent(t) && getTag(tagParent(t));
+  return p && depth < 8 ? tagColor(p, depth + 1) : 'gray';
+}
+const tcls = (t) => 'tc-' + tagColor(t);
 /* tag ids in the Manage Tags order (for the tags shown on a to-do) */
 function inTagOrder(ids) {
   if (!tagRankCache) { tagRankCache = new Map(); tagTree().forEach((n, i) => tagRankCache.set(n.tag.id, i)); }
@@ -237,7 +261,7 @@ function tagTitle(id) { const t = getTag(id); return t ? t.title : ''; }
 function findOrCreateTag(title) {
   const name = title.trim(); if (!name) return null;
   let t = S.tags.find((x) => x.title.toLowerCase() === name.toLowerCase());
-  if (!t) { t = { id: uid(), title: name, parentId: null, order: endOrder(S.tags) }; S.tags.push(t); idx.tag.set(t.id, t); }
+  if (!t) { t = { id: uid(), title: name, parentId: null, order: endOrder(S.tags), color: nextTagColor() }; S.tags.push(t); idx.tag.set(t.id, t); }
   return t;
 }
 

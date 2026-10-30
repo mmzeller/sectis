@@ -116,6 +116,11 @@ function setExpanded(ids, on) {
   render();
 }
 function areaProjectIds(areaId) { return S.projects.filter((p) => p.areaId === areaId && liveProject(p)).map((p) => p.id); }
+/* an empty project, opened under its row or as a Board column: a button to add its first to-do */
+function emptyProjectHTML(p, cls) {
+  if (p.status !== 'open' || p.trashed) return `<div class="${cls}">No to-dos yet</div>`;
+  return `<button class="${cls} add-first" data-action="bcol-add" data-sec="project:${p.id}:" title="New to-do in ${esc(pTitle(p))}">${ic('plus')}<span>New To-Do</span></button>`;
+}
 function projectChildrenHTML(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged)).filter(matchesTagFilter);
   const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
@@ -126,6 +131,6 @@ function projectChildrenHTML(p) {
     const ts = todos.filter((t) => t.headingId === h.id).sort(byOrder);
     html += `<div class="sub-h" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
   });
-  if (!todos.length) html += `<div class="pchildren-empty">No to-dos yet</div>`;
+  if (!todos.length) html += emptyProjectHTML(p, 'pchildren-empty');
   return html + '</div>';
 }

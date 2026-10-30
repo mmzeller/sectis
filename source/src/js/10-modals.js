@@ -11,7 +11,7 @@ function findResults(q, includeLog) {
     if (!words.length ? p.status === 'open' && p.start !== 'someday' && !p.isTemplate : m(pTitle(p), p.notes)) out.push({ g: 'Projects', kind: 'project', key: 'project:' + p.id, title: pTitle(p), pie: projectProgress(p).frac, sub: [areaOf(p) ? aTitle(areaOf(p)) : '', p.blueprint ? 'Template' : p.isTemplate ? 'Repeating' : '', p.status !== 'open' ? 'Completed' : ''].filter(Boolean).join(' · ') });
   });
   if (words.length) {
-    tagTree().forEach(({ tag }) => { if (m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: 'var(--muted)' }); });
+    tagTree().forEach(({ tag }) => { if (m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: `var(--t-${tagColor(tag)})` }); });
     let n = 0;
     S.todos.filter((t) => !t.trashed && !t.isDraft && (t.isTemplate || t.status === 'open' || !t.logged || includeLog))
       .sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.modifiedAt - a.modifiedAt)
@@ -126,7 +126,7 @@ function openQuickEntry(prefill = '') {
         if (parsed && parsed.deadline && !ignore.deadline && !x.deadline) chips.push(`<span class="qe-p">${ic('flag')}Deadline ${esc(fmtRel(parsed.deadline))}<button data-ign="deadline" aria-label="Ignore deadline">${ic('x')}</button></span>`);
         if (parsed && parsed.tags.length && !ignore.tags) chips.push(`<span class="qe-p">${ic('tag')}${parsed.tags.map(esc).join(', ')}<button data-ign="tags" aria-label="Ignore tags">${ic('x')}</button></span>`);
         $('#qe-parsed', el).innerHTML = chips.join('');
-        $('#qe-chips', el).innerHTML = whenChipHTML(x).replace(/data-action="(when|clear-when)"/g, 'data-qe="$1"') + deadlineChipHTML(x).replace(/data-action="(deadline|clear-deadline)"/g, 'data-qe="$1"') + x.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="tg">${esc(g.title)}</span>`).join('');
+        $('#qe-chips', el).innerHTML = whenChipHTML(x).replace(/data-action="(when|clear-when)"/g, 'data-qe="$1"') + deadlineChipHTML(x).replace(/data-action="(deadline|clear-deadline)"/g, 'data-qe="$1"') + x.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="tg ${tcls(g)}">${esc(g.title)}</span>`).join('');
         const p = x.projectId && getP(x.projectId), a = x.areaId && getA(x.areaId), h = x.headingId && getH(x.headingId);
         $('#qe-dest', el).innerHTML = `${p ? pieIc(projectProgress(p).frac) : a ? ic('area') : ic('inbox')}<span>${esc(p ? pTitle(p) + (h ? ' › ' + (h.title || 'New Heading') : '') : a ? aTitle(a) : x.start === 'inbox' ? 'Inbox' : 'No list')}</span>`;
       };
@@ -283,7 +283,7 @@ function openTagManager() {
       const desc = tagDescendants(tag.id);
       const opts = tree.filter((n) => !desc.has(n.tag.id)).map((n) => `<option value="${n.tag.id}" ${tagParent(tag) === n.tag.id ? 'selected' : ''}>${'  '.repeat(n.depth)}${esc(n.tag.title)}</option>`).join('');
       const used = S.todos.filter((t) => t.tags.includes(tag.id) && !t.trashed).length;
-      return `<div class="tm-row"><span class="tm-grip" data-tmgrip="${tag.id}" title="Drag to reorder" aria-hidden="true">${ic('grip')}</span><input class="field" data-tm-title="${tag.id}" value="${esc(tag.title)}" aria-label="Tag name"><select data-tm-parent="${tag.id}" aria-label="Parent tag"><option value="">No parent</option>${opts}</select><button class="ib${armed === tag.id ? ' del-armed' : ''}" data-tm-del="${tag.id}" aria-label="Delete tag" title="${plural(used, 'to-do')}">${armed === tag.id ? 'Delete' : ic('trash')}</button></div>`;
+      return `<div class="tm-row"><span class="tm-grip" data-tmgrip="${tag.id}" title="Drag to reorder" aria-hidden="true">${ic('grip')}</span><button class="tm-sw ${tcls(tag)}" data-tm-color="${tag.id}" aria-label="Color: ${TAG_COLOR_NAMES[tagColor(tag)]}${TAG_COLOR_NAMES[tag.color] ? '' : ' (same as parent)'}" title="Color"></button><input class="field" data-tm-title="${tag.id}" value="${esc(tag.title)}" aria-label="Tag name"><select data-tm-parent="${tag.id}" aria-label="Parent tag"><option value="">No parent</option>${opts}</select><button class="ib${armed === tag.id ? ' del-armed' : ''}" data-tm-del="${tag.id}" aria-label="Delete tag" title="${plural(used, 'to-do')}">${armed === tag.id ? 'Delete' : ic('trash')}</button></div>`;
     };
     const group = (tag, depth) => {
       seen.add(tag.id);
@@ -294,7 +294,7 @@ function openTagManager() {
     S.tags.forEach((t) => { if (!seen.has(t.id)) rows += group(t, 0); });
     const az = undoAZ ? `<button class="btn" data-tm-az="undo">Undo Sort</button>`
       : `<button class="btn" data-tm-az="1"${S.tags.length > 1 ? '' : ' disabled'} title="Sort every tag, and the tags under each one, A to Z">Sort A to Z</button>`;
-    return `<div class="modal-h"><h2>Tags</h2>${az}<button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${rows ? `<div class="tm-list">${rows}</div>` : '<p class="note">No tags yet.</p>'}<div class="tm-row" style="margin-top:8px"><input class="field" id="tm-new" placeholder="New tag name" aria-label="New tag name"><button class="btn" data-tm-add="1">Add</button></div><p class="note">Drag the grip to reorder tags; this is the order they appear in everywhere. Nest a tag under a parent to filter by the whole group. Filtering by “Home” also shows to-dos tagged with its children.</p></div>`;
+    return `<div class="modal-h"><h2>Tags</h2>${az}<button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${rows ? `<div class="tm-list">${rows}</div>` : '<p class="note">No tags yet.</p>'}<div class="tm-row" style="margin-top:8px"><input class="field" id="tm-new" placeholder="New tag name" aria-label="New tag name"><button class="btn" data-tm-add="1">Add</button></div><p class="note">Drag the grip to reorder tags; this is the order they appear in everywhere. Click a tag’s dot to change its color. Nest a tag under a parent to filter by the whole group. Filtering by “Home” also shows to-dos tagged with its children.</p></div>`;
   };
   const L = openLayer({ modal: true, cls: 'narrow tm-modal', html: build(), onMount: (el) => {
     const redraw = (focusId) => {
@@ -330,6 +330,12 @@ function openTagManager() {
     });
     el.addEventListener('click', (e) => {
       if (e.target.closest('[data-tm-add]')) { add(); return; }
+      const cb = e.target.closest('[data-tm-color]');
+      if (cb) {
+        const t = getTag(cb.dataset.tmColor); if (!t) return;
+        openTagColor(t, cb, (c) => { commit('Tag Color', () => { if (c) t.color = c; else delete t.color; }); redraw(); });
+        return;
+      }
       const az = e.target.closest('[data-tm-az]');
       if (az) {
         if (az.dataset.tmAz === 'undo') {
@@ -352,7 +358,8 @@ function openTagManager() {
       const tag = getTag(id);
       changed();
       commit('Delete Tag', () => {
-        S.tags.forEach((t) => { if (t.parentId === id) t.parentId = tag.parentId || null; });
+        // its tags move up a level, keeping the color they showed
+        S.tags.forEach((t) => { if (t.parentId === id) { if (!TAG_COLOR_NAMES[t.color] && !tagParent(tag)) t.color = tagColor(tag); t.parentId = tag.parentId || null; } });
         S.tags = S.tags.filter((t) => t.id !== id);
         S.todos.concat(S.projects, S.areas).forEach((x) => { if (x.tags.includes(id)) x.tags = x.tags.filter((t) => t !== id); });
         if (ui.tagFilter === id) ui.tagFilter = null;
@@ -399,6 +406,20 @@ function openTagManager() {
       document.addEventListener('pointercancel', up);
     });
   } });
+  return L;
+}
+
+/* a tag's color: nine soft colors or gray for none; a nested tag can also share its parent's */
+function openTagColor(tag, anchor, done) {
+  const cur = TAG_COLOR_NAMES[tag.color] ? tag.color : null;
+  const parent = tagParent(tag) && getTag(tagParent(tag));
+  const sw = (c) => `<button class="sw ${'tc-' + c}${cur === c ? ' on' : ''}" data-sw="${c}" aria-label="${TAG_COLOR_NAMES[c]}" aria-pressed="${cur === c}" title="${TAG_COLOR_NAMES[c]}">${cur === c ? ic('check') : ''}</button>`;
+  const same = parent ? `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!cur}"><span class="sw-dot tc-${tagColor(parent)}" aria-hidden="true"></span><span>Same as “${esc(parent.title)}”</span>${cur ? '' : `<span class="check">${ic('check')}</span>`}</button>` : '';
+  const L = openLayer({ anchor, cls: 'sw-pop', html: `<div class="pk-h">Color for “${esc(tag.title)}”</div><div class="sw-grid">${TAG_COLORS.concat('gray').map(sw).join('')}</div>${same}`,
+    onMount: (el) => {
+      el.addEventListener('click', (e) => { const b = e.target.closest('[data-sw]'); if (!b) return; closeLayer(L); done(b.dataset.sw || null); });
+      if (!isCoarse()) { const f = $('.sw.on', el) || $('.sw-auto-i', el) || $('.sw', el); if (f) f.focus({ preventScroll: true }); }
+    } });
   return L;
 }
 

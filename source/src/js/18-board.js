@@ -135,7 +135,7 @@ function boardProjectBody(p) {
   headings.forEach((h) => {
     html += `<div class="sub-h" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
   });
-  if (!todos.length) html += `<div class="bcol-empty">No to-dos yet</div>`;
+  if (!todos.length) html += emptyProjectHTML(p, 'bcol-empty');
   return html;
 }
 function boardColMenu(key, el) {

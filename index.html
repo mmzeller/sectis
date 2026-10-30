@@ -59,6 +59,8 @@
   --fs: 14px;
   --row-h: 32px;
   --cb-size: 15px;
+  --t-red: #d64541; --t-orange: #de7a26; --t-yellow: #bf9010; --t-green: #3b9a5c; --t-teal: #1f9a92; --t-blue: #3a7bd5; --t-indigo: #5b62d6; --t-purple: #9256c9; --t-pink: #d24d8c; --t-gray: #7d8594;
+  --tg-tint: 14%; --tg-ink: 52%;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -68,6 +70,8 @@
     --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee; --c-template: #9fb0c6; --c-waiting: #f0a050;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .45); --shadow-pop: 0 2px 8px rgba(0, 0, 0, .35), 0 20px 50px rgba(0, 0, 0, .55);
     --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
+    --t-red: #ff7a70; --t-orange: #f59d4c; --t-yellow: #e8c547; --t-green: #5cc785; --t-teal: #45c9bd; --t-blue: #6aa5f5; --t-indigo: #8f96f7; --t-purple: #bb8cf2; --t-pink: #f27cb4; --t-gray: #9aa1b1;
+    --tg-tint: 18%; --tg-ink: 66%;
   }
 }
 :root[data-theme="dark"], :root[data-app-theme="dark"] {
@@ -77,6 +81,8 @@
   --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee; --c-template: #9fb0c6; --c-waiting: #f0a050;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .45); --shadow-pop: 0 2px 8px rgba(0, 0, 0, .35), 0 20px 50px rgba(0, 0, 0, .55);
   --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
+  --t-red: #ff7a70; --t-orange: #f59d4c; --t-yellow: #e8c547; --t-green: #5cc785; --t-teal: #45c9bd; --t-blue: #6aa5f5; --t-indigo: #8f96f7; --t-purple: #bb8cf2; --t-pink: #f27cb4; --t-gray: #9aa1b1;
+  --tg-tint: 18%; --tg-ink: 66%;
 }
 :root[data-app-theme="light"] {
   --bg: #ffffff; --side: #f3f4f7; --card: #ffffff; --pop: #ffffff; --fg: #1b1f27; --muted: #687082; --faint: #a4aab7;
@@ -85,6 +91,8 @@
   --c-upcoming: #e0453b; --c-anytime: #1f9e8b; --c-someday: #c49a52; --c-logbook: #36a46b; --c-trash: #8a909c; --c-area: #5b8f78;
   --shadow-card: 0 1px 2px rgba(20, 28, 48, .06), 0 10px 30px rgba(20, 28, 48, .13); --shadow-pop: 0 2px 6px rgba(20, 28, 48, .08), 0 18px 48px rgba(20, 28, 48, .2);
   --scrim: rgba(18, 22, 32, .32); color-scheme: light;
+  --t-red: #d64541; --t-orange: #de7a26; --t-yellow: #bf9010; --t-green: #3b9a5c; --t-teal: #1f9a92; --t-blue: #3a7bd5; --t-indigo: #5b62d6; --t-purple: #9256c9; --t-pink: #d24d8c; --t-gray: #7d8594;
+  --tg-tint: 14%; --tg-ink: 52%;
 }
 
 [hidden] { display: none !important; }
@@ -201,6 +209,15 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .dl.due { color: var(--red); }
 .tg { font-size: 11px; line-height: 17px; padding: 0 7px; border-radius: 999px; color: var(--muted); background: var(--hover); border: 1px solid transparent; white-space: nowrap; }
 .row.selected .tg { background: transparent; border-color: var(--line-strong); }
+/* tag colors: a soft tint behind the name, and the name in a deeper shade of the same color */
+.tc-red { --tc: var(--t-red); } .tc-orange { --tc: var(--t-orange); } .tc-yellow { --tc: var(--t-yellow); } .tc-green { --tc: var(--t-green); } .tc-teal { --tc: var(--t-teal); }
+.tc-blue { --tc: var(--t-blue); } .tc-indigo { --tc: var(--t-indigo); } .tc-purple { --tc: var(--t-purple); } .tc-pink { --tc: var(--t-pink); } .tc-gray { --tc: var(--t-gray); }
+.tg[class*="tc-"] { background: color-mix(in srgb, var(--tc) var(--tg-tint), transparent); color: color-mix(in srgb, var(--tc) var(--tg-ink), var(--fg)); }
+.row.selected .tg[class*="tc-"] { background: transparent; border-color: color-mix(in srgb, var(--tc) 45%, transparent); }
+.c-tags .tg[class*="tc-"]:hover { border-color: color-mix(in srgb, var(--tc) 55%, transparent); color: color-mix(in srgb, var(--tc) var(--tg-ink), var(--fg)); }
+.ic.tc-ic, .chip.tagc .chip-main .ic.tc-ic, .pick-i .ic.tc-ic { color: var(--tc); }
+.tchip .tdot { display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: var(--tc); vertical-align: 1px; }
+.tchip.on[class*="tc-"] { background: color-mix(in srgb, var(--tc) var(--tg-tint), transparent); border-color: color-mix(in srgb, var(--tc) 55%, transparent); color: color-mix(in srgb, var(--tc) var(--tg-ink), var(--fg)); }
 .row.done .r-title, .row.canceled .r-title { color: var(--muted); }
 .row.canceled .r-title { text-decoration: line-through; }
 .row.ghost { opacity: .55; cursor: pointer; }
@@ -424,13 +441,25 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tm-row select { padding: 5px 6px; border-radius: 8px; background: var(--hover); border: 0; max-width: 40%; }
 .tm-row .ib.del-armed { color: #fff; background: var(--red); width: auto; padding: 0 8px; font-size: 12px; font-weight: 600; }
 .tm-modal .modal-h .btn { flex: none; }
+.modal.narrow.tm-modal { width: min(440px, calc(100vw - 32px)); }
+.tm-sw { flex: none; width: 24px; height: 24px; padding: 5px; margin: 0 -4px 0 -2px; border: 0; border-radius: 50%; background: var(--tc); background-clip: content-box; cursor: pointer; }
+.tm-sw:hover, .tm-sw:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tc) 45%, transparent); }
+.sw-pop { width: 248px; }
+.sw-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 6px 8px 8px; }
+.sw { aspect-ratio: 1; width: 100%; max-width: 36px; justify-self: center; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 50%; background: var(--tc); color: #fff; cursor: pointer; }
+.sw:hover, .sw:focus-visible { box-shadow: 0 0 0 2px var(--pop), 0 0 0 4px color-mix(in srgb, var(--tc) 55%, transparent); outline: none; }
+.sw.on { box-shadow: 0 0 0 2px var(--pop), 0 0 0 4px var(--tc); }
+.sw .ic { width: 16px; height: 16px; }
+.sw-auto-i .sw-dot { flex: none; width: 14px; height: 14px; margin: 0 3px; border-radius: 50%; background: var(--tc); }
+.sw-auto-i .check { margin-left: auto; }
+.sw-auto-i .check .ic { color: var(--accent); }
 .tm-kids { margin-left: 18px; }
 .tm-grp.tm-dragging { position: relative; z-index: 2; background: var(--pop); border-radius: 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, .14); }
 .tm-grip { flex: none; width: 18px; height: 28px; margin-right: -4px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); opacity: .45; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity .12s; }
 .tm-grip .ic { width: 14px; height: 14px; }
 .tm-row:hover .tm-grip, .tm-dragging .tm-grip { opacity: .9; }
 @media (pointer: coarse) { .tm-grip { opacity: .7; } }
-@media (max-width: 760px) { .tm-grip { width: 28px; height: 36px; margin-right: -6px; } .tm-kids { margin-left: 14px; } }
+@media (max-width: 760px) { .tm-grip { width: 28px; height: 36px; margin-right: -6px; } .tm-kids { margin-left: 14px; } .tm-sw { width: 32px; height: 32px; padding: 8px; } }
 
 /* Repeat editor */
 #rp-body > .seg { margin-bottom: 8px; }
@@ -663,6 +692,9 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .pchildren .sec { min-height: 4px; }
 .sub-h { margin: 10px 10px 2px; font-size: 12.5px; font-weight: 650; color: var(--accent); }
 .pchildren-empty { color: var(--faint); font-size: 13px; padding: 4px 10px 6px; }
+.add-first { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; border-radius: 8px; cursor: pointer; }
+.add-first .ic { width: 14px; height: 14px; }
+.add-first:hover, .add-first:focus-visible { color: var(--accent); background: var(--hover); }
 .r-link { color: var(--accent); opacity: .75; }
 .chip.linkc .chip-main .ic { color: var(--accent); }
 .chip.linkc.done { color: var(--muted); }
@@ -836,7 +868,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.18.0';
+const APP_VERSION = '1.19.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1236,6 +1268,30 @@ function tagTree() {
   S.tags.forEach((t) => { if (!seen.has(t.id)) out.push({ tag: t, depth: 0 }); });
   return out;
 }
+/* Tag colors: a soft tint. Each top-level tag gets the least-used color when it's made (or first seen,
+   for tags from before colors or from Sintr) and keeps it; change it in Manage Tags. A nested tag shares its
+   parent's color unless you give it its own. Gray means no color. */
+const TAG_COLORS = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'indigo', 'purple', 'pink'];
+const TAG_COLOR_NAMES = { red: 'Red', orange: 'Orange', yellow: 'Yellow', green: 'Green', teal: 'Teal', blue: 'Blue', indigo: 'Indigo', purple: 'Purple', pink: 'Pink', gray: 'Gray' };
+const TAG_COLOR_TURN = ['blue', 'orange', 'green', 'purple', 'red', 'teal', 'pink', 'yellow', 'indigo']; // neighbors look different
+function nextTagColor() {
+  const used = new Map(TAG_COLOR_TURN.map((c) => [c, 0]));
+  S.tags.forEach((t) => { if (!tagParent(t) && used.has(t.color)) used.set(t.color, used.get(t.color) + 1); });
+  return TAG_COLOR_TURN.reduce((best, c) => (used.get(c) < used.get(best) ? c : best), TAG_COLOR_TURN[0]);
+}
+/* gives every top-level tag without a color one; true when it changed anything */
+function ensureTagColors() {
+  let changed = false;
+  tagTree().forEach(({ tag }) => { if (!tagParent(tag) && !TAG_COLOR_NAMES[tag.color]) { tag.color = nextTagColor(); changed = true; } });
+  return changed;
+}
+function tagColor(t, depth = 0) {
+  if (!t) return 'gray';
+  if (TAG_COLOR_NAMES[t.color]) return t.color;
+  const p = tagParent(t) && getTag(tagParent(t));
+  return p && depth < 8 ? tagColor(p, depth + 1) : 'gray';
+}
+const tcls = (t) => 'tc-' + tagColor(t);
 /* tag ids in the Manage Tags order (for the tags shown on a to-do) */
 function inTagOrder(ids) {
   if (!tagRankCache) { tagRankCache = new Map(); tagTree().forEach((n, i) => tagRankCache.set(n.tag.id, i)); }
@@ -1275,7 +1331,7 @@ function tagTitle(id) { const t = getTag(id); return t ? t.title : ''; }
 function findOrCreateTag(title) {
   const name = title.trim(); if (!name) return null;
   let t = S.tags.find((x) => x.title.toLowerCase() === name.toLowerCase());
-  if (!t) { t = { id: uid(), title: name, parentId: null, order: endOrder(S.tags) }; S.tags.push(t); idx.tag.set(t.id, t); }
+  if (!t) { t = { id: uid(), title: name, parentId: null, order: endOrder(S.tags), color: nextTagColor() }; S.tags.push(t); idx.tag.set(t.id, t); }
   return t;
 }
 
@@ -1850,6 +1906,7 @@ const aTitle = (a) => (a && a.title) || 'New Area';
 function render() {
   if (!S) return;
   tagRankCache = null;
+  if (ensureTagColors()) saveSoon();
   autoLog();
   applyTheme();
   const f = captureFocus();
@@ -1975,7 +2032,7 @@ function shownTagIds(x) {
   names.delete('');
   return inTagOrder(x.tags.filter((id) => { if (hide.has(id)) return false; const g = getTag(id); return !(g && names.has(nm(g.title))); }));
 }
-function tagPills(x) { return shownTagIds(x).map((id) => getTag(id)).filter(Boolean).map((t) => `<span class="tg">${esc(t.title)}</span>`).join(''); }
+function tagPills(x) { return shownTagIds(x).map((id) => getTag(id)).filter(Boolean).map((t) => `<span class="tg ${tcls(t)}">${esc(t.title)}</span>`).join(''); }
 function deadlineHTML(x) { if (!x.deadline || x.isTemplate) return ''; const d = deadlineInfo(x.deadline); return `<span class="dl${d.due && x.status === 'open' ? ' due' : ''}" title="Deadline ${fmtDate(x.deadline)}">${ic('flag')}${esc(d.text)}</span>`; }
 function rowHTML(x, ctx = {}) {
   if (x.type === 'project') return projRowHTML(x, ctx);
@@ -2084,7 +2141,7 @@ function cardHTML(t) {
   const tpl = t.isTemplate, tplChild = isTplChild(t);
   const ckOpen = t.checklist.length || ui.ckOpen === t.id;
   const ck = ckOpen ? `<div class="ck">${t.checklist.map((c) => checklistItemHTML(t, c, tpl)).join('')}<div class="ck-item"><span class="ck-box" style="opacity:.4"></span><textarea class="ck-input" data-edit="ck-new" data-id="${t.id}" data-fkey="cknew-${t.id}" placeholder="Add item" enterkeyhint="next" aria-label="New checklist item" rows="1" data-autosize data-oneline></textarea></div></div>` : '';
-  const tags = t.tags.length ? `<div class="c-tags">${inTagOrder(t.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
+  const tags = t.tags.length ? `<div class="c-tags">${inTagOrder(t.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<button class="tg ${tcls(g)}" data-action="tags" data-id="${t.id}">${esc(g.title)}</button>`).join('')}</div>` : '';
   const links = linkSiblings(t).map((s) => `<span class="chip linkc${s.status !== 'open' ? ' done' : ''}"><button class="chip-main" data-action="reveal" data-id="${s.id}" title="Go to this copy">${ic('link')}<span>${s.status === 'open' ? 'Also in' : s.status === 'done' ? 'Done in' : 'Canceled in'} ${esc(placeLabel(s))}</span></button></span>`).join('');
   const wait = t.waitFor && !tpl ? `<span class="chip waitc"><button class="chip-main" data-action="waiting" data-id="${t.id}" title="Change who or when">${ic('hourglass')}<span>Waiting on ${esc(t.waitFor)}${t.waitSince ? ` since ${esc(fmtDate(t.waitSince, { weekday: false }))}` : ''}</span></button><button class="chip-x" data-action="stop-waiting" data-id="${t.id}" aria-label="Stop waiting">${ic('x')}</button></span>` : '';
   const chips = whenChipHTML(t) + wait + repeatChipHTML(t) + deadlineChipHTML(t) + links;
@@ -2112,7 +2169,7 @@ function tagBarHTML(items) {
   items.forEach((x) => effectiveTags(x).forEach((t) => { present.add(t); let p = getTag(t); let guard = 0; while (p && p.parentId && guard++ < 8) { present.add(p.parentId); p = getTag(p.parentId); } }));
   if (ui.tagFilter && ui.tagFilter !== '__none') present.add(ui.tagFilter);
   if (!present.size) return '';
-  const chips = tagTree().filter((n) => present.has(n.tag.id)).map((n) => `<button class="tchip${ui.tagFilter === n.tag.id ? ' on' : ''}" data-action="tag-filter" data-tag="${n.tag.id}">${esc(n.tag.title)}</button>`).join('');
+  const chips = tagTree().filter((n) => present.has(n.tag.id)).map((n) => `<button class="tchip ${tcls(n.tag)}${ui.tagFilter === n.tag.id ? ' on' : ''}" data-action="tag-filter" data-tag="${n.tag.id}"><span class="tdot" aria-hidden="true"></span>${esc(n.tag.title)}</button>`).join('');
   return `<div class="tagbar"><button class="tchip${!ui.tagFilter ? ' on' : ''}" data-action="tag-filter" data-tag="">All</button>${chips}<button class="tchip${ui.tagFilter === '__none' ? ' on' : ''}" data-action="tag-filter" data-tag="__none">No Tag</button></div>`;
 }
 function emptyHTML(icon, title, text) {
@@ -2312,7 +2369,7 @@ function viewProject(p) {
   const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
-  const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag')}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
+  const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
   let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these headings, to-dos and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
@@ -2346,7 +2403,7 @@ function viewArea(a) {
   const items = todosAll.filter(matchesTagFilter).sort(byOrder);
   const active = projAll.filter((p) => p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const later = projAll.filter((p) => p.status === 'open' && (p.start === 'someday' || (p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
-  const meta = a.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="area-tags" data-id="${a.id}">${ic('tag')}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${a.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
+  const meta = a.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="area-tags" data-id="${a.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${a.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
   let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
@@ -2373,7 +2430,7 @@ function viewTag(tag) {
     ['Inbox', todos.filter((t) => isInbox(t) && !isTodayItem(t)).sort(byOrder)],
     ['Someday', todos.filter((t) => t.start === 'someday' && !isTodayItem(t)).sort(byOrder)],
   ];
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--muted)">${I.tag}</span><h1 class="lh-title">${esc(tag.title)}</h1><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button></div><div class="lh-sub">${plural(todos.filter((t) => t.status === 'open').length, 'open to-do')}</div><div class="list">`;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--t-${tagColor(tag)})">${I.tag}</span><h1 class="lh-title">${esc(tag.title)}</h1><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button></div><div class="lh-sub">${plural(todos.filter((t) => t.status === 'open').length, 'open to-do')}</div><div class="list">`;
   groups.forEach(([label, list]) => { if (list.length) html += `<div class="sec-h"><span>${label}</span></div>` + secHTML('tag', list, { parent: true, when: true }); });
   html += '</div>';
   if (!todos.length) html += emptyHTML('tag', 'Nothing tagged yet', `Add the “${esc(tag.title)}” tag to a to-do and it shows up here.`);
@@ -2474,10 +2531,26 @@ function applySectionProps(x, props) {
 function rowItem(row) { return row ? itemById(row.dataset.id) : null; }
 function nextRowEl(row) { let n = row.nextElementSibling; while (n && !n.matches('.row[data-id]')) n = n.nextElementSibling; return n; }
 
+/* the project whose row is selected in the list, if one is */
+function selectedProjectRow() {
+  const id = ui.anchor && ui.sel.has(ui.anchor) ? ui.anchor : null;
+  const p = id && getP(id);
+  const row = p && document.querySelector(`#content .row[data-kind="project"][data-id="${CSS.escape(id)}"]`);
+  return row ? { p, row } : null;
+}
 function newTodo(opts = {}) {
   if (ui.view.type === 'templates') { newTodoTemplate(); return; }
   if (['logbook', 'trash', 'waiting'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
   if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) { toast('Reopen the project to add to-dos'); return; } }
+  // A selected project row (an area's projects, an area's column on the Board, Today…) takes the new
+  // to-do, wherever the row is. An expandable row opens so the new to-do shows under it.
+  const selP = !opts.sec && !opts.place && selectedProjectRow();
+  if (selP) {
+    const { p, row } = selP;
+    if (p.trashed || p.status !== 'open') { toast('Reopen the project to add to-dos'); return; }
+    if (row.dataset.expandable && !ui.expanded.has(p.id)) { ui.expanded.add(p.id); lsSet('sectis.expanded', JSON.stringify([...ui.expanded])); }
+    opts = Object.assign({}, opts, { sec: `project:${p.id}:` });
+  }
   if (ui.view.type === 'board' && !opts.sec && !opts.place) {
     // a selected to-do decides the spot below; otherwise its column (or the first column) does
     const row = ui.anchor && ui.sel.has(ui.anchor) && document.querySelector(`#content .row[data-id="${CSS.escape(ui.anchor)}"]`);
@@ -2753,7 +2826,7 @@ function openTagPicker(ids, anchor, kind = 'item') {
     const ql = q.trim().toLowerCase();
     const rows = tagTree().filter((n) => !ql || n.tag.title.toLowerCase().includes(ql)).map((n) => {
       const ts = targets(); const count = ts.filter((x) => x.tags.includes(n.tag.id)).length;
-      return `<button class="pick-i" data-tag="${n.tag.id}" style="padding-left:${10 + n.depth * 16}px">${ic('tag')}<span>${esc(n.tag.title)}</span>${count === ts.length && count ? `<span class="check">${ic('check')}</span>` : count ? '<span class="partial">–</span>' : ''}</button>`;
+      return `<button class="pick-i" data-tag="${n.tag.id}" style="padding-left:${10 + n.depth * 16}px">${ic('tag', 'tc-ic ' + tcls(n.tag))}<span>${esc(n.tag.title)}</span>${count === ts.length && count ? `<span class="check">${ic('check')}</span>` : count ? '<span class="partial">–</span>' : ''}</button>`;
     }).join('');
     const exact = S.tags.some((t) => t.title.toLowerCase() === ql);
     return rows + (ql && !exact ? `<button class="pick-i" data-new="1">${ic('plus')}<span>Create tag “${esc(q.trim())}”</span></button>` : '') + (!rows && !ql ? '<p class="note" style="padding:6px 10px">No tags yet. Type a name to create one.</p>' : '');
@@ -3688,7 +3761,7 @@ function findResults(q, includeLog) {
     if (!words.length ? p.status === 'open' && p.start !== 'someday' && !p.isTemplate : m(pTitle(p), p.notes)) out.push({ g: 'Projects', kind: 'project', key: 'project:' + p.id, title: pTitle(p), pie: projectProgress(p).frac, sub: [areaOf(p) ? aTitle(areaOf(p)) : '', p.blueprint ? 'Template' : p.isTemplate ? 'Repeating' : '', p.status !== 'open' ? 'Completed' : ''].filter(Boolean).join(' · ') });
   });
   if (words.length) {
-    tagTree().forEach(({ tag }) => { if (m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: 'var(--muted)' }); });
+    tagTree().forEach(({ tag }) => { if (m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: `var(--t-${tagColor(tag)})` }); });
     let n = 0;
     S.todos.filter((t) => !t.trashed && !t.isDraft && (t.isTemplate || t.status === 'open' || !t.logged || includeLog))
       .sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.modifiedAt - a.modifiedAt)
@@ -3803,7 +3876,7 @@ function openQuickEntry(prefill = '') {
         if (parsed && parsed.deadline && !ignore.deadline && !x.deadline) chips.push(`<span class="qe-p">${ic('flag')}Deadline ${esc(fmtRel(parsed.deadline))}<button data-ign="deadline" aria-label="Ignore deadline">${ic('x')}</button></span>`);
         if (parsed && parsed.tags.length && !ignore.tags) chips.push(`<span class="qe-p">${ic('tag')}${parsed.tags.map(esc).join(', ')}<button data-ign="tags" aria-label="Ignore tags">${ic('x')}</button></span>`);
         $('#qe-parsed', el).innerHTML = chips.join('');
-        $('#qe-chips', el).innerHTML = whenChipHTML(x).replace(/data-action="(when|clear-when)"/g, 'data-qe="$1"') + deadlineChipHTML(x).replace(/data-action="(deadline|clear-deadline)"/g, 'data-qe="$1"') + x.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="tg">${esc(g.title)}</span>`).join('');
+        $('#qe-chips', el).innerHTML = whenChipHTML(x).replace(/data-action="(when|clear-when)"/g, 'data-qe="$1"') + deadlineChipHTML(x).replace(/data-action="(deadline|clear-deadline)"/g, 'data-qe="$1"') + x.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="tg ${tcls(g)}">${esc(g.title)}</span>`).join('');
         const p = x.projectId && getP(x.projectId), a = x.areaId && getA(x.areaId), h = x.headingId && getH(x.headingId);
         $('#qe-dest', el).innerHTML = `${p ? pieIc(projectProgress(p).frac) : a ? ic('area') : ic('inbox')}<span>${esc(p ? pTitle(p) + (h ? ' › ' + (h.title || 'New Heading') : '') : a ? aTitle(a) : x.start === 'inbox' ? 'Inbox' : 'No list')}</span>`;
       };
@@ -3960,7 +4033,7 @@ function openTagManager() {
       const desc = tagDescendants(tag.id);
       const opts = tree.filter((n) => !desc.has(n.tag.id)).map((n) => `<option value="${n.tag.id}" ${tagParent(tag) === n.tag.id ? 'selected' : ''}>${'  '.repeat(n.depth)}${esc(n.tag.title)}</option>`).join('');
       const used = S.todos.filter((t) => t.tags.includes(tag.id) && !t.trashed).length;
-      return `<div class="tm-row"><span class="tm-grip" data-tmgrip="${tag.id}" title="Drag to reorder" aria-hidden="true">${ic('grip')}</span><input class="field" data-tm-title="${tag.id}" value="${esc(tag.title)}" aria-label="Tag name"><select data-tm-parent="${tag.id}" aria-label="Parent tag"><option value="">No parent</option>${opts}</select><button class="ib${armed === tag.id ? ' del-armed' : ''}" data-tm-del="${tag.id}" aria-label="Delete tag" title="${plural(used, 'to-do')}">${armed === tag.id ? 'Delete' : ic('trash')}</button></div>`;
+      return `<div class="tm-row"><span class="tm-grip" data-tmgrip="${tag.id}" title="Drag to reorder" aria-hidden="true">${ic('grip')}</span><button class="tm-sw ${tcls(tag)}" data-tm-color="${tag.id}" aria-label="Color: ${TAG_COLOR_NAMES[tagColor(tag)]}${TAG_COLOR_NAMES[tag.color] ? '' : ' (same as parent)'}" title="Color"></button><input class="field" data-tm-title="${tag.id}" value="${esc(tag.title)}" aria-label="Tag name"><select data-tm-parent="${tag.id}" aria-label="Parent tag"><option value="">No parent</option>${opts}</select><button class="ib${armed === tag.id ? ' del-armed' : ''}" data-tm-del="${tag.id}" aria-label="Delete tag" title="${plural(used, 'to-do')}">${armed === tag.id ? 'Delete' : ic('trash')}</button></div>`;
     };
     const group = (tag, depth) => {
       seen.add(tag.id);
@@ -3971,7 +4044,7 @@ function openTagManager() {
     S.tags.forEach((t) => { if (!seen.has(t.id)) rows += group(t, 0); });
     const az = undoAZ ? `<button class="btn" data-tm-az="undo">Undo Sort</button>`
       : `<button class="btn" data-tm-az="1"${S.tags.length > 1 ? '' : ' disabled'} title="Sort every tag, and the tags under each one, A to Z">Sort A to Z</button>`;
-    return `<div class="modal-h"><h2>Tags</h2>${az}<button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${rows ? `<div class="tm-list">${rows}</div>` : '<p class="note">No tags yet.</p>'}<div class="tm-row" style="margin-top:8px"><input class="field" id="tm-new" placeholder="New tag name" aria-label="New tag name"><button class="btn" data-tm-add="1">Add</button></div><p class="note">Drag the grip to reorder tags; this is the order they appear in everywhere. Nest a tag under a parent to filter by the whole group. Filtering by “Home” also shows to-dos tagged with its children.</p></div>`;
+    return `<div class="modal-h"><h2>Tags</h2>${az}<button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${rows ? `<div class="tm-list">${rows}</div>` : '<p class="note">No tags yet.</p>'}<div class="tm-row" style="margin-top:8px"><input class="field" id="tm-new" placeholder="New tag name" aria-label="New tag name"><button class="btn" data-tm-add="1">Add</button></div><p class="note">Drag the grip to reorder tags; this is the order they appear in everywhere. Click a tag’s dot to change its color. Nest a tag under a parent to filter by the whole group. Filtering by “Home” also shows to-dos tagged with its children.</p></div>`;
   };
   const L = openLayer({ modal: true, cls: 'narrow tm-modal', html: build(), onMount: (el) => {
     const redraw = (focusId) => {
@@ -4007,6 +4080,12 @@ function openTagManager() {
     });
     el.addEventListener('click', (e) => {
       if (e.target.closest('[data-tm-add]')) { add(); return; }
+      const cb = e.target.closest('[data-tm-color]');
+      if (cb) {
+        const t = getTag(cb.dataset.tmColor); if (!t) return;
+        openTagColor(t, cb, (c) => { commit('Tag Color', () => { if (c) t.color = c; else delete t.color; }); redraw(); });
+        return;
+      }
       const az = e.target.closest('[data-tm-az]');
       if (az) {
         if (az.dataset.tmAz === 'undo') {
@@ -4029,7 +4108,8 @@ function openTagManager() {
       const tag = getTag(id);
       changed();
       commit('Delete Tag', () => {
-        S.tags.forEach((t) => { if (t.parentId === id) t.parentId = tag.parentId || null; });
+        // its tags move up a level, keeping the color they showed
+        S.tags.forEach((t) => { if (t.parentId === id) { if (!TAG_COLOR_NAMES[t.color] && !tagParent(tag)) t.color = tagColor(tag); t.parentId = tag.parentId || null; } });
         S.tags = S.tags.filter((t) => t.id !== id);
         S.todos.concat(S.projects, S.areas).forEach((x) => { if (x.tags.includes(id)) x.tags = x.tags.filter((t) => t !== id); });
         if (ui.tagFilter === id) ui.tagFilter = null;
@@ -4076,6 +4156,20 @@ function openTagManager() {
       document.addEventListener('pointercancel', up);
     });
   } });
+  return L;
+}
+
+/* a tag's color: nine soft colors or gray for none; a nested tag can also share its parent's */
+function openTagColor(tag, anchor, done) {
+  const cur = TAG_COLOR_NAMES[tag.color] ? tag.color : null;
+  const parent = tagParent(tag) && getTag(tagParent(tag));
+  const sw = (c) => `<button class="sw ${'tc-' + c}${cur === c ? ' on' : ''}" data-sw="${c}" aria-label="${TAG_COLOR_NAMES[c]}" aria-pressed="${cur === c}" title="${TAG_COLOR_NAMES[c]}">${cur === c ? ic('check') : ''}</button>`;
+  const same = parent ? `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!cur}"><span class="sw-dot tc-${tagColor(parent)}" aria-hidden="true"></span><span>Same as “${esc(parent.title)}”</span>${cur ? '' : `<span class="check">${ic('check')}</span>`}</button>` : '';
+  const L = openLayer({ anchor, cls: 'sw-pop', html: `<div class="pk-h">Color for “${esc(tag.title)}”</div><div class="sw-grid">${TAG_COLORS.concat('gray').map(sw).join('')}</div>${same}`,
+    onMount: (el) => {
+      el.addEventListener('click', (e) => { const b = e.target.closest('[data-sw]'); if (!b) return; closeLayer(L); done(b.dataset.sw || null); });
+      if (!isCoarse()) { const f = $('.sw.on', el) || $('.sw-auto-i', el) || $('.sw', el); if (f) f.focus({ preventScroll: true }); }
+    } });
   return L;
 }
 
@@ -5488,6 +5582,11 @@ function setExpanded(ids, on) {
   render();
 }
 function areaProjectIds(areaId) { return S.projects.filter((p) => p.areaId === areaId && liveProject(p)).map((p) => p.id); }
+/* an empty project, opened under its row or as a Board column: a button to add its first to-do */
+function emptyProjectHTML(p, cls) {
+  if (p.status !== 'open' || p.trashed) return `<div class="${cls}">No to-dos yet</div>`;
+  return `<button class="${cls} add-first" data-action="bcol-add" data-sec="project:${p.id}:" title="New to-do in ${esc(pTitle(p))}">${ic('plus')}<span>New To-Do</span></button>`;
+}
 function projectChildrenHTML(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged)).filter(matchesTagFilter);
   const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
@@ -5498,7 +5597,7 @@ function projectChildrenHTML(p) {
     const ts = todos.filter((t) => t.headingId === h.id).sort(byOrder);
     html += `<div class="sub-h" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
   });
-  if (!todos.length) html += `<div class="pchildren-empty">No to-dos yet</div>`;
+  if (!todos.length) html += emptyProjectHTML(p, 'pchildren-empty');
   return html + '</div>';
 }
 
@@ -5639,7 +5738,7 @@ function boardProjectBody(p) {
   headings.forEach((h) => {
     html += `<div class="sub-h" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
   });
-  if (!todos.length) html += `<div class="bcol-empty">No to-dos yet</div>`;
+  if (!todos.length) html += emptyProjectHTML(p, 'bcol-empty');
   return html;
 }
 function boardColMenu(key, el) {
