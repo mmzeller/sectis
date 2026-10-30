@@ -878,7 +878,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.23.0';
+const APP_VERSION = '1.24.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -3415,6 +3415,7 @@ function todoMenu(id, el) {
   if (isTplChild(t)) {
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
+    items.push(...checklistMenuItems([id]));
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ sep: 1 }, { label: 'Delete To-Do', icon: 'trash', danger: true, fn: () => trashItems([id]) });
   } else if (t.blueprint) {
@@ -3438,6 +3439,7 @@ function todoMenu(id, el) {
     if (linkSiblings(t).some((x) => x.status === 'open') || (t.status === 'open' && linkSiblings(t).length)) items.push({ label: 'Complete Everywhere', icon: 'check', fn: () => completeEverywhere(id) });
     if (linkSiblings(t).length) items.push({ label: 'Unlink This Copy', icon: 'x', fn: () => unlinkTodo(id) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
+    items.push(...checklistMenuItems([id]));
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ label: 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
     items.push({ label: 'Save as Template', icon: 'template', fn: () => saveTodoAsTemplate(t) });
@@ -3554,6 +3556,7 @@ function batchMenuItems(anchor) {
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: loggable.some((x) => x.status === 'open') ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', disabled: !loggable.length, fn: () => { logItems(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: 'Delete', icon: 'trash', danger: true, fn: () => { trashItems(ids); ui.selectMode = false; render(); } },
+    ...checklistMenuItems(ids).map((it) => Object.assign(it, { fn: ((f) => () => { f(); close(); })(it.fn) })),
     { label: 'Share…', icon: 'share', fn: () => openShare({ type: 'items', ids }) },
     { label: 'Clear Selection', icon: 'x', fn: () => { ui.sel.clear(); ui.selectMode = false; render(); } },
     { sep: 1 },
@@ -5643,6 +5646,7 @@ function projectChildrenHTML(p) {
    Projects and areas side by side, one per column, like a kanban board.
    The columns are remembered per device (a Mac layout, not synced). */
 function loadBoard() {
+  loadCkClip();
   try { ui.board = JSON.parse(lsGet('sectis.board') || '[]').filter((c) => c && c.id && (c.t === 'p' || c.t === 'a')); } catch (e) { ui.board = []; }
   try { ui.projBoard = new Set(JSON.parse(lsGet('sectis.pboard') || '[]')); } catch (e) { ui.projBoard = new Set(); }
   try { ui.hcolW = JSON.parse(lsGet('sectis.hcolw') || '{}') || {}; } catch (e) { ui.hcolW = {}; }
@@ -6523,6 +6527,44 @@ function retimeRepeat(x, day) {
   const next = addInterval(tpl.repeat, day);
   if (ruleEnded(tpl.repeat, next) || next === tpl.next) return false;
   tpl.next = next; return true;
+}
+
+/* ===================== Copy and paste checklists =====================
+   Copy Checklist on a to-do keeps its items; Paste Checklist adds them, unchecked, to another
+   to-do or to every selected one, skipping items a to-do already has. The items also go to
+   the clipboard as lines, so pasting into any checklist's "Add item" works too. */
+function loadCkClip() { try { const c = JSON.parse(lsGet('sectis.ckclip') || 'null'); ui.ckClip = c && Array.isArray(c.items) && c.items.length ? c : null; } catch (e) { ui.ckClip = null; } }
+function copyChecklist(id) {
+  const t = getT(id); if (!t || !t.checklist.length) return;
+  ui.ckClip = { from: t.id, title: t.title || 'New To-Do', items: t.checklist.map((c) => c.title).filter((s) => s.trim()) };
+  lsSet('sectis.ckclip', JSON.stringify(ui.ckClip));
+  try { navigator.clipboard.writeText(ui.ckClip.items.join('\n')).catch(() => {}); } catch (e) { /* no clipboard here */ }
+  toast(`Copied ${plural(ui.ckClip.items.length, 'checklist item')}. Choose Paste Checklist on another to-do, or select several first.`, { ms: 5200 });
+}
+const pasteTargets = (ids) => ids.map(getT).filter((t) => t && !t.trashed);
+function pasteChecklist(ids) {
+  if (!ui.ckClip) return;
+  const targets = pasteTargets(ids).filter((t) => !(ids.length > 1 && t.id === ui.ckClip.from)); // pasting into several skips the one it came from
+  if (!targets.length) return;
+  // work out what each one lacks first, so a paste that adds nothing leaves no undo step behind
+  const adds = targets.map((t) => {
+    const have = new Set(t.checklist.map((c) => c.title.trim().toLowerCase()));
+    return [t, ui.ckClip.items.filter((s) => !have.has(s.trim().toLowerCase()))];
+  }).filter(([, fresh]) => fresh.length);
+  const added = adds.reduce((n, [, fresh]) => n + fresh.length, 0), into = adds.length;
+  if (added) commit('Paste Checklist', () => adds.forEach(([t, fresh]) => { t.checklist = t.checklist.concat(fresh.map((title) => ({ id: uid(), title, done: false }))); touch(t); }));
+  if (!added) { toast(targets.length > 1 ? 'Those to-dos already have every item' : 'That to-do already has every item'); return; }
+  toast(into > 1 ? `Added the checklist to ${into} to-dos` : `Added ${plural(added, 'checklist item')}`, { undo: true });
+}
+/* menu items: Copy for a to-do with a checklist, Paste once something's copied */
+function checklistMenuItems(ids) {
+  const out = [], one = ids.length === 1 && getT(ids[0]);
+  if (one && one.checklist.length) out.push({ label: 'Copy Checklist', icon: 'copy', fn: () => copyChecklist(one.id) });
+  const n = pasteTargets(ids).length;
+  if (ui.ckClip && n && !(n === 1 && one && one.id === ui.ckClip.from)) {
+    out.push({ label: `Paste Checklist (${plural(ui.ckClip.items.length, 'item')})`, icon: 'checklist', fn: () => pasteChecklist(ids) });
+  }
+  return out;
 }
 
 /* ===================== Start ===================== */
