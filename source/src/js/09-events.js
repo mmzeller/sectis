@@ -174,6 +174,7 @@ function todoMenu(id, el) {
     if (t.status === 'open') items.push({ label: t.waitFor ? `Waiting on ${t.waitFor}…` : 'Waiting For…', icon: 'hourglass', hint: 'W', fn: () => openWaiting([id], el) });
     if (t.waitFor) items.push({ label: 'Stop Waiting', icon: 'x', fn: () => stopWaiting([id]) });
     if (!t.templateId) items.push({ label: 'Also Add To…', icon: 'link', fn: () => openAlsoAddTo([id], el) });
+    if (t.status === 'open' && sintrInUse()) items.push(recordInSintrItem(t.title, sintrPlaceOf(t)));
     if (linkSiblings(t).some((x) => x.status === 'open') || (t.status === 'open' && linkSiblings(t).length)) items.push({ label: 'Complete Everywhere', icon: 'check', fn: () => completeEverywhere(id) });
     if (linkSiblings(t).length) items.push({ label: 'Unlink This Copy', icon: 'x', fn: () => unlinkTodo(id) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
@@ -224,6 +225,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Save as Template', icon: 'template', fn: () => saveProjectAsTemplate(p) });
     items.push({ label: 'Share Project…', icon: 'share', fn: () => openShare({ type: 'items', ids: [p.id] }) });
     items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
+    if (sintrInUse()) items.push(recordInSintrItem(pTitle(p), { type: 'project', id: p.id, title: pTitle(p) }));
     items.push(src ? { label: 'Edit Repeating Project', icon: 'repeat', fn: () => navigate('project:' + src.id) } : { label: 'Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
@@ -251,6 +253,7 @@ function areaMenu(a, el, extra = []) {
     ...(ui.view.type === 'area' && ui.view.id === a.id && !isColMenu(extra) ? [sortMenuItem(el)] : []),
     { label: 'Share Area…', icon: 'share', fn: () => openShare({ type: 'area', id: a.id }) },
     { label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'area', id: a.id }) },
+    ...(sintrInUse() ? [recordInSintrItem(aTitle(a), { type: 'area', id: a.id, title: aTitle(a) })] : []),
     { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([a.id], el, 'area') },
     { label: 'Rename', icon: 'edit', fn: () => { if (!(ui.view.type === 'area' && ui.view.id === a.id)) navigate('area:' + a.id); const i = $('[data-fkey="atitle"]'); if (i) { i.focus(); i.select(); } } },
     { sep: 1 }, { label: 'Delete Area…', icon: 'trash', danger: true, fn: () => deleteArea(a) },

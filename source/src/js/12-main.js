@@ -191,8 +191,11 @@ function init() {
   if (Y.enabled && syncAvailable()) {
     // pull the other devices' changes before making today's repeating copies
     render();
-    syncStart().then(() => { generateRepeats(); render(); });
-  } else { generateRepeats(); render(); }
+    // a #todo:… address (from Sintr) may name a to-do that's still on its way from the other device
+    const waitingLink = openFromAddress({ quiet: true }) === 'missing';
+    syncStart().then(() => { generateRepeats(); render(); if (waitingLink) openFromAddress(); });
+  } else { generateRepeats(); render(); openFromAddress(); }
+  window.addEventListener('hashchange', () => openFromAddress());
   setInterval(tick, 20000);
   setTimeout(checkReminders, 1500);
   setTimeout(dailyBackup, 6000);

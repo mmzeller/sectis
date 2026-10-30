@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.16.1
+Version 1.17.0
 
 ## What's in it
 
@@ -35,6 +35,7 @@ Version 1.16.1
 - **Share and export**: send any list, area, project, selection or single to-do as text (Messages, Mail, Notes), Markdown, or a spreadsheet file, or print it / save as PDF. Use the share button at the top of any list, project or area, or **Share…** in the ••• menus, the selection bar and a to-do's own menu
 - **Backup**: export and import a JSON file. Paste a plain list to add it as to-dos
 - **Sync** between your Mac and iPhone through your own Firebase project, encrypted on your device before upload
+- **Works with [Sintr](https://github.com/mmzeller/Sintr)**, the meeting-notes app: it sends a meeting's action items here (see below)
 
 ## Put it online with GitHub Pages (for your iPhone)
 
@@ -116,6 +117,21 @@ If the iPhone only has the sample to-dos, they're replaced by your Mac's list. I
 - **Settings → Sync → Add Another Device** shows the code again. **Turn Off on This Device** stops syncing without deleting anything.
 - Keep the join code private: anyone who has it can read and change your list. Settings stay separate on each device, such as theme and week start.
 - Sync needs internet the first time each device loads it (the Firebase library is then cached for offline use). It doesn't run in the Claude preview.
+
+## Sintr: action items from your meetings
+
+[Sintr](https://github.com/mmzeller/Sintr) takes private meeting notes on your Mac and iPhone. With sync turned on here and your join code saved in Sintr (**Settings → Integrations → Sectis**), Sintr adds each meeting's action items to Sectis, encrypted the same way Sectis encrypts its own:
+
+- **Yours** become to-dos, tagged **Meeting**, with any sub-points as a checklist and the deadline from the meeting.
+- **Other people's** ("Send the quote — Dana") go to **Waiting For** under their name, back in Today on the date they gave.
+- They land in the **Inbox**, or the **project or area** you pick for that note (or for a whole folder of notes) in Sintr.
+- Each one's notes have an **Open in Sintr** link that opens the meeting's note.
+
+Sintr also shows a meeting's to-dos at the end of its note, done or not. On a Mac, clicking one opens it here.
+
+Once Sectis has to-dos from Sintr, **Record in Sintr** appears in the ••• menu of projects, areas and to-dos. It starts a Sintr note with that title, and the meeting's action items come back to the same project or area. Sintr asks before it starts recording.
+
+Sectis opens at a to-do, project or area from its address: add `#todo:ID`, `#project:ID` or `#area:ID` to your Sectis address. Opening a Sintr link from Sectis tells Sintr that address, so Sintr can link back.
 
 ## Your data
 

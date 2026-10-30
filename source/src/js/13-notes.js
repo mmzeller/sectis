@@ -1,6 +1,7 @@
 /* ===================== Formatted notes =====================
    Notes are plain text with light Markdown: **bold**, *italic*, ~~strike~~, `code`,
-   # headings, - bullets, 1. numbered lists, > quotes, [text](link) and bare links. */
+   # headings, - bullets, 1. numbered lists, > quotes, [text](link) and bare links.
+   Web links open in a new tab; app links (sintr://…) open the app, so they get no target. */
 function safeHref(url) {
   const u = String(url || '').trim();
   if (!u || /^(javascript|data|vbscript|file):/i.test(u)) return null;
@@ -11,11 +12,13 @@ function safeHref(url) {
 function mdInline(raw) {
   const tokens = [];
   const keep = (html) => `\u0001${tokens.push(html) - 1}\u0002`;
-  const link = (href, text) => keep(`<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`);
+  const link = (href, text) => keep(/^(https?|mailto):/i.test(href)
+    ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`
+    : `<a href="${esc(appLinkHref(href))}" class="app-link">${text}</a>`);
   let s = String(raw).replace(/[\u0001\u0002]/g, '');
   s = s.replace(/`([^`\n]+)`/g, (m, c) => keep(`<code>${esc(c)}</code>`));
   s = s.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (m, text, url) => { const h = safeHref(url); return h ? link(h, esc(text)) : m; });
-  s = s.replace(/\b((?:https?:\/\/|www\.)[^\s<>"'\u0001\u0002]+)/gi, (m, url) => {
+  s = s.replace(/\b((?:https?:\/\/|www\.|sintr:\/\/)[^\s<>"'\u0001\u0002]+)/gi, (m, url) => {
     let trail = '';
     while (/[.,;:!?'")\]]$/.test(url)) {
       if (url.endsWith(')') && (url.match(/\(/g) || []).length >= (url.match(/\)/g) || []).length) break;
