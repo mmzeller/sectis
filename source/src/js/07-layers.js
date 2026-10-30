@@ -217,9 +217,9 @@ function openMove(ids, anchor, opts = {}) {
       S.areas.slice().sort(byOrder).forEach((a) => { if (m(aTitle(a))) out += `<button class="pick-i a" data-to="area:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span>${cur.areaId === a.id ? `<span class="check">${ic('check')}</span>` : ''}</button>`; });
       return out;
     }
-    const projRows = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === areaId).sort(byOrder).map((p) => {
+    const projRows = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.id !== opts.exclude && (p.areaId || null) === areaId).sort(byOrder).map((p) => {
       let r = '';
-      const hs = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
+      const hs = opts.noHeadings ? [] : S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
       const pm = m(pTitle(p)); const hm = hs.filter((h) => m(h.title) || pm);
       if (pm || hm.length) {
         r += `<button class="pick-i p${cur.projectId === p.id && !cur.headingId ? ' cur' : ''}" data-to="project:${p.id}">${pieIc(projectProgress(p).frac)}<span>${esc(pTitle(p))}</span></button>`;

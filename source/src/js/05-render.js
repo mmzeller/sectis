@@ -20,6 +20,7 @@ function render() {
   if (!S) return;
   tagRankCache = null;
   if (ensureTagColors()) saveSoon();
+  if (followMerges()) { reindex(); saveSoon(); }
   autoLog();
   applyTheme();
   const f = captureFocus();

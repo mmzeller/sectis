@@ -253,6 +253,48 @@ function headingToProject(h) {
   });
   navigate('project:' + p.id);
 }
+/* The reverse of Convert to Project: a project becomes a heading in another project, with all its
+   to-dos (done, logged and repeating ones too) under it, in order. Its own headings fold into that
+   one heading, since headings don't nest. The emptied project goes to the Trash, keeping its notes,
+   dates and tags, and remembers where it went: to-dos that still arrive for it later (Sintr can send
+   to a project) land under the heading. */
+function projectToHeading(p, targetId) {
+  const to = getP(targetId);
+  if (!p || !to || to === p || p.isTemplate || to.isTemplate) return;
+  const rank = new Map(S.headings.filter((h) => h.projectId === p.id).sort(byOrder).map((h, i) => [h.id, i + 1]));
+  const items = S.todos.filter((t) => t.projectId === p.id && !t.isDraft).sort((a, b) => (rank.get(a.headingId) || 0) - (rank.get(b.headingId) || 0) || byOrder(a, b));
+  const folded = rank.size;
+  let h;
+  commit('Move Into Project', () => {
+    h = { id: uid(), projectId: to.id, title: pTitle(p), order: endOrder(S.headings.filter((x) => x.projectId === to.id && !x.archived)), archived: false };
+    S.headings.push(h);
+    items.forEach((t, i) => {
+      const before = placeTagIds(t);
+      t.projectId = to.id; t.headingId = h.id; t.areaId = null; t.order = i;
+      if (t.start === 'inbox') t.start = 'anytime';
+      retag(t, before); touch(t);
+    });
+    S.headings = S.headings.filter((x) => x.projectId !== p.id);
+    p.trashed = true; p.mergedInto = { headingId: h.id }; touch(p);
+    if (ui.expanded) { ui.expanded.add(to.id); lsSet('sectis.expanded', JSON.stringify([...ui.expanded])); } // open, so the heading shows
+  });
+  toast(`“${pTitle(p)}” is now a heading in “${pTitle(to)}”${folded === 1 ? ', with its heading folded in' : folded ? `, with its ${folded} headings folded in` : ''}`, { undo: true });
+}
+/* to-dos that arrive for a project that became a heading go under that heading */
+function followMerges() {
+  let changed = false;
+  for (const p of S.projects) {
+    if (!p.mergedInto || !p.trashed) continue; // put back from the Trash, it's a project again
+    const h = getH(p.mergedInto.headingId), to = h && getP(h.projectId);
+    if (!h || h.archived || !to || to.trashed) continue;
+    S.todos.forEach((t) => {
+      if (t.projectId !== p.id || t.trashed || t.isDraft) return;
+      const before = placeTagIds(t);
+      t.projectId = to.id; t.headingId = h.id; t.areaId = null; retag(t, before); touch(t); changed = true;
+    });
+  }
+  return changed;
+}
 function moveHeading(h, projectId) {
   commit('Move Heading', () => {
     h.projectId = projectId; h.order = endOrder(S.headings.filter((x) => x.projectId === projectId));
