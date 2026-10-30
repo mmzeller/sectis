@@ -701,6 +701,9 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .pchildren { margin: 0 0 10px 34px; padding-left: 8px; border-left: 2px solid var(--line); }
 .pchildren .sec { min-height: 4px; }
 .sub-h { margin: 10px 10px 2px; font-size: 12.5px; font-weight: 650; color: var(--accent); }
+/* a heading whose to-dos are all done */
+.sub-h.done, .hrow.done .h-title, .hcol.done .bcol-htitle { color: var(--muted); }
+.hrow.done { color: var(--muted); }
 .pchildren-empty { color: var(--faint); font-size: 13px; padding: 4px 10px 6px; }
 .add-first { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; border-radius: 8px; cursor: pointer; }
 .add-first .ic { width: 14px; height: 14px; }
@@ -878,7 +881,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.26.0';
+const APP_VERSION = '1.27.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -2457,7 +2460,7 @@ function viewProject(p) {
   const live = todosAll.filter((t) => t.status === 'open' || !t.logged);
   const items = live.filter(matchesTagFilter);
   const logged = todosAll.filter((t) => t.status !== 'open' && t.logged).sort((a, b) => b.completedAt - a.completedAt);
-  const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
+  const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + priorityChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
@@ -2473,7 +2476,7 @@ function viewProject(p) {
   else {
   html += `<div class="list">${secHTML(`project:${p.id}:`, items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx)}`;
   headings.forEach((h) => {
-    html += `<div class="hrow" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><textarea class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea><button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options">${ic('more')}</button></div>`;
+    html += `<div class="hrow${headingDoneCls(h)}" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><textarea class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea><button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options">${ic('more')}</button></div>`;
     html += secHTML(`project:${p.id}:${h.id}`, items.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
   });
   html += '</div>';
@@ -5711,13 +5714,13 @@ function emptyProjectHTML(p, cls) {
 }
 function projectChildrenHTML(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged)).filter(matchesTagFilter);
-  const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
+  const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
   const ctx = { when: true };
   let html = `<div class="pchildren" data-children="${p.id}">`;
   html += secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
   headings.forEach((h) => {
     const ts = todos.filter((t) => t.headingId === h.id).sort(byOrder);
-    html += `<div class="sub-h" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
+    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
   });
   if (!todos.length) html += emptyProjectHTML(p, 'pchildren-empty');
   return html + '</div>';
@@ -5855,11 +5858,11 @@ function boardColHTML(c) {
 }
 function boardProjectBody(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged));
-  const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
+  const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
   const ctx = { when: true };
   let html = secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
   headings.forEach((h) => {
-    html += `<div class="sub-h" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
+    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
   });
   if (!todos.length) html += emptyProjectHTML(p, 'bcol-empty');
   return html;
@@ -5895,7 +5898,8 @@ function projectBoardHTML(p, items, headings, ctx) {
   const open = p.status === 'open' && !p.trashed;
   const col = (key, sec, titleHTML, list, menuBtn) => {
     const w = getColW(key);
-    return `<section class="bcol hcol${w ? ' sized' : ''}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${w ? ` style="flex:0 0 ${w}px;width:${w}px"` : ''}>
+    const hd = key.startsWith('h:') && getH(key.slice(2)) ? headingDoneCls(getH(key.slice(2))) : '';
+    return `<section class="bcol hcol${w ? ' sized' : ''}${hd}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${w ? ` style="flex:0 0 ${w}px;width:${w}px"` : ''}>
       <div class="bcol-h" data-hcol="${key}">${titleHTML}${list.filter((t) => t.status === 'open').length ? `<span class="bcol-count" title="Open to-dos">${list.filter((t) => t.status === 'open').length}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" title="New to-do" aria-label="New to-do">${ic('plus')}</button>` : ''}${menuBtn}</div>
       <div class="bcol-body">${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}</div><div class="bcol-resize" data-colresize="${key}" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div></section>`;
   };
@@ -6386,6 +6390,26 @@ function holdDone(id) {
   ui.justDone.add(id);
   clearTimeout(ui.justDoneTimer);
   ui.justDoneTimer = setTimeout(() => { ui.justDone.clear(); if (sinksDone()) render(); }, S.settings.logMode === 'immediate' ? 1600 : 800);
+}
+/* A heading whose to-dos are all done (or canceled) sinks below the other headings, the last
+   finished at the very bottom, under the same setting. Only how they're shown: unchecking one
+   of its to-dos puts it right back. An empty heading isn't done. Its title dims either way. */
+function headingDoneAt(h) {
+  const held = ui.justDone || new Set();
+  let n = 0, last = 0;
+  for (const t of S.todos) {
+    if (t.headingId !== h.id || t.trashed || t.isTemplate || t.isDraft) continue;
+    if (t.status === 'open' || held.has(t.id)) return 0;
+    n++; if ((t.completedAt || 0) > last) last = t.completedAt || 0;
+  }
+  return n ? last || 1 : 0;
+}
+const headingDoneCls = (h) => (headingDoneAt(h) ? ' done' : '');
+function sinkHeadings(hs) {
+  if (!sinksDone()) return hs;
+  const at = new Map(hs.map((h) => [h.id, headingDoneAt(h)]));
+  const done = hs.filter((h) => at.get(h.id));
+  return done.length ? hs.filter((h) => !at.get(h.id)).concat(done.sort((a, b) => at.get(a.id) - at.get(b.id))) : hs;
 }
 /* placing rows by hand (drag, ⌘↑ / ⌘↓, a new to-do below another): completed ones shown at the
    bottom don't count, so the spot is set among the open ones */

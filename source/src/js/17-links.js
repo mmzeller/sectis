@@ -124,13 +124,13 @@ function emptyProjectHTML(p, cls) {
 }
 function projectChildrenHTML(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged)).filter(matchesTagFilter);
-  const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
+  const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
   const ctx = { when: true };
   let html = `<div class="pchildren" data-children="${p.id}">`;
   html += secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
   headings.forEach((h) => {
     const ts = todos.filter((t) => t.headingId === h.id).sort(byOrder);
-    html += `<div class="sub-h" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
+    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
   });
   if (!todos.length) html += emptyProjectHTML(p, 'pchildren-empty');
   return html + '</div>';

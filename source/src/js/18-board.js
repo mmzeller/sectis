@@ -130,11 +130,11 @@ function boardColHTML(c) {
 }
 function boardProjectBody(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged));
-  const headings = S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
+  const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
   const ctx = { when: true };
   let html = secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
   headings.forEach((h) => {
-    html += `<div class="sub-h" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
+    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
   });
   if (!todos.length) html += emptyProjectHTML(p, 'bcol-empty');
   return html;
@@ -170,7 +170,8 @@ function projectBoardHTML(p, items, headings, ctx) {
   const open = p.status === 'open' && !p.trashed;
   const col = (key, sec, titleHTML, list, menuBtn) => {
     const w = getColW(key);
-    return `<section class="bcol hcol${w ? ' sized' : ''}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${w ? ` style="flex:0 0 ${w}px;width:${w}px"` : ''}>
+    const hd = key.startsWith('h:') && getH(key.slice(2)) ? headingDoneCls(getH(key.slice(2))) : '';
+    return `<section class="bcol hcol${w ? ' sized' : ''}${hd}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${w ? ` style="flex:0 0 ${w}px;width:${w}px"` : ''}>
       <div class="bcol-h" data-hcol="${key}">${titleHTML}${list.filter((t) => t.status === 'open').length ? `<span class="bcol-count" title="Open to-dos">${list.filter((t) => t.status === 'open').length}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" title="New to-do" aria-label="New to-do">${ic('plus')}</button>` : ''}${menuBtn}</div>
       <div class="bcol-body">${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}</div><div class="bcol-resize" data-colresize="${key}" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div></section>`;
   };

@@ -54,6 +54,26 @@ function holdDone(id) {
   clearTimeout(ui.justDoneTimer);
   ui.justDoneTimer = setTimeout(() => { ui.justDone.clear(); if (sinksDone()) render(); }, S.settings.logMode === 'immediate' ? 1600 : 800);
 }
+/* A heading whose to-dos are all done (or canceled) sinks below the other headings, the last
+   finished at the very bottom, under the same setting. Only how they're shown: unchecking one
+   of its to-dos puts it right back. An empty heading isn't done. Its title dims either way. */
+function headingDoneAt(h) {
+  const held = ui.justDone || new Set();
+  let n = 0, last = 0;
+  for (const t of S.todos) {
+    if (t.headingId !== h.id || t.trashed || t.isTemplate || t.isDraft) continue;
+    if (t.status === 'open' || held.has(t.id)) return 0;
+    n++; if ((t.completedAt || 0) > last) last = t.completedAt || 0;
+  }
+  return n ? last || 1 : 0;
+}
+const headingDoneCls = (h) => (headingDoneAt(h) ? ' done' : '');
+function sinkHeadings(hs) {
+  if (!sinksDone()) return hs;
+  const at = new Map(hs.map((h) => [h.id, headingDoneAt(h)]));
+  const done = hs.filter((h) => at.get(h.id));
+  return done.length ? hs.filter((h) => !at.get(h.id)).concat(done.sort((a, b) => at.get(a.id) - at.get(b.id))) : hs;
+}
 /* placing rows by hand (drag, ⌘↑ / ⌘↓, a new to-do below another): completed ones shown at the
    bottom don't count, so the spot is set among the open ones */
 function placeRows(rows, x = null) {
