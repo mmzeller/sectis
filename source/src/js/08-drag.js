@@ -89,7 +89,7 @@ function startDrag() {
   document.body.append(g); st.ghost = g;
   const line = document.createElement('div'); line.className = 'drop-line'; line.hidden = true; document.body.append(line); st.line = line;
   st.ids.forEach((id) => $$(`[data-id="${CSS.escape(id)}"]`).forEach((r) => { if (r.matches('.row, .hrow, .sb-item')) r.classList.add('dragging'); }));
-  document.body.classList.add('dragging-active');
+  document.body.classList.add('dragging-active', 'drag-' + st.kind);
   if (navigator.vibrate) try { navigator.vibrate(8); } catch (err) { /* ignore */ }
   window.getSelection && window.getSelection().removeAllRanges();
   dragTrack();
@@ -125,9 +125,17 @@ function dragTrack(fromLoop) {
   if (!el) return;
   const k = st.kind;
   // --- sidebar
+  const loose = el.closest('#sidebar [data-drop-loose]'); // projects: out of any area
+  if (loose) { if (k === 'project') { loose.classList.add('drop-hover'); st.target = { type: 'sbloose' }; } return; }
   const sb = el.closest('#sidebar [data-drop-list]');
   if (sb) {
     const key = sb.dataset.dropList;
+    if (key === 'board') { if (k === 'project' || k === 'area') { sb.classList.add('drop-hover'); st.target = { type: 'board', el: sb }; } return; }
+    if (k === 'heading') { // a heading (with its to-dos) into another project
+      const h = getH(st.id);
+      if (sb.dataset.kind === 'project' && h && h.projectId !== sb.dataset.id) { sb.classList.add('drop-hover'); st.target = { type: 'headproj', ref: sb.dataset.id, el: sb }; }
+      return;
+    }
     if (k === 'project' && sb.dataset.kind === 'project' && sb.dataset.sb) {
       if (st.ids.includes(sb.dataset.id)) return;
       const r = sb.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
@@ -149,6 +157,17 @@ function dragTrack(fromLoop) {
     const h = el.closest('.hrow'); if (!h || h.dataset.id === st.id) return;
     const r = h.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
     showLine(st, h, after); st.target = { type: 'heading', ref: h.dataset.id, after }; return;
+  }
+  // --- a to-do onto a project's row: into that project. Where project rows can't take to-dos
+  // (an area's projects) the whole row counts; elsewhere (Today) its middle, so its edges still reorder.
+  const prow = k === 'todo' && el.closest('#content .prow[data-id]');
+  const pp = prow && getP(prow.dataset.id);
+  if (pp && pp.status === 'open' && !pp.trashed && !pp.isTemplate && !st.ids.includes(pp.id)) {
+    const psec = prow.closest('[data-sec]'), r = prow.getBoundingClientRect();
+    const whole = !psec || !sectionAccepts(psec.dataset.sec, k);
+    if (whole || (st.y > r.top + r.height * 0.25 && st.y < r.bottom - r.height * 0.25)) {
+      prow.classList.add('drop-hover'); st.target = { type: 'list', key: 'project:' + pp.id, el: prow }; return;
+    }
   }
   // --- rows within sections
   let sec = null, index = 0, refEl = null, after = false;
@@ -173,6 +192,12 @@ function dragTrack(fromLoop) {
     if (!sec) { const cz = el.closest('[data-colzone]'); if (cz && cz.dataset.colzone) sec = $(`#content [data-sec="${CSS.escape(cz.dataset.colzone)}"]`); } // anywhere in a board column
     if (sec) { const rows = $$(':scope > .row[data-id]', sec).filter((r) => !st.ids.includes(r.dataset.id)); index = rows.length; refEl = rows[rows.length - 1]; after = true; }
   }
+  if (k === 'project' && sec && /^area:/.test(sec.dataset.sec)) {
+    const aid = sec.dataset.sec.slice(5), col = sec.closest('.bcol');
+    const ps = col ? $(`[data-sec="areaprojects:${CSS.escape(aid)}"]`, col) : $(`#content [data-sec="areaprojects:${CSS.escape(aid)}"]`);
+    if (ps) { sec = ps; refEl = $$(':scope > .row[data-id]', ps).filter((r) => !st.ids.includes(r.dataset.id))[0]; index = 0; after = false; }
+    else { const box = col || sec; box.classList.add('drop-hover'); st.target = { type: 'list', key: 'area:' + aid, el: box }; return; } // an area column with no projects yet
+  }
   if (!sec || !sectionAccepts(sec.dataset.sec, k)) return;
   if (k === 'project' && !(sec.dataset.sec.startsWith('areaprojects:') || sec.dataset.sec.includes(':projects:'))) {
     // projects can only be re-ordered in Today/Upcoming among other rows
@@ -185,7 +210,7 @@ function finishDrag(drop) {
   clearDropMarks(st);
   if (st.ghost) st.ghost.remove(); if (st.line) st.line.remove();
   $$('.dragging').forEach((r) => r.classList.remove('dragging'));
-  document.body.classList.remove('dragging-active');
+  document.body.classList.remove('dragging-active', 'drag-' + st.kind);
   D.st = null;
   D.suppressClick = true; setTimeout(() => { D.suppressClick = false; }, 60);
   if (drop && st.target) performDrop(st, st.target);
@@ -193,6 +218,19 @@ function finishDrag(drop) {
 function performDrop(st, t) {
   const ids = st.ids;
   if (t.type === 'list') return dropOnList(ids, t.key, st.kind, t.el);
+  if (t.type === 'board') {
+    const cols = (st.kind === 'area' ? [{ t: 'a', id: st.id }] : ids.map((id) => ({ t: 'p', id }))).filter((c) => !onBoard(c.t, c.id));
+    if (!cols.length) { toast(ids.length > 1 ? 'Already on the Board' : `“${colName(st.kind === 'area' ? 'a' : 'p', ids[0] || st.id)}” is already on the Board`, { action: 'Show Board', fn: () => navigate('board') }); return; }
+    boardAdd(cols, { toast: cols.length > 1 ? `Added ${cols.length} projects to the Board` : `Added “${colName(cols[0].t, cols[0].id)}” to the Board` });
+    return;
+  }
+  if (t.type === 'headproj') { const h = getH(st.id), p = getP(t.ref); if (h && p) { moveHeading(h, p.id); toast(`Moved “${h.title || 'Heading'}” to ${pTitle(p)}`, { undo: true }); } return; }
+  if (t.type === 'sbloose') {
+    const loose = S.projects.filter((p) => !p.trashed && !p.isTemplate && !p.areaId && !ids.includes(p.id));
+    const vals = orderBetween(maxOf(loose, 'order'), null, ids.length);
+    commit('Move Project', () => ids.forEach((id, k) => { const p = getP(id); if (p) { p.areaId = null; p.order = vals[k]; touch(p); } }));
+    return;
+  }
   if (t.type === 'sec') {
     if (st.kind !== 'magic' && !handOrdered() && SORT_SEC.test(t.sec) && st.src && st.src.closest('[data-sec]') === t.secEl) { sortedHint(); return; } // can't hand-arrange a sorted list
     const secEl = t.secEl, ok = secEl.dataset.ok || 'order';
@@ -205,8 +243,12 @@ function performDrop(st, t) {
     const vals = orderBetween(prev ? prev[ok] : null, next ? next[ok] : null, n);
     if (st.kind === 'magic') { newTodo({ sec: t.sec, place: { [ok]: vals[0] } }); return; }
     const sec = t.sec, props = sectionProps(sec);
+    // Anytime and Someday list a project's to-dos in heading order without showing the headings,
+    // so a to-do dropped among another heading's to-dos joins that heading (or it would jump back)
+    const nb = /^(anytime|someday):project:/.test(sec) ? (prev && prev.type === 'todo' ? prev : next && next.type === 'todo' ? next : null) : null;
     commit('Move', () => ids.forEach((id, i) => {
       const x = itemById(id); if (!x) return;
+      if (nb && x.type === 'todo' && nb.projectId === props.projectId) x.headingId = nb.headingId || null;
       if (sec.startsWith('areaprojects:')) { if (x.type === 'project') { x.areaId = sec.split(':')[1]; x.order = vals[i]; } return; }
       if (sec.includes(':projects:')) { if (x.type === 'project') { x.areaId = sec.split(':')[2] || null; x.order = vals[i]; } return; }
       const before = containerKey(x);
