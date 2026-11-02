@@ -233,7 +233,7 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .hrow.dragging { opacity: .35; }
 .h-title { flex: 1; min-width: 0; font-weight: 650; color: var(--accent); padding: 0; line-height: 1.45; }
 .h-title::placeholder { color: var(--faint); }
-.hrow .ib { width: 26px; height: 26px; opacity: 0; }
+.hrow .ib { width: 26px; height: 26px; opacity: 0; flex: none; }
 .hrow:hover .ib, .hrow:focus-within .ib, .touch .hrow .ib { opacity: 1; }
 .empty { padding: 56px 10px 24px; text-align: center; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .empty .ic { width: 44px; height: 44px; opacity: .3; }

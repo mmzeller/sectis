@@ -12,6 +12,7 @@ function loadBoard() {
   try { ui.projBoard = new Set(JSON.parse(lsGet('sectis.pboard') || '[]')); } catch (e) { ui.projBoard = new Set(); }
   try { ui.hcolW = JSON.parse(lsGet('sectis.hcolw') || '{}') || {}; } catch (e) { ui.hcolW = {}; }
   try { ui.hcolH = JSON.parse(lsGet('sectis.hcolh') || '{}') || {}; } catch (e) { ui.hcolH = {}; }
+  try { ui.hUnder = new Set(JSON.parse(lsGet('sectis.hunder') || '[]')); } catch (e) { ui.hUnder = new Set(); }
 }
 function saveBoard() { lsSet('sectis.board', JSON.stringify(ui.board)); }
 function colShown(c) {
@@ -130,7 +131,7 @@ function setColSize(key, size) {
     saveBoard();
   } else {
     ui.hcolW = ui.hcolW || {}; ui.hcolH = ui.hcolH || {};
-    if ('w' in size) { if (size.w) ui.hcolW[key] = clampW(size.w); else delete ui.hcolW[key]; lsSet('sectis.hcolw', JSON.stringify(ui.hcolW)); }
+    if ('w' in size) { (hStackOf(key) || [key]).forEach((k) => { if (size.w) ui.hcolW[k] = clampW(size.w); else delete ui.hcolW[k]; }); lsSet('sectis.hcolw', JSON.stringify(ui.hcolW)); }
     if ('h' in size) { if (size.h) ui.hcolH[key] = clampH(size.h); else delete ui.hcolH[key]; lsSet('sectis.hcolh', JSON.stringify(ui.hcolH)); }
   }
   render();
@@ -190,7 +191,7 @@ function viewBoard() {
     return html + emptyHTML('columns', 'See your lists side by side',
       'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');
   }
-  return html + `<div class="board bstacks" data-hscroll="board" data-cols="${[].concat(...stacks).length}">${stacks.map((s, i) => {
+  return html + `<div class="board bstacks" data-kind="board" data-hscroll="board" data-cols="${[].concat(...stacks).length}">${stacks.map((s, i) => {
     const w = stackW(s), last = s[s.length - 1];
     return `<div class="bstack${w ? ' sized' : ''}" data-stack="${i}"${w ? ` style="flex:0 0 ${w}px;width:${w}px"` : ''}>${s.map(boardColHTML).join('')}`
       + `<button class="bstack-add" data-action="board-add-below" data-col="${colKey(last)}" title="Put another project or area below this one">${ic('plus')}<span>Add Below</span></button></div>`;
@@ -256,33 +257,82 @@ function boardNewSec() {
   return col ? col.dataset.newsec : null;
 }
 
-/* ---- a project's headings as columns ---- */
+/* ---- a project's headings as columns ----
+   Like the Board: side by side or stacked, dragged and resized. Columns run in heading order,
+   left to right and top to bottom, so the list and the board always agree; which headings sit
+   under the one before them is this device's layout (ui.hUnder). No Heading stays first. */
 function projectBoardOn(p) { return !!(p && ui.projBoard && ui.projBoard.has(p.id) && !isMobile() && !p.trashed); }
 function setProjectBoard(id, on) {
   if (on) ui.projBoard.add(id); else ui.projBoard.delete(id);
   lsSet('sectis.pboard', JSON.stringify([...ui.projBoard])); render();
 }
+function saveHUnder() { lsSet('sectis.hunder', JSON.stringify([...ui.hUnder])); }
+const hStackW = (keys) => { const w = keys.map(getColW).find(Boolean); return w ? clampW(w) : 0; };
 function projectBoardHTML(p, items, headings, ctx) {
   const open = p.status === 'open' && !p.trashed;
   const col = (key, sec, titleHTML, list, menuBtn) => {
-    const w = getColW(key), h = getColH(key);
+    const h = getColH(key);
     const hd = key.startsWith('h:') && getH(key.slice(2)) ? headingDoneCls(getH(key.slice(2))) : '';
-    const style = [w ? `flex:0 0 ${w}px;width:${w}px` : '', h ? `height:${clampH(h)}px` : ''].filter(Boolean).join(';');
-    return `<section class="bcol hcol${w ? ' sized' : ''}${h ? ' sized-h' : ''}${hd}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${style ? ` style="${style}"` : ''}>${key.startsWith('h:') ? gripHTML : ''}
+    return `<section class="bcol hcol${h ? ' sized-h' : ''}${hd}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(h)}>${key.startsWith('h:') ? gripHTML : ''}
       <div class="bcol-h" data-hcol="${key}">${titleHTML}${list.filter((t) => t.status === 'open').length ? `<span class="bcol-count" title="Open to-dos">${list.filter((t) => t.status === 'open').length}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" title="New to-do" aria-label="New to-do">${ic('plus')}</button>` : ''}${menuBtn}</div>
       <div class="bcol-body"${h ? ` data-vscroll="${key}"` : ''}>${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}</div>${resizeHandlesHTML(key)}</section>`;
   };
   const loose = items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder);
-  let html = `<div class="board hboard" data-hscroll="hboard:${p.id}">`;
-  if (loose.length || !headings.length) html += col(`n:${p.id}`, `project:${p.id}:`, `<div class="bcol-t"><div class="bcol-title static">No Heading</div></div>`, loose, `<button class="ib" data-action="hcol-menu" data-id="" data-col="n:${p.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`);
-  headings.forEach((h) => {
-    const list = items.filter((t) => t.headingId === h.id).sort(byOrder);
-    html += col(`h:${h.id}`, `project:${p.id}:${h.id}`,
-      `<div class="bcol-t"><textarea class="bcol-htitle" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea></div>`,
-      list, `<button class="ib" data-action="hcol-menu" data-id="${h.id}" data-col="h:${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button>`);
+  const cols = [];
+  if (loose.length || !headings.length) cols.push([`n:${p.id}`, () => col(`n:${p.id}`, `project:${p.id}:`, `<div class="bcol-t"><div class="bcol-title static">No Heading</div></div>`, loose, `<button class="ib" data-action="hcol-menu" data-id="" data-col="n:${p.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`)]);
+  headings.forEach((h) => cols.push([`h:${h.id}`, () => col(`h:${h.id}`, `project:${p.id}:${h.id}`,
+    `<div class="bcol-t"><textarea class="bcol-htitle" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" title="Click to rename, drag to move" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea></div>`,
+    items.filter((t) => t.headingId === h.id).sort(byOrder), `<button class="ib" data-action="hcol-menu" data-id="${h.id}" data-col="h:${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button>`)]));
+  const stacks = [];
+  cols.forEach((c, i) => { if (i && c[0].startsWith('h:') && ui.hUnder.has(c[0].slice(2))) stacks[stacks.length - 1].push(c); else stacks.push([c]); });
+  let html = `<div class="board hboard bstacks" data-kind="headings" data-pid="${p.id}" data-hscroll="hboard:${p.id}">`;
+  stacks.forEach((st, i) => {
+    const w = hStackW(st.map((c) => c[0]));
+    html += `<div class="bstack${w ? ' sized' : ''}" data-stack="${i}"${w ? ` style="flex:0 0 ${w}px;width:${w}px"` : ''}>${st.map((c) => c[1]()).join('')}`
+      + (open ? `<button class="bstack-add" data-action="hcol-new-below" data-pid="${p.id}" data-col="${st[st.length - 1][0]}" title="Add a heading below this one">${ic('plus')}<span>Add Heading Below</span></button>` : '') + '</div>';
   });
   if (open) html += `<button class="bcol-new" data-action="hcol-new" data-id="${p.id}">${ic('plus')}<span>Add Heading</span></button>`;
   return html + '</div>';
+}
+/* the heading board's stacks as drawn: lists of column keys */
+function hStacks() {
+  const b = $('#content .bstacks[data-kind="headings"]');
+  return b ? $$(':scope > .bstack', b).map((s) => $$(':scope > .bcol', s).map((c) => c.dataset.hcol)) : [];
+}
+function hStackOf(key) { return hStacks().find((s) => s.includes(key)) || null; }
+/* where a heading column ends up after a move (same `to` as boardPlace); null if it can't go there */
+function hPlaced(stacks, key, to) {
+  stacks = stacks.map((s) => s.slice());
+  const i = stacks.findIndex((s) => s.includes(key)); if (i < 0) return null;
+  const j = stacks[i].indexOf(key); stacks[i].splice(j, 1);
+  if (to.newStack != null) stacks.splice(clamp(to.newStack, 0, stacks.length), 0, [key]);
+  else { const s = stacks[to.stack]; if (!s) return null; s.splice(clamp(to.index, 0, s.length), 0, key); }
+  const out = stacks.filter((s) => s.length), flat = [].concat(...out);
+  if (flat.some((k, n) => n > 0 && k.startsWith('n:'))) return null; // nothing goes before No Heading
+  return { stacks: out, flat, from: i, joined: to.newStack == null && to.stack !== i ? to.stack : null, before: stacks };
+}
+function headingPlace(key, to) {
+  const h = getH(key.slice(2)); if (!h) return;
+  const r = hPlaced(hStacks(), key, to); if (!r) return;
+  if (r.joined != null) { const w = hStackW(r.before[r.joined].filter((k) => k !== key)); if (w) ui.hcolW[key] = w; else delete ui.hcolW[key]; lsSet('sectis.hcolw', JSON.stringify(ui.hcolW)); }
+  r.stacks.forEach((s) => s.forEach((k, j) => { if (!k.startsWith('h:')) return; if (j) ui.hUnder.add(k.slice(2)); else ui.hUnder.delete(k.slice(2)); }));
+  saveHUnder();
+  // its place among the project's headings: right after the heading now before it
+  const n = r.flat.indexOf(key);
+  const prevK = r.flat.slice(0, n).reverse().find((k) => k.startsWith('h:')), nextK = r.flat.slice(n + 1).find((k) => k.startsWith('h:'));
+  const all = S.headings.filter((x) => x.projectId === h.projectId && !x.archived).sort(byOrder), hs = all.filter((x) => x !== h);
+  let at = prevK ? hs.findIndex((x) => x.id === prevK.slice(2)) + 1 : nextK ? hs.findIndex((x) => x.id === nextK.slice(2)) : hs.length;
+  if (at < 0) at = hs.length;
+  if (all.indexOf(h) === at) { render(); return; } // only the layout changed
+  commit('Move Heading', () => { h.order = orderBetween(hs[at - 1] ? hs[at - 1].order : null, hs[at] ? hs[at].order : null)[0]; touch(h); });
+}
+function headingNudgeTo(key, dir) {
+  const stacks = hStacks(), i = stacks.findIndex((s) => s.includes(key)); if (i < 0) return null;
+  const j = stacks[i].indexOf(key), alone = stacks[i].length === 1;
+  const to = dir === 'up' ? { stack: i, index: j - 1 } : dir === 'down' ? { stack: i, index: j + 1 }
+    : dir === 'left' ? { newStack: alone ? i - 1 : i } : { newStack: alone ? i + 2 : i + 1 };
+  if ((dir === 'up' && j === 0) || (dir === 'down' && j === stacks[i].length - 1) || (dir === 'left' && alone && i === 0) || (dir === 'right' && alone && i === stacks.length - 1)) return null;
+  return hPlaced(stacks, key, to) ? to : null;
 }
 function moveHeadingCol(h, dir) {
   const hs = S.headings.filter((x) => x.projectId === h.projectId && !x.archived).sort(byOrder);
@@ -291,13 +341,20 @@ function moveHeadingCol(h, dir) {
 }
 function hcolMenu(el) {
   const key = el.dataset.col, h = el.dataset.id ? getH(el.dataset.id) : null;
+  const p = getP(h ? h.projectId : key.slice(2)), open = p && p.status === 'open' && !p.trashed;
+  const below = open ? [{ label: 'Add Heading Below', icon: 'plus', fn: () => newHeading(p.id, { after: key }) }] : [];
   const fit = { label: 'Fit Size Automatically', icon: 'columns', disabled: !(getColW(key) || getColH(key)), fn: () => setColSize(key, { w: 0, h: 0 }) };
-  if (!h) { openMenu(el, [fit]); return; }
-  const hs = S.headings.filter((x) => x.projectId === h.projectId && !x.archived).sort(byOrder), i = hs.indexOf(h);
+  if (!h) { openMenu(el, [...below, fit]); return; }
+  const to = (d) => headingNudgeTo(key, d), mv = (d) => () => headingPlace(key, to(d));
+  const stacked = (hStackOf(key) || []).length > 1;
   headingMenu(h, el, [
-    { header: 'Column' },
-    { label: 'Move Left', icon: 'chevL', disabled: i <= 0, fn: () => moveHeadingCol(h, -1) },
-    { label: 'Move Right', icon: 'chevR', disabled: i >= hs.length - 1, fn: () => moveHeadingCol(h, 1) },
+    { header: 'Column' }, ...below,
+    ...(stacked ? [
+      { label: 'Move Up', icon: 'chevU', disabled: !to('up'), fn: mv('up') },
+      { label: 'Move Down', icon: 'chevD', disabled: !to('down'), fn: mv('down') },
+    ] : []),
+    { label: 'Move Left', icon: 'chevL', disabled: !to('left'), fn: mv('left') },
+    { label: 'Move Right', icon: 'chevR', disabled: !to('right'), fn: mv('right') },
     fit, sortMenuItem(el, 'Sort Project By…'), { sep: 1 },
   ]);
 }

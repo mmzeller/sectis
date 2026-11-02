@@ -116,6 +116,8 @@ function handleAction(act, el, e) {
     case 'proj-board': setProjectBoard(id, !ui.projBoard.has(id)); return;
     case 'hcol-menu': hcolMenu(el); return;
     case 'hcol-new': newHeading(id); return;
+    case 'hcol-new-below': newHeading(el.dataset.pid, { after: el.dataset.col }); return;
+    case 'heading-add': { const h = getH(id); if (h) newTodo({ sec: `project:${h.projectId}:${h.id}` }); return; }
     case 'use-ptemplate': newProjectFromTemplate(id); return;
     case 'use-ttemplate': openAddTodoTemplateTo(id, el); return;
     case 'delete-template': deleteTemplate(id); return;
@@ -276,7 +278,14 @@ function areaMenu(a, el, extra = []) {
 }
 function headingMenu(h, el, extra = []) {
   if (!h) return;
+  const hs = S.headings.filter((x) => x.projectId === h.projectId && !x.archived).sort(byOrder), i = hs.indexOf(h);
+  const moves = extra.length ? [] : [ // the list's own; the board's column menu has its own moves
+    { label: 'Move Up', icon: 'chevU', hint: MODK + '↑', disabled: i <= 0, fn: () => moveHeadingCol(h, -1) },
+    { label: 'Move Down', icon: 'chevD', hint: MODK + '↓', disabled: i < 0 || i >= hs.length - 1, fn: () => moveHeadingCol(h, 1) },
+    { sep: 1 },
+  ];
   openMenu(el, [
+    ...moves,
     ...extra,
     { label: 'New To-Do Here', icon: 'plus', fn: () => { const sec = `project:${h.projectId}:${h.id}`; const first = S.todos.filter((t) => t.headingId === h.id && !t.trashed).sort(byOrder)[0]; newTodo({ sec, place: { order: first ? first.order - 1 : 0 } }); } },
     { label: 'Move to Project…', icon: 'move', fn: () => openMove([], el, { heading: true, onPick: (t) => { if (t.type === 'project') moveHeading(h, t.id); } }) },
@@ -436,7 +445,18 @@ function fieldKeys(e) {
     if (e.key === 'Backspace' && !el.value) { const t = getT(id); if (!t.checklist.length) { e.preventDefault(); ui.ckOpen = null; ui.focusAfter = `[data-fkey="notes-${id}"]`; render(); } return true; }
   }
   if (f === 'project-title' && e.key === 'Enter') { e.preventDefault(); if ($('[data-fkey="pnotes"]')) showNotesEditor('pnotes', false); return true; }
-  if ((f === 'area-title' || f === 'heading-title') && e.key === 'Enter') { e.preventDefault(); el.blur(); return true; }
+  if (f === 'heading-title') {
+    const h = getH(id); if (!h) return false;
+    if (mod && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); ui.focusAfter = `[data-fkey="h-${id}"]`; moveHeadingCol(h, e.key === 'ArrowUp' ? -1 : 1); return true; }
+    if (e.key === 'Enter') {
+      e.preventDefault(); el.blur();
+      // a heading just named, with nothing under it yet: carry straight on with its first to-do
+      const p = getP(h.projectId), empty = !S.todos.some((t) => t.headingId === h.id && !t.trashed && t.status === 'open');
+      if (empty && h.title.trim() && p && p.status === 'open' && !p.trashed) newTodo({ sec: `project:${h.projectId}:${h.id}` });
+      return true;
+    }
+  }
+  if (f === 'area-title' && e.key === 'Enter') { e.preventDefault(); el.blur(); return true; }
   return false;
 }
 

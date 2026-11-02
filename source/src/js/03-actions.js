@@ -246,14 +246,22 @@ async function deleteArea(a) {
   });
   navigate('today');
 }
-function newHeading(projectId, afterId) {
+/* a new heading at the end of the project, or right after a column of the headings board
+   (opts.after: 'h:headingId', or 'n:projectId' for the top), stacked under it */
+function newHeading(projectId, opts = {}) {
   let h;
+  const after = opts.after && opts.after.startsWith('h:') ? getH(opts.after.slice(2)) : null;
   commit('New Heading', () => {
-    const hs = S.headings.filter((x) => x.projectId === projectId && !x.archived);
-    h = { id: uid(), projectId, title: '', order: endOrder(hs), archived: false };
+    const hs = S.headings.filter((x) => x.projectId === projectId && !x.archived).sort(byOrder);
+    let order = endOrder(hs);
+    if (opts.after) { const i = after ? hs.indexOf(after) + 1 : 0; order = orderBetween(hs[i - 1] ? hs[i - 1].order : null, hs[i] ? hs[i].order : null)[0]; }
+    h = { id: uid(), projectId, title: '', order, archived: false };
     S.headings.push(h);
-  });
+  }, { render: false });
+  if (opts.after && ui.hUnder) { ui.hUnder.add(h.id); saveHUnder(); }
+  ui.sel.clear(); ui.anchor = null; // so N then goes under the new heading, not to a to-do picked earlier
   ui.focusAfter = `[data-fkey="h-${h.id}"]`; render();
+  return h;
 }
 async function deleteHeading(h) {
   const todos = S.todos.filter((t) => t.headingId === h.id && !t.trashed && t.status === 'open');

@@ -21,7 +21,9 @@ function dragSource(target) {
   const magic = target.closest('#magic');
   if (magic) return { magic: true, src: null };
   const src = target.closest('[data-drag]');
-  if (!src || target.closest('input, textarea, select, .cb, .restore, .card, .ib, .sel-ring') || ui.selectMode) return null;
+  // a heading's name drags its heading, until you've clicked into it to rename it
+  const headName = target.closest('textarea.h-title') && document.activeElement !== target.closest('textarea.h-title');
+  if (!src || (!headName && target.closest('input, textarea, select')) || target.closest('.cb, .restore, .card, .ib, .sel-ring') || ui.selectMode) return null;
   return { magic: false, src };
 }
 function beginTracking(found, x, y, pt, pid) {
@@ -75,6 +77,7 @@ function touchEnd(e) {
 }
 function startDrag() {
   const st = D.st; st.active = true; clearTimeout(st.timer); st.timer = null;
+  const a = document.activeElement; if (st.kind === 'heading' && a && a.matches && a.matches('.h-title')) a.blur(); // the press focused the name; this is a drag
   if (st.kind === 'todo' || st.kind === 'project') {
     const sameKind = [...ui.sel].filter((id) => (st.kind === 'todo' ? getT(id) : getP(id)));
     st.ids = ui.sel.has(st.id) && sameKind.length > 1 ? sameKind : [st.id];
