@@ -109,6 +109,7 @@ function handleAction(act, el, e) {
       return;
     }
     case 'board-add': openBoardPicker(el); return;
+    case 'board-add-below': openBoardPicker(el, { below: el.dataset.col }); return;
     case 'sort-menu': openSortMenu(el); return;
     case 'waiting': openWaiting([id], el); return;
     case 'stop-waiting': stopWaiting([id]); return;
@@ -341,7 +342,7 @@ function viewMenu(el) {
     const n = boardCols().length;
     openMenu(el, [...batch,
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
-      { label: 'Fit All Widths Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w), fn: resetAllWidths },
+      { label: 'Fit All Sizes Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w || c.h), fn: resetAllSizes },
       sortMenuItem(el),
       { label: S.settings.density === 'compact' ? 'Comfortable Rows' : 'Compact Rows', icon: 'layers', fn: toggleCompact },
       { label: 'Status Report…', icon: 'report', disabled: !n, fn: () => openReport({ type: 'board' }) },

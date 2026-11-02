@@ -112,9 +112,10 @@ function dragTrack(fromLoop) {
   clearDropMarks(st); st.target = null;
   // auto-scroll whichever pane is under the pointer
   const pane = document.elementFromPoint(st.x, st.y);
-  const scroller = pane && (pane.closest('#sb-scroll') || pane.closest('#main'));
+  const inner = pane && pane.closest('#content .bcol-body[data-vscroll]'); // a board column with its own height scrolls inside itself
+  const scroller = (inner && inner.scrollHeight > inner.clientHeight + 1 && inner) || (pane && (pane.closest('#sb-scroll') || pane.closest('#main')));
   st.scroll = null;
-  if (scroller) { const r = scroller.getBoundingClientRect(); const edge = 48; if (st.y < r.top + edge) st.scroll = { el: scroller, dy: -Math.ceil((r.top + edge - st.y) / 4) }; else if (st.y > r.bottom - edge) st.scroll = { el: scroller, dy: Math.ceil((st.y - (r.bottom - edge)) / 4) }; }
+  if (scroller) { const r = scroller.getBoundingClientRect(); const edge = Math.min(48, r.height / 4); if (st.y < r.top + edge) st.scroll = { el: scroller, dy: -Math.ceil((r.top + edge - st.y) / 4) }; else if (st.y > r.bottom - edge) st.scroll = { el: scroller, dy: Math.ceil((st.y - (r.bottom - edge)) / 4) }; }
   st.ghost.style.display = 'none';
   const el = document.elementFromPoint(st.x, st.y);
   st.ghost.style.display = '';

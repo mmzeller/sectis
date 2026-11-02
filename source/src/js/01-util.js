@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.28.0';
+const APP_VERSION = '1.29.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -164,6 +164,7 @@ const I = {
   chevL: svg('<path d="m14.5 5.5-6.5 6.5 6.5 6.5"/>'),
   chevR: svg('<path d="m9.5 5.5 6.5 6.5-6.5 6.5"/>'),
   chevD: svg('<path d="m5.5 9.5 6.5 6.5 6.5-6.5"/>'),
+  chevU: svg('<path d="m5.5 14.5 6.5-6.5 6.5 6.5"/>'),
   gear: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/>'),
   x: svg('<path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/>'),
   check: svg('<path d="m5 12.5 4.3 4.3L19 7"/>'),

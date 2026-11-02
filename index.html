@@ -501,7 +501,7 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .banner { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: var(--accent-tint); color: var(--fg); font-size: 13px; flex-wrap: wrap; }
 
 /* Drag */
-.drag-ghost { position: fixed; z-index: 100; pointer-events: none; padding: 6px 12px; border-radius: 8px; background: var(--pop); box-shadow: var(--shadow-pop); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.drag-ghost { position: fixed; left: 0; top: 0; z-index: 100; pointer-events: none; padding: 6px 12px; border-radius: 8px; background: var(--pop); box-shadow: var(--shadow-pop); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; display: flex; align-items: center; gap: 8px; }
 .drag-ghost .n { background: var(--accent); color: var(--accent-ink); border-radius: 999px; font-size: 11px; font-weight: 700; padding: 0 6px; }
 .drop-line { position: fixed; z-index: 99; height: 2px; background: var(--accent); border-radius: 2px; pointer-events: none; }
 .drop-line::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; border: 2px solid var(--accent); background: var(--bg); }
@@ -785,17 +785,55 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
   .content.board-view { padding-left: 0; padding-right: 0; }
   .board-view .lh { padding-left: 16px; padding-right: 16px; }
   .board { padding: 10px 16px 24px; scroll-snap-type: x mandatory; scroll-padding-left: 16px; }
-  .bcol { flex: 0 0 86%; min-width: 0; }
+  .bcol, .bstack { flex: 0 0 86%; min-width: 0; }
 }
+
+/* stacks: columns one under another, sharing a width */
+.bstack { flex: 1 1 300px; min-width: 260px; display: flex; flex-direction: column; gap: 14px; scroll-snap-align: start; scroll-margin-left: 2px; }
+.bstack.sized { min-width: 0; }
+.bstack > .bcol { flex: none; min-width: 0; scroll-snap-align: none; }
+.bstack-add { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: -4px; padding: 8px 10px; border: 1.5px dashed var(--line-strong); border-radius: 12px; color: var(--muted); font-weight: 600; font-size: 13px; background: none; opacity: 0; transition: opacity .12s; }
+.bstack-add .ic { width: 15px; height: 15px; }
+.bstack:hover > .bstack-add, .bstack-add:focus-visible { opacity: 1; }
+.bstack-add:hover { color: var(--fg); border-color: var(--muted); background: var(--hover); }
+/* a column given its own height scrolls inside */
+.bcol.sized-h { display: flex; flex-direction: column; }
+.bcol.sized-h > .bcol-h { flex: none; }
+.bcol.sized-h > .bcol-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+
+/* moving a column: grab its title bar, or the grip on its top edge */
+@media (pointer: fine) { .bstack .bcol-h, .hcol[data-hcol^="h:"] .bcol-h { cursor: grab; } }
+.bcol-grip { position: absolute; top: -1px; left: 50%; width: 56px; height: 10px; transform: translateX(-50%); cursor: grab; z-index: 2; touch-action: none; }
+.bcol-grip::after { content: ""; position: absolute; left: 14px; right: 14px; top: 3px; height: 4px; border-radius: 2px; background: var(--line-strong); opacity: 0; transition: opacity .12s, background .12s; }
+.bcol:hover > .bcol-grip::after { opacity: 1; }
+.bcol-grip:hover::after { background: var(--muted); }
+.bcol.col-lifted { opacity: .45; outline: 2px dashed var(--accent); outline-offset: -1px; }
+body.col-dragging, body.col-dragging * { cursor: grabbing !important; user-select: none !important; -webkit-user-select: none !important; }
+body.col-dragging .board { scroll-snap-type: none; }
+body.col-dragging .bstack-add, body.col-dragging .bcol-grip::after { opacity: 0 !important; }
+.col-drop { position: fixed; z-index: 99; background: var(--accent); border-radius: 2px; pointer-events: none; }
+.col-drop.h { height: 3px; }
+.col-drop.v { width: 3px; }
 
 /* column width handle on each column's right edge */
 .bcol-resize { position: absolute; top: 10px; bottom: 10px; right: -7px; width: 11px; cursor: col-resize; z-index: 3; touch-action: none; }
 .bcol-resize::after { content: ""; position: absolute; left: 4px; top: 0; bottom: 0; width: 3px; border-radius: 2px; background: transparent; transition: background .12s; }
 .bcol-resize:hover::after, .bcol-resize.on::after { background: var(--accent); }
+/* height handle on the bottom edge, both at the bottom-right corner */
+.bcol-resize-b { position: absolute; left: 14px; right: 14px; bottom: -7px; height: 11px; cursor: row-resize; z-index: 3; touch-action: none; }
+.bcol-resize-b::after { content: ""; position: absolute; top: 4px; left: 0; right: 0; height: 3px; border-radius: 2px; background: transparent; transition: background .12s; }
+.bcol-resize-b:hover::after, .bcol-resize-b.on::after { background: var(--accent); }
+.bcol-resize-c { position: absolute; right: -7px; bottom: -7px; width: 20px; height: 20px; cursor: nwse-resize; z-index: 4; touch-action: none; }
+.bcol-resize-c::after { content: ""; position: absolute; right: 11px; bottom: 11px; width: 7px; height: 7px; border-right: 2px solid var(--line-strong); border-bottom: 2px solid var(--line-strong); border-bottom-right-radius: 3px; opacity: 0; transition: opacity .12s, border-color .12s; }
+.bcol:hover > .bcol-resize-c::after { opacity: 1; }
+.bcol-resize-c:hover::after, .bcol-resize-c.on::after { border-color: var(--accent); }
 body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none !important; -webkit-user-select: none !important; }
+body.col-resizing.rs-y, body.col-resizing.rs-y * { cursor: row-resize !important; }
+body.col-resizing.rs-xy, body.col-resizing.rs-xy * { cursor: nwse-resize !important; }
 body.col-resizing .board { scroll-snap-type: none; }
+body.col-resizing .bstack-add { opacity: 0 !important; }
 .bcol.sized { min-width: 0; }
-@media (max-width: 760px) { .bcol-resize { display: none; } }
+@media (pointer: coarse) { .bcol-resize, .bcol-resize-b, .bcol-resize-c, .bcol-grip, .bstack-add { display: none; } }
 
 /* templates list */
 .tpl-row { cursor: pointer; align-items: center; }
@@ -858,7 +896,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 #app.compact .hrow { margin-top: 12px; }
 #app.compact .bcol { padding-top: 6px; padding-bottom: 6px; }
 #app.compact .bcol-h { padding-bottom: 6px; margin-bottom: 2px; }
-#app.compact .board { gap: 10px; }
+#app.compact .board, #app.compact .bstack { gap: 10px; }
 #app.compact .r-cklist { margin-top: 3px; }
 #app.compact .r-ckit { padding: 1px 0; }
 @media (max-width: 760px) {
@@ -884,7 +922,7 @@ body.col-resizing .board { scroll-snap-type: none; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.28.0';
+const APP_VERSION = '1.29.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1049,6 +1087,7 @@ const I = {
   chevL: svg('<path d="m14.5 5.5-6.5 6.5 6.5 6.5"/>'),
   chevR: svg('<path d="m9.5 5.5 6.5 6.5-6.5 6.5"/>'),
   chevD: svg('<path d="m5.5 9.5 6.5 6.5 6.5-6.5"/>'),
+  chevU: svg('<path d="m5.5 14.5 6.5-6.5 6.5 6.5"/>'),
   gear: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/>'),
   x: svg('<path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/>'),
   check: svg('<path d="m5 12.5 4.3 4.3L19 7"/>'),
@@ -2300,11 +2339,14 @@ function renderMain() {
   }
   // Boards scroll sideways inside the page. Each change redraws the page, which would put a board
   // back at its first column, so remember how far each board was scrolled and put it back.
-  const sideways = {};
+  // A column given its own height scrolls inside itself, so it gets the same treatment, up and down.
+  const sideways = {}, updown = {};
   $$('#content [data-hscroll]').forEach((el) => { sideways[el.dataset.hscroll] = el.scrollLeft; });
+  $$('#content [data-vscroll]').forEach((el) => { updown[el.dataset.vscroll] = el.scrollTop; });
   $('#content').classList.toggle('board-view', ui.view.type === 'board' || (ui.view.type === 'project' && projectBoardOn(getP(ui.view.id))));
   $('#content').innerHTML = mobileBarHTML() + html;
   $$('#content [data-hscroll]').forEach((el) => { const x = sideways[el.dataset.hscroll]; if (x) el.scrollLeft = x; });
+  $$('#content [data-vscroll]').forEach((el) => { const y = updown[el.dataset.vscroll]; if (y) el.scrollTop = y; });
   addSortPill();
 }
 function viewInbox() {
@@ -3191,9 +3233,10 @@ function dragTrack(fromLoop) {
   clearDropMarks(st); st.target = null;
   // auto-scroll whichever pane is under the pointer
   const pane = document.elementFromPoint(st.x, st.y);
-  const scroller = pane && (pane.closest('#sb-scroll') || pane.closest('#main'));
+  const inner = pane && pane.closest('#content .bcol-body[data-vscroll]'); // a board column with its own height scrolls inside itself
+  const scroller = (inner && inner.scrollHeight > inner.clientHeight + 1 && inner) || (pane && (pane.closest('#sb-scroll') || pane.closest('#main')));
   st.scroll = null;
-  if (scroller) { const r = scroller.getBoundingClientRect(); const edge = 48; if (st.y < r.top + edge) st.scroll = { el: scroller, dy: -Math.ceil((r.top + edge - st.y) / 4) }; else if (st.y > r.bottom - edge) st.scroll = { el: scroller, dy: Math.ceil((st.y - (r.bottom - edge)) / 4) }; }
+  if (scroller) { const r = scroller.getBoundingClientRect(); const edge = Math.min(48, r.height / 4); if (st.y < r.top + edge) st.scroll = { el: scroller, dy: -Math.ceil((r.top + edge - st.y) / 4) }; else if (st.y > r.bottom - edge) st.scroll = { el: scroller, dy: Math.ceil((st.y - (r.bottom - edge)) / 4) }; }
   st.ghost.style.display = 'none';
   const el = document.elementFromPoint(st.x, st.y);
   st.ghost.style.display = '';
@@ -3447,6 +3490,7 @@ function handleAction(act, el, e) {
       return;
     }
     case 'board-add': openBoardPicker(el); return;
+    case 'board-add-below': openBoardPicker(el, { below: el.dataset.col }); return;
     case 'sort-menu': openSortMenu(el); return;
     case 'waiting': openWaiting([id], el); return;
     case 'stop-waiting': stopWaiting([id]); return;
@@ -3679,7 +3723,7 @@ function viewMenu(el) {
     const n = boardCols().length;
     openMenu(el, [...batch,
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
-      { label: 'Fit All Widths Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w), fn: resetAllWidths },
+      { label: 'Fit All Sizes Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w || c.h), fn: resetAllSizes },
       sortMenuItem(el),
       { label: S.settings.density === 'compact' ? 'Comfortable Rows' : 'Compact Rows', icon: 'layers', fn: toggleCompact },
       { label: 'Status Report…', icon: 'report', disabled: !n, fn: () => openReport({ type: 'board' }) },
@@ -5732,13 +5776,19 @@ function projectChildrenHTML(p) {
 }
 
 /* ===================== Board =====================
-   Projects and areas side by side, one per column, like a kanban board.
-   The columns are remembered per device (a Mac layout, not synced). */
+   Projects and areas as columns, like a kanban board. Columns sit side by side in stacks, and a
+   stack can hold several columns one under another, so the space below a short list gets used.
+   It's a per-device layout (a Mac layout, not synced). Each column remembers its stack (l) and
+   its own height (h); a stack's width (w) is kept on every column in it. */
 function loadBoard() {
   loadCkClip();
   try { ui.board = JSON.parse(lsGet('sectis.board') || '[]').filter((c) => c && c.id && (c.t === 'p' || c.t === 'a')); } catch (e) { ui.board = []; }
+  // a Board from before stacks: every column is a stack of its own, in the same order
+  let next = ui.board.reduce((m, c) => (Number.isInteger(c.l) && c.l >= 0 ? Math.max(m, c.l + 1) : m), 0);
+  ui.board.forEach((c) => { if (!(Number.isInteger(c.l) && c.l >= 0)) c.l = next++; });
   try { ui.projBoard = new Set(JSON.parse(lsGet('sectis.pboard') || '[]')); } catch (e) { ui.projBoard = new Set(); }
   try { ui.hcolW = JSON.parse(lsGet('sectis.hcolw') || '{}') || {}; } catch (e) { ui.hcolW = {}; }
+  try { ui.hcolH = JSON.parse(lsGet('sectis.hcolh') || '{}') || {}; } catch (e) { ui.hcolH = {}; }
 }
 function saveBoard() { lsSet('sectis.board', JSON.stringify(ui.board)); }
 function colShown(c) {
@@ -5746,30 +5796,84 @@ function colShown(c) {
   const p = getP(c.id);
   return !!p && !p.trashed && !p.isTemplate && !(p.status !== 'open' && p.logged);
 }
-function boardCols() { return (ui.board || []).filter(colShown); }
+function boardCols() { return [].concat(...boardStacks()); }
 function onBoard(t, id) { return (ui.board || []).some((c) => c.t === t && c.id === id); }
 function colName(t, id) { return t === 'p' ? pTitle(getP(id)) : aTitle(getA(id)); }
+const colKey = (c) => `${c.t}:${c.id}`;
+
+/* ---- stacks: the columns on screen, left to right, each top to bottom ---- */
+function boardStacks() {
+  const m = new Map();
+  (ui.board || []).filter(colShown).forEach((c) => { if (!m.has(c.l)) m.set(c.l, []); m.get(c.l).push(c); });
+  return [...m.keys()].sort((a, b) => a - b).map((k) => m.get(k));
+}
+/* write the layout back from a list of stacks; empty stacks drop out. Columns not on screen
+   (a completed project, say) keep their stack number, so they come back near where they were. */
+function setBoardStacks(stacks) {
+  stacks = stacks.filter((s) => s.length);
+  const shown = new Set([].concat(...stacks));
+  const hidden = (ui.board || []).filter((c) => !shown.has(c));
+  ui.board = [];
+  stacks.forEach((s, i) => s.forEach((c) => { c.l = i; ui.board.push(c); }));
+  hidden.forEach((c) => { c.l = Math.min(c.l, stacks.length); ui.board.push(c); });
+  saveBoard();
+}
+function stackPos(stacks, key) {
+  for (let i = 0; i < stacks.length; i++) { const j = stacks[i].findIndex((c) => colKey(c) === key); if (j >= 0) return [i, j]; }
+  return null;
+}
+const stackW = (s) => { const c = s.find((x) => x.w); return c ? clampW(c.w) : 0; };
 
 function boardAdd(cols, opts = {}) {
   const prev = ui.board || [];
   if (opts.replace) ui.board = [];
+  const stacks = boardStacks();
+  const below = opts.below && stackPos(stacks, opts.below); // stack them under this column
+  let at = below ? below[1] + 1 : 0;
   cols.forEach((c) => {
     if (onBoard(c.t, c.id)) return;
-    const old = prev.find((x) => x.t === c.t && x.id === c.id); // a column that comes back keeps its width
-    ui.board.push(old && old.w ? { t: c.t, id: c.id, w: old.w } : { t: c.t, id: c.id });
+    const old = prev.find((x) => x.t === c.t && x.id === c.id); // a column that comes back keeps its size
+    const e = { t: c.t, id: c.id };
+    if (old && old.h) e.h = old.h;
+    if (below) { const s = stacks[below[0]], w = stackW(s); if (w) e.w = w; s.splice(at++, 0, e); }
+    else { if (old && old.w) e.w = old.w; stacks.push([e]); }
   });
-  saveBoard();
+  setBoardStacks(stacks);
   if (opts.go) navigate('board');
   else { render(); if (opts.toast) toast(opts.toast, { action: 'Show Board', fn: () => navigate('board') }); }
 }
 function boardRemove(t, id) { ui.board = ui.board.filter((c) => !(c.t === t && c.id === id)); saveBoard(); render(); }
 function boardToggle(t, id) { if (onBoard(t, id)) boardRemove(t, id); else boardAdd([{ t, id }]); }
-function boardMove(t, id, dir) {
-  const vis = boardCols(), hidden = ui.board.filter((c) => !colShown(c));
-  const i = vis.findIndex((c) => c.t === t && c.id === id), j = i + dir;
-  if (i < 0 || j < 0 || j >= vis.length) return;
-  [vis[i], vis[j]] = [vis[j], vis[i]];
-  ui.board = vis.concat(hidden); saveBoard(); render();
+/* Move a column. `to` is one of:
+     { stack, index }  into a stack, at that place among its other columns
+     { newStack: i }   a stack of its own, at position i among the stacks as they are now
+     { below: key }    under another column */
+function boardPlace(key, to) {
+  const stacks = boardStacks(), from = stackPos(stacks, key); if (!from) return;
+  const c = stacks[from[0]].splice(from[1], 1)[0]; // the emptied stack stays until the end, so positions still line up
+  if (to.below) { const p = stackPos(stacks, to.below); if (!p) return; to = { stack: p[0], index: p[1] + 1 }; }
+  if (to.newStack != null) stacks.splice(clamp(to.newStack, 0, stacks.length), 0, [c]);
+  else {
+    const s = stacks[to.stack]; if (!s) return;
+    if (to.stack !== from[0]) { const w = stackW(s); if (w) c.w = w; else delete c.w; } // it takes the width of the stack it joins
+    s.splice(clamp(to.index, 0, s.length), 0, c);
+  }
+  setBoardStacks(stacks); render();
+}
+/* the column menu's Move Up / Down (within its stack) and Left / Right (a stack of its own on that side) */
+function boardNudge(key, dir) {
+  const stacks = boardStacks(), p = stackPos(stacks, key); if (!p) return;
+  const [i, j] = p, alone = stacks[i].length === 1;
+  if (dir === 'up') boardPlace(key, { stack: i, index: j - 1 });
+  else if (dir === 'down') boardPlace(key, { stack: i, index: j + 1 });
+  else if (dir === 'left') boardPlace(key, { newStack: alone ? i - 1 : i });
+  else boardPlace(key, { newStack: alone ? i + 2 : i + 1 });
+}
+function nudgeable(key) {
+  const stacks = boardStacks(), p = stackPos(stacks, key);
+  if (!p) return { up: false, down: false, left: false, right: false, stacked: false };
+  const [i, j] = p, n = stacks[i].length;
+  return { up: j > 0, down: j < n - 1, left: !(n === 1 && i === 0), right: !(n === 1 && i === stacks.length - 1), stacked: n > 1 };
 }
 /* an area's projects as columns, plus the area itself first when it has to-dos of its own */
 function areaAsBoard(a) {
@@ -5778,47 +5882,73 @@ function areaAsBoard(a) {
   const cols = (loose || !projs.length ? [{ t: 'a', id: a.id }] : []).concat(projs.map((p) => ({ t: 'p', id: p.id })));
   boardAdd(cols, { replace: true, go: true });
 }
-/* ---- column widths: drag a column's right edge; double-click it to go back to automatic ---- */
-const COL_MIN = 220, COL_MAX = 1200;
+
+/* ---- sizes: drag a column's right edge (width), bottom edge (height) or corner (both);
+   double-click one to go back to automatic. A stacked column's width is its stack's. ---- */
+const COL_MIN = 220, COL_MAX = 1200, COLH_MIN = 120, COLH_MAX = 4000;
 const clampW = (w) => Math.round(Math.max(COL_MIN, Math.min(COL_MAX, w)));
+const clampH = (h) => Math.round(Math.max(COLH_MIN, Math.min(COLH_MAX, h)));
 function colEntry(key) { const [t, id] = key.split(':'); return (ui.board || []).find((c) => c.t === t && c.id === id); }
-function colStyle(c) { return c.w ? ` style="flex:0 0 ${clampW(c.w)}px;width:${clampW(c.w)}px"` : ''; }
-function resizeHandleHTML(c) { return `<div class="bcol-resize" data-colresize="${c.t}:${c.id}" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div>`; }
-/* Board columns keep their width in the board list; heading columns (h:headingId, n:projectId) in their own map */
+function colHStyle(h) { return h ? ` style="height:${clampH(h)}px"` : ''; }
+function resizeHandlesHTML(key) {
+  return `<div class="bcol-resize" data-colresize="${key}" data-axis="x" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div>`
+    + `<div class="bcol-resize-b" data-colresize="${key}" data-axis="y" aria-hidden="true" title="Drag to change the height. Double-click to fit automatically."></div>`
+    + `<div class="bcol-resize-c" data-colresize="${key}" data-axis="xy" aria-hidden="true" title="Drag to resize. Double-click to fit automatically."></div>`;
+}
+const gripHTML = '<div class="bcol-grip" aria-hidden="true" title="Drag to move"></div>';
+/* Board columns keep their size in the board list; heading columns (h:headingId, n:projectId) in their own maps */
 function getColW(key) { const c = colEntry(key); return c ? c.w || 0 : (ui.hcolW || {})[key] || 0; }
-function setColWidth(key, w) {
+function getColH(key) { const c = colEntry(key); return c ? c.h || 0 : (ui.hcolH || {})[key] || 0; }
+function setColSize(key, size) {
   const c = colEntry(key);
-  if (c) { if (w) c.w = clampW(w); else delete c.w; saveBoard(); }
-  else { ui.hcolW = ui.hcolW || {}; if (w) ui.hcolW[key] = clampW(w); else delete ui.hcolW[key]; lsSet('sectis.hcolw', JSON.stringify(ui.hcolW)); }
+  if (c) {
+    if ('w' in size) { const s = boardStacks().find((x) => x.includes(c)) || [c]; s.forEach((x) => { if (size.w) x.w = clampW(size.w); else delete x.w; }); }
+    if ('h' in size) { if (size.h) c.h = clampH(size.h); else delete c.h; }
+    saveBoard();
+  } else {
+    ui.hcolW = ui.hcolW || {}; ui.hcolH = ui.hcolH || {};
+    if ('w' in size) { if (size.w) ui.hcolW[key] = clampW(size.w); else delete ui.hcolW[key]; lsSet('sectis.hcolw', JSON.stringify(ui.hcolW)); }
+    if ('h' in size) { if (size.h) ui.hcolH[key] = clampH(size.h); else delete ui.hcolH[key]; lsSet('sectis.hcolh', JSON.stringify(ui.hcolH)); }
+  }
   render();
 }
-function resetAllWidths() { (ui.board || []).forEach((c) => delete c.w); saveBoard(); render(); }
+function setColWidth(key, w) { setColSize(key, { w }); }
+function resetAllSizes() { (ui.board || []).forEach((c) => { delete c.w; delete c.h; }); saveBoard(); render(); }
 document.addEventListener('pointerdown', (e) => {
-  const h = e.target.closest && e.target.closest('#content .bcol-resize');
+  const h = e.target.closest && e.target.closest('#content [data-colresize]');
   if (!h || e.button !== 0) return;
   e.preventDefault(); e.stopPropagation();
-  const col = h.closest('.bcol'), key = h.dataset.colresize;
-  const x0 = e.clientX, w0 = col.getBoundingClientRect().width;
+  const col = h.closest('.bcol'), key = h.dataset.colresize, axis = h.dataset.axis || 'x';
+  const box = col.closest('.bstack') || col; // what gets wider: the whole stack, or a heading column
+  const doW = axis.includes('x'), doH = axis.includes('y');
+  const x0 = e.clientX, y0 = e.clientY, w0 = box.getBoundingClientRect().width, h0 = col.getBoundingClientRect().height;
   let moved = false;
   try { h.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
-  document.body.classList.add('col-resizing'); h.classList.add('on');
+  document.body.classList.add('col-resizing', 'rs-' + axis); h.classList.add('on');
   const move = (ev) => {
-    if (Math.abs(ev.clientX - x0) > 2) moved = true;
+    if (Math.abs(ev.clientX - x0) > 2 || Math.abs(ev.clientY - y0) > 2) moved = true;
     if (!moved) return;
-    const w = clampW(w0 + ev.clientX - x0);
-    col.style.flex = `0 0 ${w}px`; col.style.width = w + 'px';
+    if (doW) { const w = clampW(w0 + ev.clientX - x0); box.style.flex = `0 0 ${w}px`; box.style.width = w + 'px'; box.classList.add('sized'); }
+    if (doH) { col.style.height = clampH(h0 + ev.clientY - y0) + 'px'; col.classList.add('sized-h'); }
   };
   const up = (ev) => {
     h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
-    document.body.classList.remove('col-resizing'); h.classList.remove('on');
-    if (moved && ev.type === 'pointerup') setColWidth(key, w0 + ev.clientX - x0);
-    else if (moved) render();
+    document.body.classList.remove('col-resizing', 'rs-' + axis); h.classList.remove('on');
+    if (moved && ev.type === 'pointerup') {
+      const size = {};
+      if (doW) size.w = w0 + ev.clientX - x0;
+      if (doH) size.h = h0 + ev.clientY - y0;
+      setColSize(key, size);
+    } else if (moved) render();
   };
   h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
 }, true);
 document.addEventListener('dblclick', (e) => {
-  const h = e.target.closest && e.target.closest('#content .bcol-resize');
-  if (h) { e.preventDefault(); setColWidth(h.dataset.colresize, 0); }
+  const h = e.target.closest && e.target.closest('#content [data-colresize]');
+  if (!h) return;
+  e.preventDefault();
+  const axis = h.dataset.axis || 'x';
+  setColSize(h.dataset.colresize, axis === 'x' ? { w: 0 } : axis === 'y' ? { h: 0 } : { w: 0, h: 0 });
 });
 const isColMenu = (extra) => extra.some((x) => x.header === 'Column'); // a column's own menu has its own board items
 function boardMenuItems(t, id, fromColumn) {
@@ -5831,23 +5961,28 @@ function boardMenuItems(t, id, fromColumn) {
 
 /* ---- view ---- */
 function viewBoard() {
-  const cols = boardCols();
+  const stacks = boardStacks();
   let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><h1 class="lh-title">Board</h1><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
-  if (!cols.length) {
+  if (!stacks.length) {
     return html + emptyHTML('columns', 'See your lists side by side',
       'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');
   }
-  return html + `<div class="board" data-hscroll="board" data-cols="${cols.length}">${cols.map(boardColHTML).join('')}</div>`;
+  return html + `<div class="board bstacks" data-hscroll="board" data-cols="${[].concat(...stacks).length}">${stacks.map((s, i) => {
+    const w = stackW(s), last = s[s.length - 1];
+    return `<div class="bstack${w ? ' sized' : ''}" data-stack="${i}"${w ? ` style="flex:0 0 ${w}px;width:${w}px"` : ''}>${s.map(boardColHTML).join('')}`
+      + `<button class="bstack-add" data-action="board-add-below" data-col="${colKey(last)}" title="Put another project or area below this one">${ic('plus')}<span>Add Below</span></button></div>`;
+  }).join('')}</div>`;
 }
 function boardColHTML(c) {
-  const more = `<button class="ib" data-action="bcol-menu" data-col="${c.t}:${c.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`;
+  const key = colKey(c), more = `<button class="ib" data-action="bcol-menu" data-col="${key}" aria-label="Column options" title="Column options">${ic('more')}</button>`;
+  const sizedH = c.h ? ' sized-h' : '', bodyAttr = c.h ? ` data-vscroll="${key}"` : '';
   if (c.t === 'p') {
     const p = getP(c.id), pr = projectProgress(p), open = p.status === 'open';
     const area = p.areaId && getA(p.areaId);
     const sec = `project:${p.id}:`;
-    return `<section class="bcol${open ? '' : ' closed'}${c.w ? ' sized' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colStyle(c)}>
+    return `<section class="bcol${open ? '' : ' closed'}${sizedH}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h)}>${gripHTML}
       <div class="bcol-h" data-col="p:${p.id}">${pieIc(pr.frac, 'bcol-ic')}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button>`}<div class="bcol-sub">${open ? (area ? esc(aTitle(area)) : 'Project') : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
-      <div class="bcol-body">${boardProjectBody(p)}</div>${resizeHandleHTML(c)}</section>`;
+      <div class="bcol-body"${bodyAttr}>${boardProjectBody(p)}</div>${resizeHandlesHTML(key)}</section>`;
   }
   const a = getA(c.id);
   const todos = S.todos.filter((t) => t.areaId === a.id && !t.projectId && liveTodo(t)).sort(byOrder);
@@ -5857,9 +5992,9 @@ function boardColHTML(c) {
   let body = secHTML(sec, todos, { when: true });
   if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(projs).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
-  return `<section class="bcol${c.w ? ' sized' : ''}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colStyle(c)}>
+  return `<section class="bcol${sizedH}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h)}>${gripHTML}
     <div class="bcol-h" data-col="a:${a.id}"><span class="ic bcol-ic" style="color:var(--c-area)">${I.area}</span><div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
-    <div class="bcol-body">${body}</div>${resizeHandleHTML(c)}</section>`;
+    <div class="bcol-body"${bodyAttr}>${body}</div>${resizeHandlesHTML(key)}</section>`;
 }
 function boardProjectBody(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged));
@@ -5874,12 +6009,17 @@ function boardProjectBody(p) {
 }
 function boardColMenu(key, el) {
   const [t, id] = key.split(':');
-  const cols = boardCols(), i = cols.findIndex((c) => c.t === t && c.id === id);
+  const can = nudgeable(key), c = colEntry(key) || {};
   const extra = [
     { header: 'Column' },
-    { label: 'Move Left', icon: 'chevL', disabled: i <= 0, fn: () => boardMove(t, id, -1) },
-    { label: 'Move Right', icon: 'chevR', disabled: i < 0 || i >= cols.length - 1, fn: () => boardMove(t, id, 1) },
-    { label: 'Fit Width Automatically', icon: 'columns', disabled: !(colEntry(key) || {}).w, fn: () => setColWidth(key, 0) },
+    { label: 'Add Below…', icon: 'plus', fn: () => openBoardPicker(el, { below: key }) },
+    ...(can.stacked ? [
+      { label: 'Move Up', icon: 'chevU', disabled: !can.up, fn: () => boardNudge(key, 'up') },
+      { label: 'Move Down', icon: 'chevD', disabled: !can.down, fn: () => boardNudge(key, 'down') },
+    ] : []),
+    { label: 'Move Left', icon: 'chevL', disabled: !can.left, fn: () => boardNudge(key, 'left') },
+    { label: 'Move Right', icon: 'chevR', disabled: !can.right, fn: () => boardNudge(key, 'right') },
+    { label: 'Fit Size Automatically', icon: 'columns', disabled: !(c.w || c.h), fn: () => setColSize(key, { w: 0, h: 0 }) },
     sortMenuItem(el, 'Sort Board By…'),
     { label: 'Remove from Board', icon: 'x', fn: () => boardRemove(t, id) },
     { sep: 1 },
@@ -5902,11 +6042,12 @@ function setProjectBoard(id, on) {
 function projectBoardHTML(p, items, headings, ctx) {
   const open = p.status === 'open' && !p.trashed;
   const col = (key, sec, titleHTML, list, menuBtn) => {
-    const w = getColW(key);
+    const w = getColW(key), h = getColH(key);
     const hd = key.startsWith('h:') && getH(key.slice(2)) ? headingDoneCls(getH(key.slice(2))) : '';
-    return `<section class="bcol hcol${w ? ' sized' : ''}${hd}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${w ? ` style="flex:0 0 ${w}px;width:${w}px"` : ''}>
+    const style = [w ? `flex:0 0 ${w}px;width:${w}px` : '', h ? `height:${clampH(h)}px` : ''].filter(Boolean).join(';');
+    return `<section class="bcol hcol${w ? ' sized' : ''}${h ? ' sized-h' : ''}${hd}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${style ? ` style="${style}"` : ''}>${key.startsWith('h:') ? gripHTML : ''}
       <div class="bcol-h" data-hcol="${key}">${titleHTML}${list.filter((t) => t.status === 'open').length ? `<span class="bcol-count" title="Open to-dos">${list.filter((t) => t.status === 'open').length}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" title="New to-do" aria-label="New to-do">${ic('plus')}</button>` : ''}${menuBtn}</div>
-      <div class="bcol-body">${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}</div><div class="bcol-resize" data-colresize="${key}" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div></section>`;
+      <div class="bcol-body"${h ? ` data-vscroll="${key}"` : ''}>${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}</div>${resizeHandlesHTML(key)}</section>`;
   };
   const loose = items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder);
   let html = `<div class="board hboard" data-hscroll="hboard:${p.id}">`;
@@ -5927,7 +6068,7 @@ function moveHeadingCol(h, dir) {
 }
 function hcolMenu(el) {
   const key = el.dataset.col, h = el.dataset.id ? getH(el.dataset.id) : null;
-  const fit = { label: 'Fit Width Automatically', icon: 'columns', disabled: !getColW(key), fn: () => setColWidth(key, 0) };
+  const fit = { label: 'Fit Size Automatically', icon: 'columns', disabled: !(getColW(key) || getColH(key)), fn: () => setColSize(key, { w: 0, h: 0 }) };
   if (!h) { openMenu(el, [fit]); return; }
   const hs = S.headings.filter((x) => x.projectId === h.projectId && !x.archived).sort(byOrder), i = hs.indexOf(h);
   headingMenu(h, el, [
@@ -5938,8 +6079,12 @@ function hcolMenu(el) {
   ]);
 }
 
-/* ---- picking columns ---- */
-function openBoardPicker(anchor) {
+/* ---- picking columns ----
+   From Add Column: click to add (as a new column at the right) or remove.
+   From Add Below: each click puts that project or area under the column, then under the one
+   just added, so several go in, in the order picked. One already on the Board moves there. */
+function openBoardPicker(anchor, opts = {}) {
+  let below = opts.below && colEntry(opts.below) ? opts.below : null;
   const build = (q = '') => {
     const ql = q.trim().toLowerCase(); const m = (s) => !ql || (s || '').toLowerCase().includes(ql);
     const chk = (t, id) => (onBoard(t, id) ? `<span class="check">${ic('check')}</span>` : '');
@@ -5954,7 +6099,11 @@ function openBoardPicker(anchor) {
     });
     return out || '<p class="note" style="padding:6px 10px">No matching projects or areas.</p>';
   };
-  const L = openLayer({ anchor, cls: 'move-pop board-pop', html: `<div class="pk-h">Board Columns</div><input class="pk-in" id="bp-in" placeholder="Find a project or area" autocomplete="off" aria-label="Find a project or area"><div class="pick-list" id="bp-list">${build()}</div><div class="pk-foot note">Click to add or remove. Move columns from each column’s ••• menu, and drag a column’s right edge to change its width.</div>`,
+  const head = () => (below ? `Add Below “${esc(colName(...below.split(':')))}”` : 'Board Columns');
+  const foot = below
+    ? 'Click to put a project or area here. One that’s already on the Board moves here.'
+    : 'Click to add or remove. Drag a column by its title to move it, or to stack it under another, and drag its edges to resize it.';
+  const L = openLayer({ anchor, cls: 'move-pop board-pop', html: `<div class="pk-h" id="bp-h">${head()}</div><input class="pk-in" id="bp-in" placeholder="Find a project or area" autocomplete="off" aria-label="Find a project or area"><div class="pick-list" id="bp-list">${build()}</div><div class="pk-foot note">${foot}</div>`,
     onMount: (el) => {
       const inp = $('#bp-in', el), list = $('#bp-list', el);
       const nav = listKeys(el, '.pick-i', inp);
@@ -5963,7 +6112,14 @@ function openBoardPicker(anchor) {
         const b = e.target.closest('[data-col]'); if (!b) return;
         const [t, id] = b.dataset.col.split(':');
         if (ui.view.type !== 'board') { closeLayer(L); boardAdd([{ t, id }], { go: true }); return; }
-        boardToggle(t, id);
+        if (below) {
+          const key = `${t}:${id}`;
+          if (key !== below) {
+            if (onBoard(t, id)) boardPlace(key, { below }); else boardAdd([{ t, id }], { below });
+            if (stackPos(boardStacks(), key)) below = key; // the next one goes under this one
+          }
+          $('#bp-h', el).innerHTML = head();
+        } else boardToggle(t, id);
         list.innerHTML = build(inp.value);
         if (!isCoarse()) inp.focus({ preventScroll: true });
       });
@@ -6719,6 +6875,155 @@ document.addEventListener('focusout', (e) => {
   const inp = e.target.closest && e.target.closest('.rename-in');
   if (inp && ui.renaming && inp.isConnected) setTimeout(() => { if (ui.renaming && document.activeElement !== inp) finishRename(inp, true); }, 0);
 });
+
+/* ===================== Moving board columns (Mac) =====================
+   Drag a column by its title bar, or by the grip along its top edge.
+   Board: drop it in a stack, above, between or below the columns there (the empty space under a
+   short stack counts as its bottom), or near a stack's left or right edge for a new stack there.
+   A project's heading columns move left or right the same way, which reorders the headings. */
+const CD = { st: null };
+function colDragFrom(target) {
+  if (!target.closest || layers.length || D.st || CD.st || isCoarse() || ui.selectMode) return null;
+  const grip = target.closest('#content .bcol-grip');
+  const head = !grip && target.closest('#content .bcol-h');
+  if (!grip && !head) return null;
+  if (head && (target.closest('.ib, input, textarea, select') || head.querySelector('.rename-in'))) return null; // buttons, a heading's name, a rename in progress
+  const col = (grip || head).closest('.bcol'); if (!col) return null;
+  if (col.dataset.col && col.closest('.bstacks')) return { mode: 'board', key: col.dataset.col };
+  if ((col.dataset.hcol || '').startsWith('h:') && col.closest('.hboard')) return { mode: 'heading', key: col.dataset.hcol };
+  return null;
+}
+document.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || e.pointerType === 'touch') return;
+  const f = colDragFrom(e.target); if (!f) return;
+  e.preventDefault(); // no text selection while dragging; a plain click still goes through
+  CD.st = Object.assign(f, { x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, pid: e.pointerId, active: false });
+});
+document.addEventListener('pointermove', (e) => {
+  const st = CD.st; if (!st || e.pointerId !== st.pid) return;
+  st.x = e.clientX; st.y = e.clientY;
+  if (!st.active) { if (Math.hypot(st.x - st.x0, st.y - st.y0) <= 5) return; colDragStart(); }
+  e.preventDefault();
+  colDragTrack();
+}, { passive: false });
+document.addEventListener('pointerup', (e) => { const st = CD.st; if (!st || e.pointerId !== st.pid) return; if (st.active) colDragEnd(true); else CD.st = null; });
+document.addEventListener('pointercancel', () => { const st = CD.st; if (!st) return; if (st.active) colDragEnd(false); else CD.st = null; });
+window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && CD.st && CD.st.active) { e.preventDefault(); e.stopPropagation(); colDragEnd(false); } }, true);
+
+const colSel = (st) => (st.mode === 'board' ? `#content .bstacks .bcol[data-col="${CSS.escape(st.key)}"]` : `#content .hboard .bcol[data-hcol="${CSS.escape(st.key)}"]`);
+function colDragLabel(st) {
+  if (st.mode === 'board') { const [t, id] = st.key.split(':'); return colName(t, id); }
+  const h = getH(st.key.slice(2)); return (h && h.title) || 'Untitled heading';
+}
+function colDragStart() {
+  const st = CD.st; st.active = true;
+  document.body.classList.add('col-dragging');
+  const g = document.createElement('div'); g.className = 'drag-ghost';
+  g.innerHTML = `${ic('columns')}<span>${esc(colDragLabel(st))}</span>`;
+  document.body.append(g); st.ghost = g;
+  const m = document.createElement('div'); m.className = 'col-drop'; m.hidden = true; document.body.append(m); st.mark = m;
+  if (window.getSelection) window.getSelection().removeAllRanges();
+  const loop = () => { if (CD.st !== st) return; if (colAutoScroll(st)) colDragTrack(); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+function colDragTrack() {
+  const st = CD.st; if (!st || !st.active) return;
+  st.ghost.style.transform = `translate(${st.x + 14}px, ${st.y + 10}px)`;
+  const me = $(colSel(st)); if (me && !me.classList.contains('col-lifted')) me.classList.add('col-lifted'); // put back after a redraw (sync)
+  st.target = st.mode === 'board' ? boardDropAt(st, me) : headingDropAt(st, me);
+  const k = st.target && st.target.mark;
+  st.mark.hidden = !k;
+  if (!k) return;
+  st.mark.className = 'col-drop ' + k.dir;
+  Object.assign(st.mark.style, k.dir === 'h'
+    ? { left: k.left + 'px', top: k.top - 1.5 + 'px', width: k.size + 'px', height: '' }
+    : { left: k.left - 1.5 + 'px', top: k.top + 'px', height: k.size + 'px', width: '' });
+}
+/* where a dropped board column would go, and the line that shows it */
+function boardDropAt(st, me) {
+  const board = $('#content .bstacks'); if (!board) return null;
+  const br = board.getBoundingClientRect(), { x, y } = st;
+  if (x < br.left - 24 || x > br.right + 24 || y < br.top - 40) return null; // off the board: the sidebar, the title
+  const stacks = $$(':scope > .bstack', board), rs = stacks.map((s) => s.getBoundingClientRect());
+  if (!stacks.length) return null;
+  const mine = me ? stacks.indexOf(me.closest('.bstack')) : -1;
+  const alone = mine >= 0 && $$(':scope > .bcol', stacks[mine]).length === 1;
+  // the board's columns, top to bottom, for the height of a "new stack" line
+  const cols = $$('.bstack > .bcol', board).map((c) => c.getBoundingClientRect());
+  const top = Math.max(Math.min(...cols.map((r) => r.top)), 0), bottom = Math.min(Math.max(...cols.map((r) => r.bottom)), window.innerHeight);
+  const newStack = (i) => {
+    if (alone && (i === mine || i === mine + 1)) return null; // that's where it already is
+    const gx = i === 0 ? rs[0].left - 7 : i === rs.length ? rs[rs.length - 1].right + 7 : (rs[i - 1].right + rs[i].left) / 2;
+    return { to: { newStack: i }, mark: { dir: 'v', left: gx, top, size: Math.max(40, bottom - top) } };
+  };
+  for (let i = 0; i < rs.length; i++) {
+    const r = rs[i];
+    if (x < r.left) return newStack(i); // in the gap before it
+    if (x > r.right) continue;
+    const edge = Math.min(40, r.width * 0.18);
+    if (x < r.left + edge) return newStack(i);
+    if (x > r.right - edge) return newStack(i + 1);
+    // into this stack, above whichever column the pointer is over the top half of
+    const others = $$(':scope > .bcol', stacks[i]).filter((c) => c !== me), ors = others.map((c) => c.getBoundingClientRect());
+    const index = ors.filter((c) => c.top + c.height / 2 < y).length;
+    if (i === mine && index === $$(':scope > .bcol', stacks[i]).indexOf(me)) return null; // same place
+    if (!ors.length) return null;
+    const ly = index === 0 ? ors[0].top - 7 : index === ors.length ? ors[ors.length - 1].bottom + 7 : (ors[index - 1].bottom + ors[index].top) / 2;
+    return { to: { stack: i, index }, mark: { dir: 'h', left: r.left + 4, top: ly, size: Math.max(40, r.width - 8) } };
+  }
+  return newStack(rs.length);
+}
+/* heading columns: only left and right, among the headings (No Heading stays first) */
+function headingDropAt(st, me) {
+  const board = $('#content .hboard'); if (!board || !me) return null;
+  const br = board.getBoundingClientRect(), { x, y } = st;
+  if (x < br.left - 24 || x > br.right + 24 || y < br.top - 40) return null;
+  const heads = $$(':scope > .bcol[data-hcol^="h:"]', board), others = heads.filter((c) => c !== me);
+  if (!others.length) return null;
+  const ors = others.map((c) => c.getBoundingClientRect());
+  const i = ors.filter((r) => r.left + r.width / 2 < x).length;
+  if (i === heads.indexOf(me)) return null; // same place
+  const all = heads.map((c) => c.getBoundingClientRect()).concat(me.getBoundingClientRect());
+  const top = Math.max(Math.min(...all.map((r) => r.top)), 0), bottom = Math.min(Math.max(...all.map((r) => r.bottom)), window.innerHeight);
+  const gx = i === 0 ? ors[0].left - 7 : i === ors.length ? ors[ors.length - 1].right + 7 : (ors[i - 1].right + ors[i].left) / 2;
+  return {
+    prev: i > 0 ? others[i - 1].dataset.hcol.slice(2) : null, next: i < others.length ? others[i].dataset.hcol.slice(2) : null,
+    mark: { dir: 'v', left: gx, top, size: Math.max(40, bottom - top) },
+  };
+}
+/* near the top or bottom of the window the page scrolls; near the board's sides, the board does */
+function colAutoScroll(st) {
+  let moved = false;
+  const main = $('#main');
+  if (main) {
+    const r = main.getBoundingClientRect(), edge = 56, y0 = main.scrollTop;
+    if (st.y < r.top + edge) main.scrollTop -= Math.ceil((r.top + edge - st.y) / 4);
+    else if (st.y > r.bottom - edge) main.scrollTop += Math.ceil((st.y - (r.bottom - edge)) / 4);
+    moved = main.scrollTop !== y0;
+  }
+  const board = $(st.mode === 'board' ? '#content .bstacks' : '#content .hboard');
+  if (board) {
+    const r = board.getBoundingClientRect(), edge = 48, x0 = board.scrollLeft;
+    if (st.x < r.left + edge && st.x > r.left - 40) board.scrollLeft -= Math.ceil((r.left + edge - st.x) / 4);
+    else if (st.x > r.right - edge) board.scrollLeft += Math.ceil((st.x - (r.right - edge)) / 4);
+    moved = moved || board.scrollLeft !== x0;
+  }
+  return moved;
+}
+function colDragEnd(drop) {
+  const st = CD.st; CD.st = null; if (!st) return;
+  if (st.ghost) st.ghost.remove(); if (st.mark) st.mark.remove();
+  $$('.col-lifted').forEach((c) => c.classList.remove('col-lifted'));
+  document.body.classList.remove('col-dragging');
+  D.suppressClick = true; setTimeout(() => { D.suppressClick = false; }, 60); // the release isn't a click on the title
+  const t = drop && st.target; if (!t) return;
+  if (st.mode === 'board') { boardPlace(st.key, t.to); return; }
+  const h = getH(st.key.slice(2)); if (!h) return;
+  const hs = S.headings.filter((x) => x.projectId === h.projectId && !x.archived && x !== h).sort(byOrder);
+  let i = t.prev ? hs.findIndex((x) => x.id === t.prev) + 1 : hs.findIndex((x) => x.id === t.next);
+  if (i < 0) i = hs.length;
+  commit('Move Heading', () => { h.order = orderBetween(hs[i - 1] ? hs[i - 1].order : null, hs[i] ? hs[i].order : null)[0]; touch(h); });
+}
 
 /* ===================== Start ===================== */
 init();

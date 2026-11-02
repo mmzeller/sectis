@@ -117,7 +117,7 @@ const [src, mask, out] = process.argv.slice(1);
 """
 subprocess.run(['node', '-e', render, str(SRC / 'icon.svg'), str(SRC / 'icon-maskable.svg'), str(icons)], check=True)
 
-shutil.copy(ROOT / 'README.md', DIST / 'web/README.md')
+shutil.copy(ROOT / 'README.md' if (ROOT / 'README.md').exists() else ROOT.parent / 'README.md', DIST / 'web/README.md')
 
 # ---------- single-page preview ----------
 art_js = bundle(False)

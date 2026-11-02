@@ -319,11 +319,14 @@ function renderMain() {
   }
   // Boards scroll sideways inside the page. Each change redraws the page, which would put a board
   // back at its first column, so remember how far each board was scrolled and put it back.
-  const sideways = {};
+  // A column given its own height scrolls inside itself, so it gets the same treatment, up and down.
+  const sideways = {}, updown = {};
   $$('#content [data-hscroll]').forEach((el) => { sideways[el.dataset.hscroll] = el.scrollLeft; });
+  $$('#content [data-vscroll]').forEach((el) => { updown[el.dataset.vscroll] = el.scrollTop; });
   $('#content').classList.toggle('board-view', ui.view.type === 'board' || (ui.view.type === 'project' && projectBoardOn(getP(ui.view.id))));
   $('#content').innerHTML = mobileBarHTML() + html;
   $$('#content [data-hscroll]').forEach((el) => { const x = sideways[el.dataset.hscroll]; if (x) el.scrollLeft = x; });
+  $$('#content [data-vscroll]').forEach((el) => { const y = updown[el.dataset.vscroll]; if (y) el.scrollTop = y; });
   addSortPill();
 }
 function viewInbox() {
