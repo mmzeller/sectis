@@ -926,7 +926,7 @@ body.col-resizing .bstack-add { opacity: 0 !important; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.31.0';
+const APP_VERSION = '1.31.1';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1092,7 +1092,7 @@ const I = {
   chevR: svg('<path d="m9.5 5.5 6.5 6.5-6.5 6.5"/>'),
   chevD: svg('<path d="m5.5 9.5 6.5 6.5 6.5-6.5"/>'),
   chevU: svg('<path d="m5.5 14.5 6.5-6.5 6.5 6.5"/>'),
-  gear: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/>'),
+  gear: svg('<path d="M10.08 5.06L10.42 2.53L13.58 2.53L13.92 5.06A7.2 7.2 0 0 1 15.55 5.73L17.57 4.18L19.82 6.43L18.27 8.45A7.2 7.2 0 0 1 18.94 10.08L21.47 10.42L21.47 13.58L18.94 13.92A7.2 7.2 0 0 1 18.27 15.55L19.82 17.57L17.57 19.82L15.55 18.27A7.2 7.2 0 0 1 13.92 18.94L13.58 21.47L10.42 21.47L10.08 18.94A7.2 7.2 0 0 1 8.45 18.27L6.43 19.82L4.18 17.57L5.73 15.55A7.2 7.2 0 0 1 5.06 13.92L2.53 13.58L2.53 10.42L5.06 10.08A7.2 7.2 0 0 1 5.73 8.45L4.18 6.43L6.43 4.18L8.45 5.73A7.2 7.2 0 0 1 10.08 5.06Z"/><circle cx="12" cy="12" r="3"/>'), // a cog: 8 teeth around a hole
   x: svg('<path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/>'),
   check: svg('<path d="m5 12.5 4.3 4.3L19 7"/>'),
   move: svg('<path d="M4 12h13M13 7l5 5-5 5"/>'),
