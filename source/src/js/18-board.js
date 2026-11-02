@@ -113,7 +113,7 @@ const COL_MIN = 220, COL_MAX = 1200, COLH_MIN = 120, COLH_MAX = 4000;
 const clampW = (w) => Math.round(Math.max(COL_MIN, Math.min(COL_MAX, w)));
 const clampH = (h) => Math.round(Math.max(COLH_MIN, Math.min(COLH_MAX, h)));
 function colEntry(key) { const [t, id] = key.split(':'); return (ui.board || []).find((c) => c.t === t && c.id === id); }
-function colHStyle(h) { return h ? ` style="height:${clampH(h)}px"` : ''; }
+function colHStyle(h, color = null) { const s = [h ? `height:${clampH(h)}px` : '', color ? `--colc:${colorVar(color)}` : ''].filter(Boolean).join(';'); return s ? ` style="${s}"` : ''; }
 function resizeHandlesHTML(key) {
   return `<div class="bcol-resize" data-colresize="${key}" data-axis="x" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div>`
     + `<div class="bcol-resize-b" data-colresize="${key}" data-axis="y" aria-hidden="true" title="Drag to change the height. Double-click to fit automatically."></div>`
@@ -204,8 +204,8 @@ function boardColHTML(c) {
     const p = getP(c.id), pr = projectProgress(p), open = p.status === 'open';
     const area = p.areaId && getA(p.areaId);
     const sec = `project:${p.id}:`;
-    return `<section class="bcol${open ? '' : ' closed'}${sizedH}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h)}>${gripHTML}
-      <div class="bcol-h" data-col="p:${p.id}">${pieIc(pr.frac, 'bcol-ic')}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button>`}<div class="bcol-sub">${open ? (area ? esc(aTitle(area)) : 'Project') : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
+    return `<section class="bcol${open ? '' : ' closed'}${sizedH}${placeColor(p) ? ' colored' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h, placeColor(p))}>${gripHTML}
+      <div class="bcol-h" data-col="p:${p.id}">${projIc(p, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button>`}<div class="bcol-sub">${open ? (area ? esc(aTitle(area)) : 'Project') : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
       <div class="bcol-body"${bodyAttr}>${boardProjectBody(p)}</div>${resizeHandlesHTML(key)}</section>`;
   }
   const a = getA(c.id);
@@ -216,8 +216,8 @@ function boardColHTML(c) {
   let body = secHTML(sec, todos, { when: true }) + (loggedShownIn(a.id) ? loggedInHTML(sec, loggedOfArea(a)) : '');
   if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(projs).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
-  return `<section class="bcol${sizedH}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h)}>${gripHTML}
-    <div class="bcol-h" data-col="a:${a.id}"><span class="ic bcol-ic" style="color:var(--c-area)">${I.area}</span><div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
+  return `<section class="bcol${sizedH}${placeColor(a) ? ' colored' : ''}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h, placeColor(a))}>${gripHTML}
+    <div class="bcol-h" data-col="a:${a.id}">${areaIc(a, 'bcol-ic')}<div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
     <div class="bcol-body"${bodyAttr}>${body}</div>${resizeHandlesHTML(key)}</section>`;
 }
 function boardProjectBody(p) {
@@ -371,7 +371,7 @@ function openBoardPicker(anchor, opts = {}) {
     const ql = q.trim().toLowerCase(); const m = (s) => !ql || (s || '').toLowerCase().includes(ql);
     const chk = (t, id) => (onBoard(t, id) ? `<span class="check">${ic('check')}</span>` : '');
     const projs = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === areaId).sort(byOrder);
-    const prow = (p, inArea) => `<button class="pick-i p${inArea ? ' in-area' : ''}" data-col="p:${p.id}">${pieIc(projectProgress(p).frac)}<span>${esc(pTitle(p))}</span>${chk('p', p.id)}</button>`;
+    const prow = (p, inArea) => `<button class="pick-i p${inArea ? ' in-area' : ''}" data-col="p:${p.id}">${projIc(p)}<span>${esc(pTitle(p))}</span>${chk('p', p.id)}</button>`;
     let out = '';
     projs(null).forEach((p) => { if (m(pTitle(p))) out += prow(p, false); });
     S.areas.slice().sort(byOrder).forEach((a) => {

@@ -380,6 +380,7 @@ function defaultsForView(extra = {}) {
     case 'project': Object.assign(p, { start: 'anytime', projectId: v.id, headingId: extra.headingId || null }); break;
     case 'area': Object.assign(p, { start: 'anytime', areaId: v.id }); break;
     case 'tag': p.tags = [v.id]; break;
+    case 'deadlines': p.deadline = extra.deadline || T; break;
     default: break;
   }
   if (extra.projectId !== undefined) { p.projectId = extra.projectId; p.areaId = null; p.start = p.start === 'inbox' ? 'anytime' : p.start; }

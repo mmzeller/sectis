@@ -897,3 +897,35 @@ body.col-resizing .bstack-add { opacity: 0 !important; }
   #app.compact .row { padding-top: 6px; padding-bottom: 6px; }
   #app.compact .r-ckit { padding: 4px 0; }
 }
+
+/* Deadlines list */
+.dl-h { justify-content: flex-start; }
+.dl-h.overdue { color: var(--red); }
+.sec-n { margin-left: 8px; font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Upcoming: month calendar */
+.ucal { margin: 4px 6px 14px; padding: 8px 10px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--side); }
+.ucal.folded { padding-bottom: 8px; }
+.ucal-h { display: flex; align-items: center; gap: 4px; }
+.ucal-m { flex: 1; padding-left: 4px; font-weight: 650; font-size: 14px; }
+.ucal-h .ib { width: 28px; height: 28px; }
+.ucal-h .ib:disabled, .ucal-now:disabled { opacity: .35; cursor: default; }
+.ucal-now { font-size: 12.5px; padding: 0 6px; }
+.ucal-g { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
+.ucal-w { font-size: 11px; color: var(--muted); text-align: center; padding-bottom: 2px; }
+.ucal-d { position: relative; height: 40px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; padding-top: 4px; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--fg); background: var(--bg); border: 1px solid transparent; }
+button.ucal-d:hover { border-color: var(--line-strong); }
+.ucal-d.out { visibility: hidden; }
+.ucal-d.past { color: var(--faint); background: transparent; }
+.ucal-d.today .n { background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 6px; font-weight: 650; }
+.ucal-d .cnt { font-size: 11px; line-height: 14px; color: var(--muted); margin-top: 2px; }
+.ucal-d .dlf { position: absolute; top: 4px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+.ucal-d.drop-hover { border-radius: 8px; }
+.day-h.flash { animation: dayflash 1.2s ease-out; }
+@keyframes dayflash { 0%, 40% { background: var(--accent-tint); } 100% { background: transparent; } }
+
+/* project and area colors */
+.bcol.colored { box-shadow: inset 0 3px 0 var(--colc); }
+.bcol.colored.col-lifted { box-shadow: inset 0 3px 0 var(--colc); }
+.r-pdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+.sw-dot.sw-none { background: none !important; border: 1.5px dashed var(--line-strong); }

@@ -108,6 +108,7 @@ function handleAction(act, el, e) {
       setExpanded(e.altKey ? [...document.querySelectorAll('#content .r-ck-btn')].map((b) => b.dataset.id) : [id], on);
       return;
     }
+    case 'cal-prev': case 'cal-next': case 'cal-now': case 'cal-fold': case 'cal-day': calAction(act, el); return;
     case 'board-add': openBoardPicker(el); return;
     case 'board-add-below': openBoardPicker(el, { below: el.dataset.col }); return;
     case 'sort-menu': openSortMenu(el); return;
@@ -231,6 +232,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Deadline…', icon: 'flag', fn: () => openWhen([p.id], el, 'deadline') });
     items.push(priorityMenuItem([p.id], el, ''));
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
+    items.push(colorMenuItem('p', p, el));
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Move Into Project…', icon: 'heading', fn: () => openMove([], el, { heading: true, noHeadings: true, exclude: p.id, title: `Make “${pTitle(p)}” a Heading In`, onPick: (t) => { if (t.type === 'project') projectToHeading(p, t.id); } }) });
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
@@ -247,6 +249,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
   } else {
     if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
+    if (!p.trashed) items.push(colorMenuItem('p', p, el));
     if (!p.trashed) items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
     if (completedMenuItem([p.id], el)) items.push(completedMenuItem([p.id], el));
     if (!p.logged && !p.trashed) items.push({ label: 'Move to Logbook', icon: 'logbook', fn: () => logItems([p.id]) });
@@ -260,6 +263,7 @@ function areaMenu(a, el, extra = []) {
   openMenu(el, [
     ...extra,
     renameMenuItem('a', a.id),
+    colorMenuItem('a', a, el),
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),

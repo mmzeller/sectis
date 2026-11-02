@@ -104,7 +104,7 @@ function showLine(st, el, after, sec) {
   st.line.hidden = false;
 }
 function sectionAccepts(sec, kind) {
-  if (!sec || /^(logbook|trash|repeating|tag|waiting)/.test(sec)) return false;
+  if (!sec || /^(logbook|trash|repeating|tag|waiting|deadlines|smart)/.test(sec)) return false;
   const projectSec = sec.startsWith('areaprojects:') || sec.includes(':projects:');
   if (kind === 'project') return projectSec || /^(today|evening|upcoming)/.test(sec);
   return !projectSec;
@@ -152,6 +152,9 @@ function dragTrack(fromLoop) {
     sb.classList.add('drop-hover'); st.target = { type: 'list', key, el: sb }; return;
   }
   if (!el.closest('#content')) return;
+  // --- a day on Upcoming's calendar: schedule for that day
+  const cday = el.closest('#content [data-drop-day]');
+  if (cday) { if (k === 'todo' || k === 'project' || k === 'magic') { cday.classList.add('drop-hover'); st.target = { type: 'day', date: cday.dataset.dropDay }; } return; }
   // --- headings reorder
   if (k === 'heading') {
     const h = el.closest('.hrow'); if (!h || h.dataset.id === st.id) return;
@@ -218,6 +221,7 @@ function finishDrag(drop) {
 function performDrop(st, t) {
   const ids = st.ids;
   if (t.type === 'list') return dropOnList(ids, t.key, st.kind, t.el);
+  if (t.type === 'day') { if (st.kind === 'magic') newTodo({ extra: { date: t.date } }); else scheduleOn(ids, t.date); return; }
   if (t.type === 'board') {
     const cols = (st.kind === 'area' ? [{ t: 'a', id: st.id }] : ids.map((id) => ({ t: 'p', id }))).filter((c) => !onBoard(c.t, c.id));
     if (!cols.length) { toast(ids.length > 1 ? 'Already on the Board' : `“${colName(st.kind === 'area' ? 'a' : 'p', ids[0] || st.id)}” is already on the Board`, { action: 'Show Board', fn: () => navigate('board') }); return; }
@@ -291,6 +295,7 @@ function dropOnList(ids, key, kind, anchorEl) {
     case 'someday': applyWhen(ids, 'someday'); break;
     case 'logbook': completeIds(ids); break;
     case 'waiting': if (kind === 'todo') openWaiting(ids, anchorEl); break;
+    case 'deadlines': openWhen(ids, anchorEl, 'deadline'); break;
     case 'trash': trashItems(ids); break;
     case 'project': if (kind === 'todo') moveItems(ids, { type: 'project', id }); break;
     case 'area': moveItems(ids, { type: 'area', id }); break;

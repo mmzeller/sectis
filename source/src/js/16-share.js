@@ -90,6 +90,8 @@ function collectExport(scope) {
       title = 'Waiting'; const g = new Map();
       waitingItems().filter(f).forEach((t) => { const k = t.waitFor.trim(); if (!g.has(k.toLowerCase())) g.set(k.toLowerCase(), { name: k, list: [] }); g.get(k.toLowerCase()).list.push(t); });
       [...g.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach((x) => { B.push({ h: 2, text: x.name }); x.list.sort((a, b) => ((a.when || '9999') < (b.when || '9999') ? -1 : (a.when || '9999') > (b.when || '9999') ? 1 : byOrder(a, b))).forEach((t) => B.push({ item: t })); });
+    } else if (v.type === 'deadlines') {
+      title = 'Deadlines'; deadlineGroups(deadlineItems().filter(f)).forEach((g) => { B.push({ h: 2, text: g.label }); g.items.forEach((x) => B.push({ item: x })); });
     } else if (v.type === 'project') return collectExport({ type: 'items', ids: [v.id] });
     else if (v.type === 'area') return collectExport({ type: 'area', id: v.id });
     else if (v.type === 'tag') {

@@ -919,6 +919,38 @@ body.col-resizing .bstack-add { opacity: 0 !important; }
   #app.compact .r-ckit { padding: 4px 0; }
 }
 
+/* Deadlines list */
+.dl-h { justify-content: flex-start; }
+.dl-h.overdue { color: var(--red); }
+.sec-n { margin-left: 8px; font-size: 12px; font-weight: 500; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Upcoming: month calendar */
+.ucal { margin: 4px 6px 14px; padding: 8px 10px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--side); }
+.ucal.folded { padding-bottom: 8px; }
+.ucal-h { display: flex; align-items: center; gap: 4px; }
+.ucal-m { flex: 1; padding-left: 4px; font-weight: 650; font-size: 14px; }
+.ucal-h .ib { width: 28px; height: 28px; }
+.ucal-h .ib:disabled, .ucal-now:disabled { opacity: .35; cursor: default; }
+.ucal-now { font-size: 12.5px; padding: 0 6px; }
+.ucal-g { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; margin-top: 6px; }
+.ucal-w { font-size: 11px; color: var(--muted); text-align: center; padding-bottom: 2px; }
+.ucal-d { position: relative; height: 40px; border-radius: 8px; display: flex; flex-direction: column; align-items: center; padding-top: 4px; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--fg); background: var(--bg); border: 1px solid transparent; }
+button.ucal-d:hover { border-color: var(--line-strong); }
+.ucal-d.out { visibility: hidden; }
+.ucal-d.past { color: var(--faint); background: transparent; }
+.ucal-d.today .n { background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 6px; font-weight: 650; }
+.ucal-d .cnt { font-size: 11px; line-height: 14px; color: var(--muted); margin-top: 2px; }
+.ucal-d .dlf { position: absolute; top: 4px; right: 5px; width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+.ucal-d.drop-hover { border-radius: 8px; }
+.day-h.flash { animation: dayflash 1.2s ease-out; }
+@keyframes dayflash { 0%, 40% { background: var(--accent-tint); } 100% { background: transparent; } }
+
+/* project and area colors */
+.bcol.colored { box-shadow: inset 0 3px 0 var(--colc); }
+.bcol.colored.col-lifted { box-shadow: inset 0 3px 0 var(--colc); }
+.r-pdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+.sw-dot.sw-none { background: none !important; border: 1.5px dashed var(--line-strong); }
+
 </style>
 </head>
 <body>
@@ -936,7 +968,7 @@ body.col-resizing .bstack-add { opacity: 0 !important; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.32.0';
+const APP_VERSION = '1.33.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1120,6 +1152,7 @@ const I = {
   archive: svg('<rect x="3.5" y="4" width="17" height="5" rx="1.5"/><path d="M5 9v9.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V9M10 13h4"/>'),
   edit: svg('<path d="M4 20h4.5L19.3 9.2a2 2 0 0 0 0-2.8l-1.7-1.7a2 2 0 0 0-2.8 0L4 15.5z"/>'),
   cloud: svg('<path d="M7.2 18.5h10.1a4 4 0 0 0 .5-7.97A5.6 5.6 0 0 0 7 9.6a4.45 4.45 0 0 0 .2 8.9z"/>'),
+  palette: svg('<path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.1 0 1.7-.8 1.7-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.8-.5-1.2 0-.9.8-1.7 1.7-1.7h2.1a4 4 0 0 0 4-4c0-4-3.8-7.3-8.5-7.3z"/><circle class="fill" cx="7.7" cy="11.2" r="1.2"/><circle class="fill" cx="10.2" cy="7.6" r="1.2"/><circle class="fill" cx="14.6" cy="7.8" r="1.2"/>'),
   grip: svg('<circle class="fill" cx="9" cy="6.5" r="1.5"/><circle class="fill" cx="15" cy="6.5" r="1.5"/><circle class="fill" cx="9" cy="12" r="1.5"/><circle class="fill" cx="15" cy="12" r="1.5"/><circle class="fill" cx="9" cy="17.5" r="1.5"/><circle class="fill" cx="15" cy="17.5" r="1.5"/>'),
   share: svg('<path d="M12 3.5v11M8 7.2 12 3.5l4 3.7"/><path d="M8.5 10H7a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2h-1.5"/>'),
   link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1.1 1.1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1"/>'),
@@ -1803,6 +1836,7 @@ function defaultsForView(extra = {}) {
     case 'project': Object.assign(p, { start: 'anytime', projectId: v.id, headingId: extra.headingId || null }); break;
     case 'area': Object.assign(p, { start: 'anytime', areaId: v.id }); break;
     case 'tag': p.tags = [v.id]; break;
+    case 'deadlines': p.deadline = extra.deadline || T; break;
     default: break;
   }
   if (extra.projectId !== undefined) { p.projectId = extra.projectId; p.areaId = null; p.start = p.start === 'inbox' ? 'anytime' : p.start; }
@@ -2048,6 +2082,7 @@ const LISTS = {
   anytime: { title: 'Anytime', icon: 'layers', color: 'var(--c-anytime)' },
   someday: { title: 'Someday', icon: 'box', color: 'var(--c-someday)' },
   waiting: { title: 'Waiting', icon: 'hourglass', color: 'var(--c-waiting)' },
+  deadlines: { title: 'Deadlines', icon: 'flag', color: 'var(--red)' },
   logbook: { title: 'Logbook', icon: 'logbook', color: 'var(--c-logbook)' },
   trash: { title: 'Trash', icon: 'trash', color: 'var(--c-trash)' },
   board: { title: 'Board', icon: 'columns', color: 'var(--c-board)' },
@@ -2129,19 +2164,19 @@ function renderSidebar() {
   };
   const projRow = (p) => {
     const pr = projectProgress(p);
-    return `<button class="sb-item sb-proj${on('project:' + p.id)}" data-nav="project:${p.id}" data-drop-list="project:${p.id}" data-drag="project" data-kind="project" data-id="${p.id}" data-sb="1">${pieIc(pr.frac)}<span class="sb-name${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${p.deadline && p.deadline <= T0() ? `<span class="sb-due">!</span>` : ''}${cnt(openIn.p.get(p.id))}</button>`;
+    return `<button class="sb-item sb-proj${on('project:' + p.id)}" data-nav="project:${p.id}" data-drop-list="project:${p.id}" data-drag="project" data-kind="project" data-id="${p.id}" data-sb="1">${projIc(p, '', pr.frac)}<span class="sb-name${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${p.deadline && p.deadline <= T0() ? `<span class="sb-due">!</span>` : ''}${cnt(openIn.p.get(p.id))}</button>`;
   };
   const sbProjects = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && (p.areaId || null) === areaId).sort(byOrder);
   let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button></div><nav class="sb-scroll" id="sb-scroll">`;
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
-  html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
+  html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
   html += `<div class="sb-group sb-board-g"><button class="sb-item${on('board')}" data-nav="board" data-drop-list="board" title="Projects and areas side by side (8). Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">Board</span></button></div>`;
   const loose = sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   else html += `<div class="sb-loose" data-drop-loose="1">${ic('project')}<span>No Area</span></div>`; // shows while a project is dragged
   S.areas.slice().sort(byOrder).forEach((a) => {
-    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
+    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${placeColor(a) ? areaIc(a) : ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
   });
   html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button></div>`;
   const sb = $('#sidebar');
@@ -2222,7 +2257,7 @@ function rowHTML(x, ctx = {}) {
   const parent = [ctx.parent ? parentLabel(x) : '', ctx.waitInfo && x.waitSince ? `Waiting since ${fmtDate(x.waitSince, { weekday: false })}` : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(x) + (ctx.doneOn ? `<span class="r-done" title="Logged, done ${esc(ctx.doneOn)}">${esc(ctx.doneOn)}</span>` : '') + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
-  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
+  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${ctx.parent && placeOfColor(x) ? `<span class="r-pdot" style="background:${colorVar(placeOfColor(x))}"></span>` : ''}${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
 }
 /* a to-do's checklist shown under its row; items can be ticked here without opening the to-do */
 function ckInlineHTML(t) {
@@ -2244,7 +2279,7 @@ function projRowHTML(p, ctx = {}) {
   const right = deadlineHTML(p) + (p.trashed ? `<button class="restore" data-action="restore" data-id="${p.id}">Put Back</button>` : '');
   const disc = ctx.expandable ? `<button class="disc${exp ? ' open' : ''}" data-action="toggle-expand" data-id="${p.id}" aria-label="${exp ? 'Collapse' : 'Expand'} ${esc(pTitle(p))}" aria-expanded="${exp}" title="${exp ? 'Collapse' : 'Expand'} (⌥-click for all)">${ic('chevR')}</button>` : '';
   const openBtn = ctx.expandable ? `<button class="ib open-proj" data-nav="project:${p.id}" title="Open project" aria-label="Open ${esc(pTitle(p))}">${ic('move')}</button>` : '';
-  return `<div class="${cls.join(' ')}${ctx.expandable ? ' expandable' : ''}${exp ? ' expanded' : ''}" data-id="${p.id}" data-kind="project" data-drag="project" data-open="project:${p.id}"${ctx.expandable ? ' data-expandable="1"' : ''}>${lead}${disc}${pieIc(pr.frac, 'pie-ic')}<div class="r-main"><div class="r-line">${line}</div>${sub ? `<div class="r-sub">${esc(sub)}</div>` : ''}</div>${right || openBtn ? `<div class="r-right">${right}${openBtn}</div>` : ''}</div>${exp ? projectChildrenHTML(p) : ''}`;
+  return `<div class="${cls.join(' ')}${ctx.expandable ? ' expandable' : ''}${exp ? ' expanded' : ''}" data-id="${p.id}" data-kind="project" data-drag="project" data-open="project:${p.id}"${ctx.expandable ? ' data-expandable="1"' : ''}>${lead}${disc}${projIc(p, 'pie-ic', pr.frac)}<div class="r-main"><div class="r-line">${line}</div>${sub ? `<div class="r-sub">${esc(sub)}</div>` : ''}</div>${right || openBtn ? `<div class="r-right">${right}${openBtn}</div>` : ''}</div>${exp ? projectChildrenHTML(p) : ''}`;
 }
 function ghostRowHTML(tpl, date) {
   if (tpl.type === 'project') return ghostProjRowHTML(tpl, date);
@@ -2356,6 +2391,7 @@ function renderMain() {
     case 'area': html = viewArea(getA(ui.view.id)); break;
     case 'tag': html = viewTag(getTag(ui.view.id)); break;
     case 'board': html = viewBoard(); break;
+    case 'deadlines': html = viewDeadlines(); break;
     case 'templates': html = viewTemplates(); break;
     case 'waiting': html = viewWaiting(); break;
     default: html = viewToday();
@@ -2391,8 +2427,8 @@ function viewToday() {
     order.forEach((k) => {
       const g = groups.get(k); if (!g) return;
       let h = '';
-      if (k.startsWith('p:')) { const p = getP(k.slice(2)); h = `<div class="grp-h proj-h">${pieIc(projectProgress(p).frac)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>`; }
-      else if (k.startsWith('a:')) { const a = getA(k.slice(2)); h = `<div class="grp-h area-h">${ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>`; }
+      if (k.startsWith('p:')) { const p = getP(k.slice(2)); h = `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>`; }
+      else if (k.startsWith('a:')) { const a = getA(k.slice(2)); h = `<div class="grp-h area-h">${placeColor(a) ? areaIc(a) : ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>`; }
       list += h + secHTML('today', g, { parent: false }, 'todayOrder');
     });
     if (!main.length) list += secHTML('today', [], {}, 'todayOrder');
@@ -2450,7 +2486,7 @@ function viewUpcoming() {
     const r = rowsFor(from, '9999-12-31', true);
     if (r.its.length || r.gs.length) html += `<div class="day-h month" data-zone="upcoming:${from}"><span class="day-n">Later</span></div><div class="sec" data-sec="upcoming:${from}" data-ok="todayOrder">${r.html}</div>`;
   }
-  return headerHTML('upcoming') + tagBarHTML(all) + `<div class="list">${html}</div>`;
+  return headerHTML('upcoming') + tagBarHTML(all) + upcomingCalHTML() + `<div class="list">${html}</div>`;
 }
 function groupedView(key, todoFilter, somedayProjects) {
   const todosAll = S.todos.filter(todoFilter);
@@ -2465,7 +2501,7 @@ function groupedView(key, todoFilter, somedayProjects) {
   const projGroup = (p) => {
     const ts = todos.filter((t) => t.projectId === p.id).sort(sortT);
     if (!ts.length) return '';
-    return `<div class="grp-h proj-h">${pieIc(projectProgress(p).frac)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>` + secHTML(`${key}:project:${p.id}`, ts, ctx);
+    return `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>` + secHTML(`${key}:project:${p.id}`, ts, ctx);
   };
   const activeProjects = (areaId) => S.projects.filter((p) => liveProject(p) && p.status === 'open' && (p.areaId || null) === areaId && !(p.start === 'someday' && key === 'anytime')).sort(byOrder);
   if (projs.filter((p) => !p.areaId).length) html += `<div class="sec" data-sec="${key}:projects:" data-ok="order">${projs.filter((p) => !p.areaId).map((p) => projRowHTML(p, {})).join('')}</div>`;
@@ -2475,7 +2511,7 @@ function groupedView(key, todoFilter, somedayProjects) {
     const ap = projs.filter((p) => p.areaId === a.id);
     const inner = activeProjects(a.id).filter((p) => key !== 'someday' || p.start !== 'someday').map(projGroup).join('');
     if (!at.length && !ap.length && !inner) return;
-    html += `<div class="grp-h area-h">${ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>` + secHTML(`${key}:area:${a.id}`, at, ctx) +
+    html += `<div class="grp-h area-h">${placeColor(a) ? areaIc(a) : ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>` + secHTML(`${key}:area:${a.id}`, at, ctx) +
       (ap.length ? `<div class="sec" data-sec="${key}:projects:${a.id}" data-ok="order">${ap.map((p) => projRowHTML(p, {})).join('')}</div>` : '') + inner;
   });
   const emptyCopy = key === 'anytime' ? ['Nothing here yet', 'To-dos you can start any time show up here, grouped by project and area.'] : ['Someday is empty', 'Park ideas here for later. Select a to-do and press O.'];
@@ -2532,7 +2568,7 @@ function viewProject(p) {
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + priorityChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
+  let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg"${colorStyle(p)}>${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these headings, to-dos and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
   else if (p.isTemplate) html += `<div class="lh-banner rp-banner">${ic('repeat')}<span><b>Repeating project.</b> ${esc(ruleSummary(p.repeat))}${p.next ? `. Next copy ${esc(fmtRel(p.next))}` : p.repeat && p.repeat.mode === 'after' ? '. The next copy comes after you complete the current one' : '. This repeat has ended'}. Changes here apply to future copies.</span><button class="link-btn" data-action="repeat" data-id="${p.id}">Change</button></div>`;
@@ -2563,7 +2599,7 @@ function viewArea(a) {
   const active = projAll.filter((p) => p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const later = projAll.filter((p) => p.status === 'open' && (p.start === 'someday' || (p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const meta = a.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="area-tags" data-id="${a.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${a.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
+  let html = `<div class="lh">${areaIc(a, 'lh-ic')}<textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
   const loggedA = loggedOfArea(a);
@@ -3041,7 +3077,7 @@ function openMove(ids, anchor, opts = {}) {
       const hs = opts.noHeadings ? [] : S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
       const pm = m(pTitle(p)); const hm = hs.filter((h) => m(h.title) || pm);
       if (pm || hm.length) {
-        r += `<button class="pick-i p${cur.projectId === p.id && !cur.headingId ? ' cur' : ''}" data-to="project:${p.id}">${pieIc(projectProgress(p).frac)}<span>${esc(pTitle(p))}</span></button>`;
+        r += `<button class="pick-i p${cur.projectId === p.id && !cur.headingId ? ' cur' : ''}" data-to="project:${p.id}">${projIc(p, '', projectProgress(p).frac)}<span>${esc(pTitle(p))}</span></button>`;
         hm.forEach((h) => { r += `<button class="pick-i h${cur.headingId === h.id ? ' cur' : ''}" data-to="project:${p.id}:${h.id}"><span>${esc(h.title || 'New Heading')}</span></button>`; });
       }
       return r;
@@ -3246,7 +3282,7 @@ function showLine(st, el, after, sec) {
   st.line.hidden = false;
 }
 function sectionAccepts(sec, kind) {
-  if (!sec || /^(logbook|trash|repeating|tag|waiting)/.test(sec)) return false;
+  if (!sec || /^(logbook|trash|repeating|tag|waiting|deadlines|smart)/.test(sec)) return false;
   const projectSec = sec.startsWith('areaprojects:') || sec.includes(':projects:');
   if (kind === 'project') return projectSec || /^(today|evening|upcoming)/.test(sec);
   return !projectSec;
@@ -3294,6 +3330,9 @@ function dragTrack(fromLoop) {
     sb.classList.add('drop-hover'); st.target = { type: 'list', key, el: sb }; return;
   }
   if (!el.closest('#content')) return;
+  // --- a day on Upcoming's calendar: schedule for that day
+  const cday = el.closest('#content [data-drop-day]');
+  if (cday) { if (k === 'todo' || k === 'project' || k === 'magic') { cday.classList.add('drop-hover'); st.target = { type: 'day', date: cday.dataset.dropDay }; } return; }
   // --- headings reorder
   if (k === 'heading') {
     const h = el.closest('.hrow'); if (!h || h.dataset.id === st.id) return;
@@ -3360,6 +3399,7 @@ function finishDrag(drop) {
 function performDrop(st, t) {
   const ids = st.ids;
   if (t.type === 'list') return dropOnList(ids, t.key, st.kind, t.el);
+  if (t.type === 'day') { if (st.kind === 'magic') newTodo({ extra: { date: t.date } }); else scheduleOn(ids, t.date); return; }
   if (t.type === 'board') {
     const cols = (st.kind === 'area' ? [{ t: 'a', id: st.id }] : ids.map((id) => ({ t: 'p', id }))).filter((c) => !onBoard(c.t, c.id));
     if (!cols.length) { toast(ids.length > 1 ? 'Already on the Board' : `“${colName(st.kind === 'area' ? 'a' : 'p', ids[0] || st.id)}” is already on the Board`, { action: 'Show Board', fn: () => navigate('board') }); return; }
@@ -3433,6 +3473,7 @@ function dropOnList(ids, key, kind, anchorEl) {
     case 'someday': applyWhen(ids, 'someday'); break;
     case 'logbook': completeIds(ids); break;
     case 'waiting': if (kind === 'todo') openWaiting(ids, anchorEl); break;
+    case 'deadlines': openWhen(ids, anchorEl, 'deadline'); break;
     case 'trash': trashItems(ids); break;
     case 'project': if (kind === 'todo') moveItems(ids, { type: 'project', id }); break;
     case 'area': moveItems(ids, { type: 'area', id }); break;
@@ -3559,6 +3600,7 @@ function handleAction(act, el, e) {
       setExpanded(e.altKey ? [...document.querySelectorAll('#content .r-ck-btn')].map((b) => b.dataset.id) : [id], on);
       return;
     }
+    case 'cal-prev': case 'cal-next': case 'cal-now': case 'cal-fold': case 'cal-day': calAction(act, el); return;
     case 'board-add': openBoardPicker(el); return;
     case 'board-add-below': openBoardPicker(el, { below: el.dataset.col }); return;
     case 'sort-menu': openSortMenu(el); return;
@@ -3682,6 +3724,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Deadline…', icon: 'flag', fn: () => openWhen([p.id], el, 'deadline') });
     items.push(priorityMenuItem([p.id], el, ''));
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
+    items.push(colorMenuItem('p', p, el));
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Move Into Project…', icon: 'heading', fn: () => openMove([], el, { heading: true, noHeadings: true, exclude: p.id, title: `Make “${pTitle(p)}” a Heading In`, onPick: (t) => { if (t.type === 'project') projectToHeading(p, t.id); } }) });
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
@@ -3698,6 +3741,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
   } else {
     if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
+    if (!p.trashed) items.push(colorMenuItem('p', p, el));
     if (!p.trashed) items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
     if (completedMenuItem([p.id], el)) items.push(completedMenuItem([p.id], el));
     if (!p.logged && !p.trashed) items.push({ label: 'Move to Logbook', icon: 'logbook', fn: () => logItems([p.id]) });
@@ -3711,6 +3755,7 @@ function areaMenu(a, el, extra = []) {
   openMenu(el, [
     ...extra,
     renameMenuItem('a', a.id),
+    colorMenuItem('a', a, el),
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
@@ -4137,7 +4182,7 @@ function openQuickEntry(prefill = '') {
         $('#qe-parsed', el).innerHTML = chips.join('');
         $('#qe-chips', el).innerHTML = whenChipHTML(x).replace(/data-action="(when|clear-when)"/g, 'data-qe="$1"') + deadlineChipHTML(x).replace(/data-action="(deadline|clear-deadline)"/g, 'data-qe="$1"') + x.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="tg ${tcls(g)}">${esc(g.title)}</span>`).join('');
         const p = x.projectId && getP(x.projectId), a = x.areaId && getA(x.areaId), h = x.headingId && getH(x.headingId);
-        $('#qe-dest', el).innerHTML = `${p ? pieIc(projectProgress(p).frac) : a ? ic('area') : ic('inbox')}<span>${esc(p ? pTitle(p) + (h ? ' › ' + (h.title || 'New Heading') : '') : a ? aTitle(a) : x.start === 'inbox' ? 'Inbox' : 'No list')}</span>`;
+        $('#qe-dest', el).innerHTML = `${p ? projIc(p) : a ? (placeColor(a) ? areaIc(a) : ic('area')) : ic('inbox')}<span>${esc(p ? pTitle(p) + (h ? ' › ' + (h.title || 'New Heading') : '') : a ? aTitle(a) : x.start === 'inbox' ? 'Inbox' : 'No list')}</span>`;
       };
       const save = () => {
         const x = d(); const raw = ti.value;
@@ -5525,6 +5570,8 @@ function collectExport(scope) {
       title = 'Waiting'; const g = new Map();
       waitingItems().filter(f).forEach((t) => { const k = t.waitFor.trim(); if (!g.has(k.toLowerCase())) g.set(k.toLowerCase(), { name: k, list: [] }); g.get(k.toLowerCase()).list.push(t); });
       [...g.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach((x) => { B.push({ h: 2, text: x.name }); x.list.sort((a, b) => ((a.when || '9999') < (b.when || '9999') ? -1 : (a.when || '9999') > (b.when || '9999') ? 1 : byOrder(a, b))).forEach((t) => B.push({ item: t })); });
+    } else if (v.type === 'deadlines') {
+      title = 'Deadlines'; deadlineGroups(deadlineItems().filter(f)).forEach((g) => { B.push({ h: 2, text: g.label }); g.items.forEach((x) => B.push({ item: x })); });
     } else if (v.type === 'project') return collectExport({ type: 'items', ids: [v.id] });
     else if (v.type === 'area') return collectExport({ type: 'area', id: v.id });
     else if (v.type === 'tag') {
@@ -5981,7 +6028,7 @@ const COL_MIN = 220, COL_MAX = 1200, COLH_MIN = 120, COLH_MAX = 4000;
 const clampW = (w) => Math.round(Math.max(COL_MIN, Math.min(COL_MAX, w)));
 const clampH = (h) => Math.round(Math.max(COLH_MIN, Math.min(COLH_MAX, h)));
 function colEntry(key) { const [t, id] = key.split(':'); return (ui.board || []).find((c) => c.t === t && c.id === id); }
-function colHStyle(h) { return h ? ` style="height:${clampH(h)}px"` : ''; }
+function colHStyle(h, color = null) { const s = [h ? `height:${clampH(h)}px` : '', color ? `--colc:${colorVar(color)}` : ''].filter(Boolean).join(';'); return s ? ` style="${s}"` : ''; }
 function resizeHandlesHTML(key) {
   return `<div class="bcol-resize" data-colresize="${key}" data-axis="x" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div>`
     + `<div class="bcol-resize-b" data-colresize="${key}" data-axis="y" aria-hidden="true" title="Drag to change the height. Double-click to fit automatically."></div>`
@@ -6072,8 +6119,8 @@ function boardColHTML(c) {
     const p = getP(c.id), pr = projectProgress(p), open = p.status === 'open';
     const area = p.areaId && getA(p.areaId);
     const sec = `project:${p.id}:`;
-    return `<section class="bcol${open ? '' : ' closed'}${sizedH}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h)}>${gripHTML}
-      <div class="bcol-h" data-col="p:${p.id}">${pieIc(pr.frac, 'bcol-ic')}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button>`}<div class="bcol-sub">${open ? (area ? esc(aTitle(area)) : 'Project') : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
+    return `<section class="bcol${open ? '' : ' closed'}${sizedH}${placeColor(p) ? ' colored' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h, placeColor(p))}>${gripHTML}
+      <div class="bcol-h" data-col="p:${p.id}">${projIc(p, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button>`}<div class="bcol-sub">${open ? (area ? esc(aTitle(area)) : 'Project') : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
       <div class="bcol-body"${bodyAttr}>${boardProjectBody(p)}</div>${resizeHandlesHTML(key)}</section>`;
   }
   const a = getA(c.id);
@@ -6084,8 +6131,8 @@ function boardColHTML(c) {
   let body = secHTML(sec, todos, { when: true }) + (loggedShownIn(a.id) ? loggedInHTML(sec, loggedOfArea(a)) : '');
   if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(projs).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
-  return `<section class="bcol${sizedH}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h)}>${gripHTML}
-    <div class="bcol-h" data-col="a:${a.id}"><span class="ic bcol-ic" style="color:var(--c-area)">${I.area}</span><div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
+  return `<section class="bcol${sizedH}${placeColor(a) ? ' colored' : ''}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h, placeColor(a))}>${gripHTML}
+    <div class="bcol-h" data-col="a:${a.id}">${areaIc(a, 'bcol-ic')}<div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
     <div class="bcol-body"${bodyAttr}>${body}</div>${resizeHandlesHTML(key)}</section>`;
 }
 function boardProjectBody(p) {
@@ -6239,7 +6286,7 @@ function openBoardPicker(anchor, opts = {}) {
     const ql = q.trim().toLowerCase(); const m = (s) => !ql || (s || '').toLowerCase().includes(ql);
     const chk = (t, id) => (onBoard(t, id) ? `<span class="check">${ic('check')}</span>` : '');
     const projs = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === areaId).sort(byOrder);
-    const prow = (p, inArea) => `<button class="pick-i p${inArea ? ' in-area' : ''}" data-col="p:${p.id}">${pieIc(projectProgress(p).frac)}<span>${esc(pTitle(p))}</span>${chk('p', p.id)}</button>`;
+    const prow = (p, inArea) => `<button class="pick-i p${inArea ? ' in-area' : ''}" data-col="p:${p.id}">${projIc(p)}<span>${esc(pTitle(p))}</span>${chk('p', p.id)}</button>`;
     let out = '';
     projs(null).forEach((p) => { if (m(pTitle(p))) out += prow(p, false); });
     S.areas.slice().sort(byOrder).forEach((a) => {
@@ -6686,7 +6733,7 @@ function sortedRows(items) { const m = currentSort(); return sinkDone(m === 'man
 /* Completed to-dos sink to the bottom of their list, the last one checked at the very bottom
    (Settings → Completed to-dos). Only how they're shown changes: each keeps its place, so
    unchecking one puts it right back. One just checked stays put for a moment first. */
-const SINK_SEC = /^(inbox|today|evening|upcoming|anytime|someday|project|area|tag|waiting)/; // not the Logbook or Trash
+const SINK_SEC = /^(inbox|today|evening|upcoming|anytime|someday|project|area|tag|waiting|deadlines|smart)/; // not the Logbook or Trash
 const sinksDone = () => (S.settings.doneSink || 'bottom') === 'bottom';
 function sinkDone(items) {
   if (!sinksDone()) return items;
@@ -6737,6 +6784,7 @@ function openSortMenu(anchor) {
 }
 /* a small "Sorted by …" button in the list header, so a sorted list never looks like it lost your order */
 function addSortPill() {
+  if (!sortableView()) return; // lists with their own order (Upcoming, Deadlines, the Logbook…) can't be sorted
   const mode = currentSort(); if (mode === defaultSort()) return; // the usual order needs no note
   const lh = $('#content .lh'); if (!lh) return;
   const b = document.createElement('button');
@@ -7239,6 +7287,154 @@ document.addEventListener('dblclick', (e) => {
   if (!(e.target.closest && e.target.closest('#sidebar .sb-resize'))) return;
   e.preventDefault(); lsSet('sectis.sbw', ''); applySidebarWidth(0); $$('textarea[data-autosize]').forEach(autosize);
 });
+
+/* ===================== Deadlines =====================
+   Everything with a deadline, across all projects and areas, soonest first:
+   Overdue, Today, Tomorrow, This Week, then by month. Checked items stay until they're logged,
+   like everywhere else. Dropping to-dos on Deadlines in the sidebar asks for a deadline. */
+function deadlineItems() {
+  const has = (x) => !!x.deadline && !x.isTemplate && !x.trashed;
+  return S.todos.filter((t) => has(t) && liveTodo(t) && inLiveProject(t)).concat(S.projects.filter((p) => has(p) && liveProject(p)));
+}
+const byDeadline = (a, b) => (a.deadline < b.deadline ? -1 : a.deadline > b.deadline ? 1 : (b.priority || 0) - (a.priority || 0) || byToday(a, b));
+function deadlineGroups(items) {
+  const T = T0(), tm = addDays(T, 1), wk = addDays(T, 7), cy = pd(T).getFullYear();
+  const out = [], at = new Map();
+  const put = (key, label, x) => { if (!at.has(key)) { at.set(key, { key, label, items: [] }); out.push(at.get(key)); } at.get(key).items.push(x); };
+  items.slice().sort(byDeadline).forEach((x) => {
+    const d = x.deadline;
+    if (d < T && x.status === 'open') put('overdue', 'Overdue', x);
+    else if (d <= T) put('today', 'Today', x);
+    else if (d === tm) put('tomorrow', 'Tomorrow', x);
+    else if (d <= wk) put('week', 'This Week', x);
+    else { const dd = pd(d); put('m' + d.slice(0, 7), (d.slice(0, 7) === T.slice(0, 7) ? 'Rest of ' : '') + MONTHS[dd.getMonth()] + (dd.getFullYear() !== cy ? ' ' + dd.getFullYear() : ''), x); }
+  });
+  // Overdue first even when a checked item from an earlier day sorted ahead of it
+  return out.sort((a, b) => (a.key === 'overdue' ? -1 : b.key === 'overdue' ? 1 : 0));
+}
+function deadlineCounts() {
+  const T = T0(), wk = addDays(T, 7); let soon = 0, overdue = 0;
+  for (const x of deadlineItems()) { if (x.status !== 'open') continue; if (x.deadline < T) overdue++; if (x.deadline <= wk) soon++; }
+  return { soon, overdue };
+}
+function viewDeadlines() {
+  const all = deadlineItems(), items = all.filter(matchesTagFilter);
+  const c = deadlineCounts();
+  const sub = c.overdue ? `${plural(c.overdue, 'overdue item')} · ${c.soon} due within a week` : c.soon ? `${c.soon} due within a week` : '';
+  let html = '';
+  deadlineGroups(items).forEach((g) => {
+    const n = g.items.filter((x) => x.status === 'open').length;
+    html += `<div class="sec-h dl-h${g.key === 'overdue' ? ' overdue' : ''}"><span>${esc(g.label)}</span>${n ? `<span class="sec-n">${n}</span>` : ''}</div>` + secHTML('deadlines', g.items, { parent: true, when: true });
+  });
+  return headerHTML('deadlines', sub) + tagBarHTML(all) + `<div class="list">${html}</div>` +
+    (all.length ? '' : emptyHTML('flag', 'No deadlines', 'Give a to-do or a project a deadline (press D) and it shows up here, soonest first.'));
+}
+
+/* ===================== Upcoming: the month calendar =====================
+   A month grid above the Upcoming list. Each day shows how many to-dos and projects start then
+   (repeating ones included) and a red dot when something's due. Drop to-dos or projects on a
+   day to schedule them; click a day to jump to it in the list; double-click to add a to-do on
+   it. The arrows page through months; the chevron folds it away (remembered per device). */
+function calMonthNow() { return T0().slice(0, 7); }
+function calMonth() { const m = ui.calMonth && ui.calMonth >= calMonthNow() ? ui.calMonth : calMonthNow(); ui.calMonth = m; return m; }
+function calShift(n) {
+  const [y, m] = calMonth().split('-').map(Number), d = new Date(y, m - 1 + n, 1);
+  ui.calMonth = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`; if (ui.calMonth < calMonthNow()) ui.calMonth = calMonthNow();
+  render();
+}
+const calFolded = () => lsGet('sectis.ucal') === 'folded';
+function upcomingCalHTML() {
+  const T = T0(), ym = calMonth(), [y, m] = ym.split('-').map(Number);
+  const first = `${ym}-01`, last = dateFromParts(y, m - 1, daysInMonth(y, m - 1));
+  const per = new Map(), due = new Map();
+  const bump = (map, d) => map.set(d, (map.get(d) || 0) + 1);
+  todayItems().filter(matchesTagFilter).forEach((x) => { if (x.status === 'open' && first <= T && T <= last) bump(per, T); });
+  upcomingItems().filter(matchesTagFilter).forEach((x) => { if (x.when >= first && x.when <= last) bump(per, x.when); });
+  templatePreviews().forEach((g) => { if (g.date >= first && g.date <= last) bump(per, g.date); });
+  deadlineItems().filter(matchesTagFilter).forEach((x) => { if (x.status === 'open' && x.deadline >= first && x.deadline <= last) bump(due, x.deadline); });
+  const ws = S.settings.weekStart || 0, lead = (dow(first) - ws + 7) % 7, n = daysInMonth(y, m - 1);
+  let cells = '';
+  for (let i = 0; i < 7; i++) cells += `<span class="ucal-w">${WD[(ws + i) % 7].slice(0, 2)}</span>`;
+  for (let i = 0; i < lead; i++) cells += '<span class="ucal-d out"></span>';
+  for (let d = 1; d <= n; d++) {
+    const ds = `${ym}-${pad2(d)}`, past = ds < T, c = per.get(ds) || 0, dl = due.get(ds) || 0;
+    const tip = [ds === T ? 'Today' : fmtDate(ds), c ? plural(c, 'item') : '', dl ? `${dl} due` : ''].filter(Boolean).join(' · ');
+    cells += past
+      ? `<span class="ucal-d past"><span class="n">${d}</span></span>`
+      : `<button class="ucal-d${ds === T ? ' today' : ''}" data-action="cal-day" data-date="${ds}" data-drop-day="${ds}" title="${esc(tip)}. Drop to-dos here to schedule them; double-click to add one.">${dl ? '<span class="dlf"></span>' : ''}<span class="n">${d}</span>${c ? `<span class="cnt">${c}</span>` : ''}</button>`;
+  }
+  for (let i = (lead + n) % 7; i && i < 7; i++) cells += '<span class="ucal-d out"></span>';
+  const folded = calFolded();
+  return `<div class="ucal${folded ? ' folded' : ''}"><div class="ucal-h"><span class="ucal-m">${MONTHS[m - 1]}${y !== pd(T).getFullYear() ? ' ' + y : ''}</span>`
+    + `<button class="ib" data-action="cal-prev" aria-label="Previous month" title="Previous month"${ym <= calMonthNow() ? ' disabled' : ''}>${ic('chevL')}</button>`
+    + `<button class="link-btn ucal-now" data-action="cal-now"${ym === calMonthNow() ? ' disabled' : ''}>This Month</button>`
+    + `<button class="ib" data-action="cal-next" aria-label="Next month" title="Next month">${ic('chevR')}</button>`
+    + `<button class="ib ucal-fold" data-action="cal-fold" aria-label="${folded ? 'Show' : 'Hide'} the calendar" title="${folded ? 'Show' : 'Hide'} the calendar">${ic(folded ? 'chevD' : 'chevU')}</button></div>`
+    + (folded ? '' : `<div class="ucal-g">${cells}</div>`) + '</div>';
+}
+/* click a day: today opens Today; any other day scrolls the list to it */
+function calGoTo(ds) {
+  if (ds === T0()) { navigate('today'); return; }
+  const secs = $$('#content .sec[data-sec^="upcoming:"]').filter((s) => s.dataset.sec.slice(9) <= ds);
+  const sec = secs[secs.length - 1]; if (!sec) return;
+  const head = sec.previousElementSibling && sec.previousElementSibling.matches('.day-h') ? sec.previousElementSibling : sec;
+  head.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  head.classList.remove('flash'); void head.offsetWidth; head.classList.add('flash');
+}
+function calAction(action, el) {
+  if (action === 'cal-prev') calShift(-1);
+  else if (action === 'cal-next') calShift(1);
+  else if (action === 'cal-now') { ui.calMonth = calMonthNow(); render(); }
+  else if (action === 'cal-fold') { lsSet('sectis.ucal', calFolded() ? '' : 'folded'); render(); }
+  else if (action === 'cal-day') calGoTo(el.dataset.date);
+}
+document.addEventListener('dblclick', (e) => {
+  const d = e.target.closest && e.target.closest('#content .ucal-d[data-date]');
+  if (d) { e.preventDefault(); newTodo({ extra: { date: d.dataset.date } }); }
+});
+/* to-dos or projects dropped on a day */
+function scheduleOn(ids, date) {
+  const items = itemsFor(ids).filter((x) => x.status === 'open' && !x.isTemplate); if (!items.length) return;
+  const props = date <= T0() ? sectionProps('today') : sectionProps('upcoming:' + date);
+  commit('Schedule', () => items.forEach((x) => { applySectionProps(x, props); touch(x); }));
+  toast(`${items.length > 1 ? plural(items.length, 'item') : `“${items[0].title || (items[0].type === 'project' ? 'New Project' : 'New To-Do')}”`} scheduled for ${date <= T0() ? 'Today' : fmtDate(date)}`, { undo: true });
+}
+
+/* ===================== Project and area colors =====================
+   Any project or area can have one of the soft tag colors (••• → Color…). It tints its icon in
+   the sidebar, lists, headers and pickers, puts a stripe along the top of its Board column, and
+   a dot beside its name under to-dos in Today, Upcoming and other mixed lists. Synced. */
+const placeColor = (x) => (x && TAG_COLOR_NAMES[x.color] ? x.color : null);
+const colorVar = (c) => `var(--t-${c})`;
+const colorStyle = (x) => (placeColor(x) ? ` style="color:${colorVar(placeColor(x))}"` : '');
+/* a project's progress pie and an area's box, in its color when it has one */
+function projIc(p, cls = '', frac = null) {
+  return `<span class="ic ${cls}"${colorStyle(p)}>${pieSVG(frac == null ? projectProgress(p).frac : frac)}</span>`;
+}
+function areaIc(a, cls = '') { return `<span class="ic ${cls}"${placeColor(a) ? colorStyle(a) : ' style="color:var(--c-area)"'}>${I.area}</span>`; }
+/* the place a to-do sits in, for a colored dot beside its parent label */
+function placeOfColor(x) {
+  const p = x.projectId && getP(x.projectId); if (p && placeColor(p)) return placeColor(p);
+  const a = areaOf(x); return a && placeColor(a) ? placeColor(a) : null;
+}
+function colorMenuItem(kind, x, el) {
+  return { label: 'Color…', icon: 'palette', hint: placeColor(x) ? TAG_COLOR_NAMES[placeColor(x)] : '', fn: () => openPlaceColor(kind, x, el) };
+}
+function openPlaceColor(kind, x, anchor) {
+  const cur = placeColor(x), name = kind === 'p' ? pTitle(x) : aTitle(x);
+  const sw = (c) => `<button class="sw ${'tc-' + c}${cur === c ? ' on' : ''}" data-sw="${c}" aria-label="${TAG_COLOR_NAMES[c]}" aria-pressed="${cur === c}" title="${TAG_COLOR_NAMES[c]}">${cur === c ? ic('check') : ''}</button>`;
+  const none = `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!cur}"><span class="sw-dot sw-none" aria-hidden="true"></span><span>No Color</span>${cur ? '' : `<span class="hint">${ic('check')}</span>`}</button>`;
+  const L = openLayer({ anchor: anchor && anchor.isConnected === false ? null : anchor, cls: 'sw-pop', html: `<div class="pk-h">Color for “${esc(name)}”</div><div class="sw-grid">${TAG_COLORS.concat('gray').map(sw).join('')}</div>${none}`,
+    onMount: (el) => {
+      el.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-sw]'); if (!b) return; closeLayer(L);
+        const c = b.dataset.sw || null;
+        commit('Color', () => { if (c) x.color = c; else delete x.color; touch(x); });
+      });
+      if (!isCoarse()) { const f = $('.sw.on', el) || $('.sw', el); if (f) f.focus({ preventScroll: true }); }
+    } });
+  return L;
+}
 
 /* ===================== Start ===================== */
 init();

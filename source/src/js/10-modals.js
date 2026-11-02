@@ -130,7 +130,7 @@ function openQuickEntry(prefill = '') {
         $('#qe-parsed', el).innerHTML = chips.join('');
         $('#qe-chips', el).innerHTML = whenChipHTML(x).replace(/data-action="(when|clear-when)"/g, 'data-qe="$1"') + deadlineChipHTML(x).replace(/data-action="(deadline|clear-deadline)"/g, 'data-qe="$1"') + x.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="tg ${tcls(g)}">${esc(g.title)}</span>`).join('');
         const p = x.projectId && getP(x.projectId), a = x.areaId && getA(x.areaId), h = x.headingId && getH(x.headingId);
-        $('#qe-dest', el).innerHTML = `${p ? pieIc(projectProgress(p).frac) : a ? ic('area') : ic('inbox')}<span>${esc(p ? pTitle(p) + (h ? ' › ' + (h.title || 'New Heading') : '') : a ? aTitle(a) : x.start === 'inbox' ? 'Inbox' : 'No list')}</span>`;
+        $('#qe-dest', el).innerHTML = `${p ? projIc(p) : a ? (placeColor(a) ? areaIc(a) : ic('area')) : ic('inbox')}<span>${esc(p ? pTitle(p) + (h ? ' › ' + (h.title || 'New Heading') : '') : a ? aTitle(a) : x.start === 'inbox' ? 'Inbox' : 'No list')}</span>`;
       };
       const save = () => {
         const x = d(); const raw = ti.value;

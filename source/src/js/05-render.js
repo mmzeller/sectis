@@ -6,6 +6,7 @@ const LISTS = {
   anytime: { title: 'Anytime', icon: 'layers', color: 'var(--c-anytime)' },
   someday: { title: 'Someday', icon: 'box', color: 'var(--c-someday)' },
   waiting: { title: 'Waiting', icon: 'hourglass', color: 'var(--c-waiting)' },
+  deadlines: { title: 'Deadlines', icon: 'flag', color: 'var(--red)' },
   logbook: { title: 'Logbook', icon: 'logbook', color: 'var(--c-logbook)' },
   trash: { title: 'Trash', icon: 'trash', color: 'var(--c-trash)' },
   board: { title: 'Board', icon: 'columns', color: 'var(--c-board)' },
@@ -87,19 +88,19 @@ function renderSidebar() {
   };
   const projRow = (p) => {
     const pr = projectProgress(p);
-    return `<button class="sb-item sb-proj${on('project:' + p.id)}" data-nav="project:${p.id}" data-drop-list="project:${p.id}" data-drag="project" data-kind="project" data-id="${p.id}" data-sb="1">${pieIc(pr.frac)}<span class="sb-name${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${p.deadline && p.deadline <= T0() ? `<span class="sb-due">!</span>` : ''}${cnt(openIn.p.get(p.id))}</button>`;
+    return `<button class="sb-item sb-proj${on('project:' + p.id)}" data-nav="project:${p.id}" data-drop-list="project:${p.id}" data-drag="project" data-kind="project" data-id="${p.id}" data-sb="1">${projIc(p, '', pr.frac)}<span class="sb-name${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${p.deadline && p.deadline <= T0() ? `<span class="sb-due">!</span>` : ''}${cnt(openIn.p.get(p.id))}</button>`;
   };
   const sbProjects = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && (p.areaId || null) === areaId).sort(byOrder);
   let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button></div><nav class="sb-scroll" id="sb-scroll">`;
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
-  html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
+  html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
   html += `<div class="sb-group sb-board-g"><button class="sb-item${on('board')}" data-nav="board" data-drop-list="board" title="Projects and areas side by side (8). Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">Board</span></button></div>`;
   const loose = sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   else html += `<div class="sb-loose" data-drop-loose="1">${ic('project')}<span>No Area</span></div>`; // shows while a project is dragged
   S.areas.slice().sort(byOrder).forEach((a) => {
-    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
+    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${placeColor(a) ? areaIc(a) : ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
   });
   html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button></div>`;
   const sb = $('#sidebar');
@@ -180,7 +181,7 @@ function rowHTML(x, ctx = {}) {
   const parent = [ctx.parent ? parentLabel(x) : '', ctx.waitInfo && x.waitSince ? `Waiting since ${fmtDate(x.waitSince, { weekday: false })}` : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(x) + (ctx.doneOn ? `<span class="r-done" title="Logged, done ${esc(ctx.doneOn)}">${esc(ctx.doneOn)}</span>` : '') + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
-  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
+  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${ctx.parent && placeOfColor(x) ? `<span class="r-pdot" style="background:${colorVar(placeOfColor(x))}"></span>` : ''}${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
 }
 /* a to-do's checklist shown under its row; items can be ticked here without opening the to-do */
 function ckInlineHTML(t) {
@@ -202,7 +203,7 @@ function projRowHTML(p, ctx = {}) {
   const right = deadlineHTML(p) + (p.trashed ? `<button class="restore" data-action="restore" data-id="${p.id}">Put Back</button>` : '');
   const disc = ctx.expandable ? `<button class="disc${exp ? ' open' : ''}" data-action="toggle-expand" data-id="${p.id}" aria-label="${exp ? 'Collapse' : 'Expand'} ${esc(pTitle(p))}" aria-expanded="${exp}" title="${exp ? 'Collapse' : 'Expand'} (⌥-click for all)">${ic('chevR')}</button>` : '';
   const openBtn = ctx.expandable ? `<button class="ib open-proj" data-nav="project:${p.id}" title="Open project" aria-label="Open ${esc(pTitle(p))}">${ic('move')}</button>` : '';
-  return `<div class="${cls.join(' ')}${ctx.expandable ? ' expandable' : ''}${exp ? ' expanded' : ''}" data-id="${p.id}" data-kind="project" data-drag="project" data-open="project:${p.id}"${ctx.expandable ? ' data-expandable="1"' : ''}>${lead}${disc}${pieIc(pr.frac, 'pie-ic')}<div class="r-main"><div class="r-line">${line}</div>${sub ? `<div class="r-sub">${esc(sub)}</div>` : ''}</div>${right || openBtn ? `<div class="r-right">${right}${openBtn}</div>` : ''}</div>${exp ? projectChildrenHTML(p) : ''}`;
+  return `<div class="${cls.join(' ')}${ctx.expandable ? ' expandable' : ''}${exp ? ' expanded' : ''}" data-id="${p.id}" data-kind="project" data-drag="project" data-open="project:${p.id}"${ctx.expandable ? ' data-expandable="1"' : ''}>${lead}${disc}${projIc(p, 'pie-ic', pr.frac)}<div class="r-main"><div class="r-line">${line}</div>${sub ? `<div class="r-sub">${esc(sub)}</div>` : ''}</div>${right || openBtn ? `<div class="r-right">${right}${openBtn}</div>` : ''}</div>${exp ? projectChildrenHTML(p) : ''}`;
 }
 function ghostRowHTML(tpl, date) {
   if (tpl.type === 'project') return ghostProjRowHTML(tpl, date);
@@ -314,6 +315,7 @@ function renderMain() {
     case 'area': html = viewArea(getA(ui.view.id)); break;
     case 'tag': html = viewTag(getTag(ui.view.id)); break;
     case 'board': html = viewBoard(); break;
+    case 'deadlines': html = viewDeadlines(); break;
     case 'templates': html = viewTemplates(); break;
     case 'waiting': html = viewWaiting(); break;
     default: html = viewToday();
@@ -349,8 +351,8 @@ function viewToday() {
     order.forEach((k) => {
       const g = groups.get(k); if (!g) return;
       let h = '';
-      if (k.startsWith('p:')) { const p = getP(k.slice(2)); h = `<div class="grp-h proj-h">${pieIc(projectProgress(p).frac)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>`; }
-      else if (k.startsWith('a:')) { const a = getA(k.slice(2)); h = `<div class="grp-h area-h">${ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>`; }
+      if (k.startsWith('p:')) { const p = getP(k.slice(2)); h = `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>`; }
+      else if (k.startsWith('a:')) { const a = getA(k.slice(2)); h = `<div class="grp-h area-h">${placeColor(a) ? areaIc(a) : ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>`; }
       list += h + secHTML('today', g, { parent: false }, 'todayOrder');
     });
     if (!main.length) list += secHTML('today', [], {}, 'todayOrder');
@@ -408,7 +410,7 @@ function viewUpcoming() {
     const r = rowsFor(from, '9999-12-31', true);
     if (r.its.length || r.gs.length) html += `<div class="day-h month" data-zone="upcoming:${from}"><span class="day-n">Later</span></div><div class="sec" data-sec="upcoming:${from}" data-ok="todayOrder">${r.html}</div>`;
   }
-  return headerHTML('upcoming') + tagBarHTML(all) + `<div class="list">${html}</div>`;
+  return headerHTML('upcoming') + tagBarHTML(all) + upcomingCalHTML() + `<div class="list">${html}</div>`;
 }
 function groupedView(key, todoFilter, somedayProjects) {
   const todosAll = S.todos.filter(todoFilter);
@@ -423,7 +425,7 @@ function groupedView(key, todoFilter, somedayProjects) {
   const projGroup = (p) => {
     const ts = todos.filter((t) => t.projectId === p.id).sort(sortT);
     if (!ts.length) return '';
-    return `<div class="grp-h proj-h">${pieIc(projectProgress(p).frac)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>` + secHTML(`${key}:project:${p.id}`, ts, ctx);
+    return `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>` + secHTML(`${key}:project:${p.id}`, ts, ctx);
   };
   const activeProjects = (areaId) => S.projects.filter((p) => liveProject(p) && p.status === 'open' && (p.areaId || null) === areaId && !(p.start === 'someday' && key === 'anytime')).sort(byOrder);
   if (projs.filter((p) => !p.areaId).length) html += `<div class="sec" data-sec="${key}:projects:" data-ok="order">${projs.filter((p) => !p.areaId).map((p) => projRowHTML(p, {})).join('')}</div>`;
@@ -433,7 +435,7 @@ function groupedView(key, todoFilter, somedayProjects) {
     const ap = projs.filter((p) => p.areaId === a.id);
     const inner = activeProjects(a.id).filter((p) => key !== 'someday' || p.start !== 'someday').map(projGroup).join('');
     if (!at.length && !ap.length && !inner) return;
-    html += `<div class="grp-h area-h">${ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>` + secHTML(`${key}:area:${a.id}`, at, ctx) +
+    html += `<div class="grp-h area-h">${placeColor(a) ? areaIc(a) : ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>` + secHTML(`${key}:area:${a.id}`, at, ctx) +
       (ap.length ? `<div class="sec" data-sec="${key}:projects:${a.id}" data-ok="order">${ap.map((p) => projRowHTML(p, {})).join('')}</div>` : '') + inner;
   });
   const emptyCopy = key === 'anytime' ? ['Nothing here yet', 'To-dos you can start any time show up here, grouped by project and area.'] : ['Someday is empty', 'Park ideas here for later. Select a to-do and press O.'];
@@ -490,7 +492,7 @@ function viewProject(p) {
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + priorityChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg">${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
+  let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg"${colorStyle(p)}>${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these headings, to-dos and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
   else if (p.isTemplate) html += `<div class="lh-banner rp-banner">${ic('repeat')}<span><b>Repeating project.</b> ${esc(ruleSummary(p.repeat))}${p.next ? `. Next copy ${esc(fmtRel(p.next))}` : p.repeat && p.repeat.mode === 'after' ? '. The next copy comes after you complete the current one' : '. This repeat has ended'}. Changes here apply to future copies.</span><button class="link-btn" data-action="repeat" data-id="${p.id}">Change</button></div>`;
@@ -521,7 +523,7 @@ function viewArea(a) {
   const active = projAll.filter((p) => p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const later = projAll.filter((p) => p.status === 'open' && (p.start === 'someday' || (p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const meta = a.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="area-tags" data-id="${a.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${a.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
+  let html = `<div class="lh">${areaIc(a, 'lh-ic')}<textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
   const loggedA = loggedOfArea(a);

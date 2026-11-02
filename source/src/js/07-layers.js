@@ -222,7 +222,7 @@ function openMove(ids, anchor, opts = {}) {
       const hs = opts.noHeadings ? [] : S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
       const pm = m(pTitle(p)); const hm = hs.filter((h) => m(h.title) || pm);
       if (pm || hm.length) {
-        r += `<button class="pick-i p${cur.projectId === p.id && !cur.headingId ? ' cur' : ''}" data-to="project:${p.id}">${pieIc(projectProgress(p).frac)}<span>${esc(pTitle(p))}</span></button>`;
+        r += `<button class="pick-i p${cur.projectId === p.id && !cur.headingId ? ' cur' : ''}" data-to="project:${p.id}">${projIc(p, '', projectProgress(p).frac)}<span>${esc(pTitle(p))}</span></button>`;
         hm.forEach((h) => { r += `<button class="pick-i h${cur.headingId === h.id ? ' cur' : ''}" data-to="project:${p.id}:${h.id}"><span>${esc(h.title || 'New Heading')}</span></button>`; });
       }
       return r;

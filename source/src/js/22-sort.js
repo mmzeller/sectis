@@ -38,7 +38,7 @@ function sortedRows(items) { const m = currentSort(); return sinkDone(m === 'man
 /* Completed to-dos sink to the bottom of their list, the last one checked at the very bottom
    (Settings → Completed to-dos). Only how they're shown changes: each keeps its place, so
    unchecking one puts it right back. One just checked stays put for a moment first. */
-const SINK_SEC = /^(inbox|today|evening|upcoming|anytime|someday|project|area|tag|waiting)/; // not the Logbook or Trash
+const SINK_SEC = /^(inbox|today|evening|upcoming|anytime|someday|project|area|tag|waiting|deadlines|smart)/; // not the Logbook or Trash
 const sinksDone = () => (S.settings.doneSink || 'bottom') === 'bottom';
 function sinkDone(items) {
   if (!sinksDone()) return items;
@@ -89,6 +89,7 @@ function openSortMenu(anchor) {
 }
 /* a small "Sorted by …" button in the list header, so a sorted list never looks like it lost your order */
 function addSortPill() {
+  if (!sortableView()) return; // lists with their own order (Upcoming, Deadlines, the Logbook…) can't be sorted
   const mode = currentSort(); if (mode === defaultSort()) return; // the usual order needs no note
   const lh = $('#content .lh'); if (!lh) return;
   const b = document.createElement('button');
