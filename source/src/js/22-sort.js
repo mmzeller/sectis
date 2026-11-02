@@ -4,10 +4,10 @@
    Compact rows (Settings → Row spacing) fit more on screen. */
 const SORTS = [['manual', 'Manual Order'], ['priority', 'Priority'], ['deadline', 'Deadline'], ['when', 'Date'], ['title', 'Title'], ['added', 'Recently Added']];
 const SORT_LABEL = { manual: 'Manual', priority: 'Priority', deadline: 'Deadline', when: 'Date', title: 'Title', added: 'Recently Added' };
-const SORT_SEC = /^(inbox|today|evening|anytime|someday|project|area|tag|waiting)/; // not Upcoming or the Logbook, which have their own order
+const SORT_SEC = /^(inbox|today|evening|anytime|someday|project|area|tag|waiting|smart)/; // not Upcoming or the Logbook, which have their own order
 function loadSorts() { try { ui.sorts = JSON.parse(lsGet('sectis.sort') || '{}') || {}; } catch (e) { ui.sorts = {}; } }
 function sortKeyFor(v = ui.view) { return v.id ? `${v.type}:${v.id}` : v.type; }
-function sortableView(v = ui.view) { return ['inbox', 'today', 'anytime', 'someday', 'project', 'area', 'tag', 'waiting', 'board'].includes(v.type); }
+function sortableView(v = ui.view) { return ['inbox', 'today', 'anytime', 'someday', 'project', 'area', 'tag', 'waiting', 'board', 'smart'].includes(v.type); }
 /* Lists you haven't sorted another way keep higher priorities on top (Settings → Keep higher
    priorities on top), so a list with no priorities looks just as you arranged it. */
 function defaultSort() { return S.settings.prioTop === false ? 'manual' : 'priority'; }
@@ -38,7 +38,7 @@ function sortedRows(items) { const m = currentSort(); return sinkDone(m === 'man
 /* Completed to-dos sink to the bottom of their list, the last one checked at the very bottom
    (Settings → Completed to-dos). Only how they're shown changes: each keeps its place, so
    unchecking one puts it right back. One just checked stays put for a moment first. */
-const SINK_SEC = /^(inbox|today|evening|upcoming|anytime|someday|project|area|tag|waiting|deadlines|smart)/; // not the Logbook or Trash
+const SINK_SEC = /^(inbox|today|evening|upcoming|anytime|someday|project|area|tag|waiting|deadlines|smart|colview)/; // not the Logbook or Trash
 const sinksDone = () => (S.settings.doneSink || 'bottom') === 'bottom';
 function sinkDone(items) {
   if (!sinksDone()) return items;

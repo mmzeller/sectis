@@ -381,6 +381,7 @@ function defaultsForView(extra = {}) {
     case 'area': Object.assign(p, { start: 'anytime', areaId: v.id }); break;
     case 'tag': p.tags = [v.id]; break;
     case 'deadlines': p.deadline = extra.deadline || T; break;
+    case 'smart': if (getSmart(v.id)) Object.assign(p, smartNewProps(getSmart(v.id))); break;
     default: break;
   }
   if (extra.projectId !== undefined) { p.projectId = extra.projectId; p.areaId = null; p.start = p.start === 'inbox' ? 'anytime' : p.start; }

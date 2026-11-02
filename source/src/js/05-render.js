@@ -45,6 +45,7 @@ function restoreFocus(f) {
   if (el) { el.focus({ preventScroll: true }); try { el.setSelectionRange(f.s, f.e); } catch (e) { /* not a text field */ } }
 }
 function afterRender() {
+  fitBoardName($('#content .board-name'));
   $$('textarea[data-autosize]').forEach(autosize);
   if (ui.scrollToEditor) {
     ui.scrollToEditor = false;
@@ -64,7 +65,7 @@ function renderShell() {
   const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash', 'templates'].includes(ui.view.type));
   magic.classList.toggle('hidden-in', hide);
   const L = LISTS[ui.view.type];
-  document.title = isMobile() && ui.mobile === 'home' ? 'Sectis' : `${L ? L.title : ui.view.type === 'project' ? pTitle(getP(ui.view.id)) : ui.view.type === 'area' ? aTitle(getA(ui.view.id)) : ui.view.type === 'tag' ? tagTitle(ui.view.id) : 'Sectis'} – Sectis`;
+  document.title = isMobile() && ui.mobile === 'home' ? 'Sectis' : `${L ? L.title : ui.view.type === 'project' ? pTitle(getP(ui.view.id)) : ui.view.type === 'area' ? aTitle(getA(ui.view.id)) : ui.view.type === 'tag' ? tagTitle(ui.view.id) : ui.view.type === 'smart' ? smartTitle(getSmart(ui.view.id)) : 'Sectis'} – Sectis`;
 }
 
 /* ---------- sidebar ---------- */
@@ -95,7 +96,10 @@ function renderSidebar() {
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
   html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
-  html += `<div class="sb-group sb-board-g"><button class="sb-item${on('board')}" data-nav="board" data-drop-list="board" title="Projects and areas side by side (8). Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">Board</span></button></div>`;
+  // the Board, or each Board once there are several; drop a project or area on one to add it
+  html += `<div class="sb-group sb-board-g">${(ui.boards || []).map((b) => `<button class="sb-item${v.type === 'board' && b.id === ui.boardId ? ' on' : ''}" data-nav="board:${b.id}" data-drop-list="board:${b.id}" title="${esc(b.name || 'Board')}${ui.boards.length > 1 ? '' : ' (8)'}. Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">${esc(b.name || 'Board')}</span></button>`).join('')}</div>`;
+  const smarts = (S.smart || []).slice().sort(byOrder);
+  if (smarts.length) html += `<div class="sb-group sb-smart-g">${smarts.map((sl) => `<button class="sb-item${on('smart:' + sl.id)}" data-nav="smart:${sl.id}" data-drop-list="smart:${sl.id}" data-drag="smart" data-kind="smart" data-id="${sl.id}" data-sb="1" title="${esc(smartSummary(sl))}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span class="sb-name">${esc(smartTitle(sl))}</span>${cnt(smartCount(sl))}</button>`).join('')}</div>`;
   const loose = sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   else html += `<div class="sb-loose" data-drop-loose="1">${ic('project')}<span>No Area</span></div>`; // shows while a project is dragged
@@ -301,7 +305,7 @@ function mobileBarHTML() {
 /* ---------- main views ---------- */
 function renderMain() {
   const v = ui.view;
-  if ((v.type === 'project' && (!getP(v.id))) || (v.type === 'area' && !getA(v.id)) || (v.type === 'tag' && !getTag(v.id))) ui.view = { type: 'today' };
+  if ((v.type === 'project' && (!getP(v.id))) || (v.type === 'area' && !getA(v.id)) || (v.type === 'tag' && !getTag(v.id)) || (v.type === 'smart' && !getSmart(v.id))) ui.view = { type: 'today' };
   let html = '';
   switch (ui.view.type) {
     case 'inbox': html = viewInbox(); break;
@@ -316,6 +320,7 @@ function renderMain() {
     case 'tag': html = viewTag(getTag(ui.view.id)); break;
     case 'board': html = viewBoard(); break;
     case 'deadlines': html = viewDeadlines(); break;
+    case 'smart': html = viewSmart(getSmart(ui.view.id)); break;
     case 'templates': html = viewTemplates(); break;
     case 'waiting': html = viewWaiting(); break;
     default: html = viewToday();
@@ -584,7 +589,9 @@ function visibleInCurrentView(x) {
     case 'tag': return effectiveTags(x).has(v.id);
     case 'templates': return false;
     case 'waiting': return isWaiting(x);
-    case 'board': return boardCols().some((c) => (c.t === 'p' ? x.projectId === c.id || x.id === c.id : (areaOf(x) || {}).id === c.id));
+    case 'board': return boardCols().some((c) => colHas(c, x));
+    case 'smart': return x.type === 'todo' && !!getSmart(v.id) && smartMatcher(getSmart(v.id))(x);
+    case 'deadlines': return !!x.deadline;
     default: return true;
   }
 }

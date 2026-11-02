@@ -1,6 +1,7 @@
 /* ===================== Events: clicks, typing, keyboard ===================== */
 function navigate(key, opts = {}) {
   closeEditor({ noRender: true });
+  if (key.startsWith('board:')) { switchBoard(key.slice(6)); key = 'board'; } // one of several Boards
   const [type, id] = key.split(':');
   ui.view = id ? { type, id } : { type };
   ui.sel.clear(); ui.anchor = null; ui.tagFilter = null; ui.selectMode = false; ui.logbookLimit = 150; ui.notesEdit = null;
@@ -109,6 +110,9 @@ function handleAction(act, el, e) {
       return;
     }
     case 'cal-prev': case 'cal-next': case 'cal-now': case 'cal-fold': case 'cal-day': calAction(act, el); return;
+    case 'smart-edit': openSmartEditor(getSmart(id)); return;
+    case 'lcol-add': listColAdd(el.dataset.col); return;
+    case 'board-switch': openMenu(el, boardsMenuItems()); return;
     case 'board-add': openBoardPicker(el); return;
     case 'board-add-below': openBoardPicker(el, { below: el.dataset.col }); return;
     case 'sort-menu': openSortMenu(el); return;
@@ -136,7 +140,7 @@ function handleAction(act, el, e) {
     case 'find': openFind(); return;
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
-    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
+    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { label: 'New Smart List…', icon: 'funnel', fn: () => openSmartEditor() }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
     case 'm-back': closeEditor({ noRender: true }); ui.mobile = 'home'; ui.sel.clear(); ui.selectMode = false; render(); return;
     case 'select-done': ui.selectMode = false; ui.sel.clear(); render(); return;
     case 'select-all': visibleRowIds().forEach((x) => ui.sel.add(x)); paintSelection(); return;
@@ -236,7 +240,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Move Into Project…', icon: 'heading', fn: () => openMove([], el, { heading: true, noHeadings: true, exclude: p.id, title: `Make “${pTitle(p)}” a Heading In`, onPick: (t) => { if (t.type === 'project') projectToHeading(p, t.id); } }) });
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
-    items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
+    items.push(...boardMenuItems('p', p.id, isColMenu(extra), el));
     if (!isMobile()) items.push({ label: ui.projBoard.has(p.id) ? 'Show as List' : 'Show Headings as Board', icon: 'columns', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); setProjectBoard(p.id, !ui.projBoard.has(p.id)); } });
     if (ui.view.type === 'project' && ui.view.id === p.id && !isColMenu(extra)) items.push(sortMenuItem(el));
     items.push({ label: 'Add To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'], sec: `project:${p.id}:` }) });
@@ -248,7 +252,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
   } else {
-    if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
+    if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra), el));
     if (!p.trashed) items.push(colorMenuItem('p', p, el));
     if (!p.trashed) items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
     if (completedMenuItem([p.id], el)) items.push(completedMenuItem([p.id], el));
@@ -267,7 +271,7 @@ function areaMenu(a, el, extra = []) {
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
-    ...boardMenuItems('a', a.id, isColMenu(extra)),
+    ...boardMenuItems('a', a.id, isColMenu(extra), el),
     { label: 'Add from Template…', icon: 'template', fn: () => openTemplatePicker(el, { sec: `area:${a.id}`, areaId: a.id }) },
     { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
     { label: ui.sbCollapsed.size ? 'Show All Projects in Sidebar' : 'Hide All Projects in Sidebar', icon: 'layers', fn: () => setSidebarAreas(!ui.sbCollapsed.size) },
@@ -348,12 +352,18 @@ document.addEventListener('contextmenu', (e) => {
 function viewMenu(el) {
   const v = ui.view.type;
   const batch = batchMenuItems(el);
+  if (v === 'smart') {
+    const sl = getSmart(ui.view.id); if (!sl) return;
+    openMenu(el, [...batch, ...smartMenuItems(sl, el), sortMenuItem(el), { label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) }, { sep: 1 }, { label: 'Keyboard Shortcuts', icon: 'key', fn: openShortcuts }, { label: 'Settings', icon: 'gear', fn: openSettings }]);
+    return;
+  }
   const items = [...batch];
   if (v === 'project') { projectMenu(getP(ui.view.id), el, batch); return; }
   if (v === 'area') { areaMenu(getA(ui.view.id), el, batch); return; }
   if (v === 'board') {
     const n = boardCols().length;
     openMenu(el, [...batch,
+      ...boardsMenuItems(), { sep: 1 },
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
       { label: 'Fit All Sizes Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w || c.h), fn: resetAllSizes },
       sortMenuItem(el),
@@ -406,6 +416,7 @@ document.addEventListener('input', (e) => {
     const a = getA(id); if (!a) return; editSnap(f + id); a.title = el.value; renderSidebar(); renderShell();
   } else if (f === 'heading-title') {
     const h = getH(id); if (!h) return; editSnap(f + id); h.title = el.value;
+  } else if (f === 'board-name') { renameBoardTo(el.value); fitBoardName(el); autosize(el); return; // a Board's name lives on this device, not in the synced data
   } else return;
   saveSoon();
 });
@@ -460,7 +471,7 @@ function fieldKeys(e) {
       return true;
     }
   }
-  if (f === 'area-title' && e.key === 'Enter') { e.preventDefault(); el.blur(); return true; }
+  if ((f === 'area-title' || f === 'board-name') && e.key === 'Enter') { e.preventDefault(); el.blur(); return true; }
   return false;
 }
 

@@ -47,7 +47,7 @@
   --c-logbook: #36a46b;
   --c-trash: #8a909c;
   --c-area: #5b8f78;
-  --c-board: #8b6fd6;
+  --c-board: #8b6fd6; --c-smart: #2f98b8;
   --c-template: #7a8ca3;
   --c-waiting: #d9822b;
   --shadow-card: 0 1px 2px rgba(20, 28, 48, .06), 0 10px 30px rgba(20, 28, 48, .13);
@@ -67,7 +67,7 @@
     --bg: #17191e; --side: #1e2027; --card: #22252d; --pop: #262a33; --fg: #e7e9ef; --muted: #9aa1b1; --faint: #626a7a;
     --line: #2c3039; --line-strong: #3a3f4a; --hover: #282c35; --accent: #6d8cff; --accent-ink: #0f1424; --accent-tint: #26304d;
     --sel: #263252; --cb: #5c6372; --red: #ff6a5f; --c-inbox: #5aa2ee; --c-today: #f6c443; --c-evening: #8d99f0;
-    --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee; --c-template: #9fb0c6; --c-waiting: #f0a050;
+    --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee; --c-smart: #5cc0de; --c-template: #9fb0c6; --c-waiting: #f0a050;
     --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .45); --shadow-pop: 0 2px 8px rgba(0, 0, 0, .35), 0 20px 50px rgba(0, 0, 0, .55);
     --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
     --t-red: #ff7a70; --t-orange: #f59d4c; --t-yellow: #e8c547; --t-green: #5cc785; --t-teal: #45c9bd; --t-blue: #6aa5f5; --t-indigo: #8f96f7; --t-purple: #bb8cf2; --t-pink: #f27cb4; --t-gray: #9aa1b1;
@@ -78,7 +78,7 @@
   --bg: #17191e; --side: #1e2027; --card: #22252d; --pop: #262a33; --fg: #e7e9ef; --muted: #9aa1b1; --faint: #626a7a;
   --line: #2c3039; --line-strong: #3a3f4a; --hover: #282c35; --accent: #6d8cff; --accent-ink: #0f1424; --accent-tint: #26304d;
   --sel: #263252; --cb: #5c6372; --red: #ff6a5f; --c-inbox: #5aa2ee; --c-today: #f6c443; --c-evening: #8d99f0;
-  --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee; --c-template: #9fb0c6; --c-waiting: #f0a050;
+  --c-upcoming: #ff6a5f; --c-anytime: #3cc3ad; --c-someday: #d9b370; --c-logbook: #4cc184; --c-trash: #9aa1b1; --c-area: #7cb59a; --c-board: #a891ee; --c-smart: #5cc0de; --c-template: #9fb0c6; --c-waiting: #f0a050;
   --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .45); --shadow-pop: 0 2px 8px rgba(0, 0, 0, .35), 0 20px 50px rgba(0, 0, 0, .55);
   --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
   --t-red: #ff7a70; --t-orange: #f59d4c; --t-yellow: #e8c547; --t-green: #5cc785; --t-teal: #45c9bd; --t-blue: #6aa5f5; --t-indigo: #8f96f7; --t-purple: #bb8cf2; --t-pink: #f27cb4; --t-gray: #9aa1b1;
@@ -951,6 +951,36 @@ button.ucal-d:hover { border-color: var(--line-strong); }
 .r-pdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
 .sw-dot.sw-none { background: none !important; border: 1.5px dashed var(--line-strong); }
 
+/* smart lists */
+.sm-modal { width: min(640px, calc(100vw - 32px)); }
+.sm-ed { display: flex; flex-direction: column; gap: 14px; }
+.sm-row { display: flex; flex-direction: column; gap: 6px; }
+.sm-l { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.sm-l .seg { text-transform: none; letter-spacing: 0; }
+.sm-in { width: 100%; }
+.sm-q { flex: 1; max-width: 260px; margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 400; padding: 4px 8px; font-size: 13px; }
+.sm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.sm-places { max-height: 132px; overflow-y: auto; padding: 1px; }
+.sm-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 13px; color: var(--fg); background: var(--hover); border: 1px solid transparent; }
+.sm-chip .ic { width: 15px; height: 15px; }
+.sm-chip.on { background: var(--accent-tint); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.sm-chip .sm-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tc); }
+.sm-chip .sm-nest { color: var(--faint); margin-right: -2px; }
+.sm-ed .seg { align-self: flex-start; }
+.sm-count { flex: 1; align-self: center; font-size: 12.5px; color: var(--muted); }
+
+/* several Boards; lists, tags and smart lists as columns */
+.board-view .lh .lh-title.board-name { flex: 0 1 auto; min-width: 60px; max-width: 60%; }
+.board-switch { margin-right: auto; width: 28px; height: 28px; color: var(--muted); }
+.lcol .sub-h { display: flex; align-items: center; gap: 6px; }
+.lcol .sub-h .ic { width: 14px; height: 14px; }
+.lcol .sub-h.overdue { color: var(--red); }
+.lcol .bcol-grp { margin: 10px 8px 2px; font-size: 13px; }
+.lcol .bcol-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pk-grp { padding: 8px 10px 3px; font-size: 11px; font-weight: 650; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+.sm-modal { display: flex; flex-direction: column; }
+.sm-modal #sm-body { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
+
 </style>
 </head>
 <body>
@@ -968,7 +998,7 @@ button.ucal-d:hover { border-color: var(--line-strong); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.33.0';
+const APP_VERSION = '1.34.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1153,6 +1183,9 @@ const I = {
   edit: svg('<path d="M4 20h4.5L19.3 9.2a2 2 0 0 0 0-2.8l-1.7-1.7a2 2 0 0 0-2.8 0L4 15.5z"/>'),
   cloud: svg('<path d="M7.2 18.5h10.1a4 4 0 0 0 .5-7.97A5.6 5.6 0 0 0 7 9.6a4.45 4.45 0 0 0 .2 8.9z"/>'),
   palette: svg('<path d="M12 3.5a8.5 8.5 0 0 0 0 17c1.1 0 1.7-.8 1.7-1.6 0-.5-.2-.9-.5-1.2-.3-.3-.5-.8-.5-1.2 0-.9.8-1.7 1.7-1.7h2.1a4 4 0 0 0 4-4c0-4-3.8-7.3-8.5-7.3z"/><circle class="fill" cx="7.7" cy="11.2" r="1.2"/><circle class="fill" cx="10.2" cy="7.6" r="1.2"/><circle class="fill" cx="14.6" cy="7.8" r="1.2"/>'),
+  funnel: svg('<path d="M4 5.5h16l-6.2 7.3v5.4l-3.6 1.8v-7.2z"/>'),
+  sliders: svg('<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>'),
+  pencil: svg('<path d="M14.5 5.5 18.5 9.5M4.5 19.5l1-4.3L15.8 4.9a1.4 1.4 0 0 1 2 0l1.3 1.3a1.4 1.4 0 0 1 0 2L8.8 18.5z"/>'),
   grip: svg('<circle class="fill" cx="9" cy="6.5" r="1.5"/><circle class="fill" cx="15" cy="6.5" r="1.5"/><circle class="fill" cx="9" cy="12" r="1.5"/><circle class="fill" cx="15" cy="12" r="1.5"/><circle class="fill" cx="9" cy="17.5" r="1.5"/><circle class="fill" cx="15" cy="17.5" r="1.5"/>'),
   share: svg('<path d="M12 3.5v11M8 7.2 12 3.5l4 3.7"/><path d="M8.5 10H7a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2h-1.5"/>'),
   link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1.1 1.1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1"/>'),
@@ -1184,14 +1217,15 @@ function defaultSettings() {
   return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true, loggedPlace: 'bottom' };
 }
 function emptyState() {
-  return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
+  return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], smart: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
 }
 function normalizeState(s) {
   const base = emptyState();
   const out = Object.assign(base, s || {});
   out.settings = Object.assign(defaultSettings(), (s && s.settings) || {});
   out.meta = Object.assign({ fired: {} }, (s && s.meta) || {});
-  for (const k of ['todos', 'projects', 'headings', 'areas', 'tags']) if (!Array.isArray(out[k])) out[k] = [];
+  for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart']) if (!Array.isArray(out[k])) out[k] = [];
+  out.smart = out.smart.filter((x) => x && x.id).map((x) => Object.assign({ type: 'smart', title: '', f: {}, group: 'place', order: 0 }, x));
   out.todos = out.todos.filter((t) => t && t.id && !t.isDraft).map((t) => Object.assign(newTodoShape(), t, { tags: t.tags || [], checklist: t.checklist || [] }));
   out.projects = out.projects.filter((p) => p && p.id).map((p) => Object.assign(newProjectShape(), p, { tags: p.tags || [] }));
   out.areas = out.areas.filter((a) => a && a.id).map((a) => Object.assign({ title: '', tags: [], order: 0 }, a, { tags: a.tags || [] }));
@@ -1837,6 +1871,7 @@ function defaultsForView(extra = {}) {
     case 'area': Object.assign(p, { start: 'anytime', areaId: v.id }); break;
     case 'tag': p.tags = [v.id]; break;
     case 'deadlines': p.deadline = extra.deadline || T; break;
+    case 'smart': if (getSmart(v.id)) Object.assign(p, smartNewProps(getSmart(v.id))); break;
     default: break;
   }
   if (extra.projectId !== undefined) { p.projectId = extra.projectId; p.areaId = null; p.start = p.start === 'inbox' ? 'anytime' : p.start; }
@@ -2121,6 +2156,7 @@ function restoreFocus(f) {
   if (el) { el.focus({ preventScroll: true }); try { el.setSelectionRange(f.s, f.e); } catch (e) { /* not a text field */ } }
 }
 function afterRender() {
+  fitBoardName($('#content .board-name'));
   $$('textarea[data-autosize]').forEach(autosize);
   if (ui.scrollToEditor) {
     ui.scrollToEditor = false;
@@ -2140,7 +2176,7 @@ function renderShell() {
   const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash', 'templates'].includes(ui.view.type));
   magic.classList.toggle('hidden-in', hide);
   const L = LISTS[ui.view.type];
-  document.title = isMobile() && ui.mobile === 'home' ? 'Sectis' : `${L ? L.title : ui.view.type === 'project' ? pTitle(getP(ui.view.id)) : ui.view.type === 'area' ? aTitle(getA(ui.view.id)) : ui.view.type === 'tag' ? tagTitle(ui.view.id) : 'Sectis'} – Sectis`;
+  document.title = isMobile() && ui.mobile === 'home' ? 'Sectis' : `${L ? L.title : ui.view.type === 'project' ? pTitle(getP(ui.view.id)) : ui.view.type === 'area' ? aTitle(getA(ui.view.id)) : ui.view.type === 'tag' ? tagTitle(ui.view.id) : ui.view.type === 'smart' ? smartTitle(getSmart(ui.view.id)) : 'Sectis'} – Sectis`;
 }
 
 /* ---------- sidebar ---------- */
@@ -2171,7 +2207,10 @@ function renderSidebar() {
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
   html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
-  html += `<div class="sb-group sb-board-g"><button class="sb-item${on('board')}" data-nav="board" data-drop-list="board" title="Projects and areas side by side (8). Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">Board</span></button></div>`;
+  // the Board, or each Board once there are several; drop a project or area on one to add it
+  html += `<div class="sb-group sb-board-g">${(ui.boards || []).map((b) => `<button class="sb-item${v.type === 'board' && b.id === ui.boardId ? ' on' : ''}" data-nav="board:${b.id}" data-drop-list="board:${b.id}" title="${esc(b.name || 'Board')}${ui.boards.length > 1 ? '' : ' (8)'}. Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">${esc(b.name || 'Board')}</span></button>`).join('')}</div>`;
+  const smarts = (S.smart || []).slice().sort(byOrder);
+  if (smarts.length) html += `<div class="sb-group sb-smart-g">${smarts.map((sl) => `<button class="sb-item${on('smart:' + sl.id)}" data-nav="smart:${sl.id}" data-drop-list="smart:${sl.id}" data-drag="smart" data-kind="smart" data-id="${sl.id}" data-sb="1" title="${esc(smartSummary(sl))}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span class="sb-name">${esc(smartTitle(sl))}</span>${cnt(smartCount(sl))}</button>`).join('')}</div>`;
   const loose = sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   else html += `<div class="sb-loose" data-drop-loose="1">${ic('project')}<span>No Area</span></div>`; // shows while a project is dragged
@@ -2377,7 +2416,7 @@ function mobileBarHTML() {
 /* ---------- main views ---------- */
 function renderMain() {
   const v = ui.view;
-  if ((v.type === 'project' && (!getP(v.id))) || (v.type === 'area' && !getA(v.id)) || (v.type === 'tag' && !getTag(v.id))) ui.view = { type: 'today' };
+  if ((v.type === 'project' && (!getP(v.id))) || (v.type === 'area' && !getA(v.id)) || (v.type === 'tag' && !getTag(v.id)) || (v.type === 'smart' && !getSmart(v.id))) ui.view = { type: 'today' };
   let html = '';
   switch (ui.view.type) {
     case 'inbox': html = viewInbox(); break;
@@ -2392,6 +2431,7 @@ function renderMain() {
     case 'tag': html = viewTag(getTag(ui.view.id)); break;
     case 'board': html = viewBoard(); break;
     case 'deadlines': html = viewDeadlines(); break;
+    case 'smart': html = viewSmart(getSmart(ui.view.id)); break;
     case 'templates': html = viewTemplates(); break;
     case 'waiting': html = viewWaiting(); break;
     default: html = viewToday();
@@ -2660,7 +2700,9 @@ function visibleInCurrentView(x) {
     case 'tag': return effectiveTags(x).has(v.id);
     case 'templates': return false;
     case 'waiting': return isWaiting(x);
-    case 'board': return boardCols().some((c) => (c.t === 'p' ? x.projectId === c.id || x.id === c.id : (areaOf(x) || {}).id === c.id));
+    case 'board': return boardCols().some((c) => colHas(c, x));
+    case 'smart': return x.type === 'todo' && !!getSmart(v.id) && smartMatcher(getSmart(v.id))(x);
+    case 'deadlines': return !!x.deadline;
     default: return true;
   }
 }
@@ -3261,7 +3303,7 @@ function startDrag() {
     st.ids = ui.sel.has(st.id) && sameKind.length > 1 ? sameKind : [st.id];
   } else st.ids = st.id ? [st.id] : [];
   if (ui.editing && st.ids.includes(ui.editing)) { D.st = null; return; }
-  const label = st.kind === 'magic' ? 'New To-Do' : st.kind === 'heading' ? (getH(st.id) || {}).title || 'Heading' : st.kind === 'area' ? aTitle(getA(st.id)) : st.kind === 'project' ? pTitle(getP(st.id)) : (getT(st.id) || {}).title || 'New To-Do';
+  const label = st.kind === 'magic' ? 'New To-Do' : st.kind === 'heading' ? (getH(st.id) || {}).title || 'Heading' : st.kind === 'area' ? aTitle(getA(st.id)) : st.kind === 'smart' ? smartTitle(getSmart(st.id)) : st.kind === 'project' ? pTitle(getP(st.id)) : (getT(st.id) || {}).title || 'New To-Do';
   const g = document.createElement('div'); g.className = 'drag-ghost';
   g.innerHTML = `${st.kind === 'magic' ? ic('plus') : ''}<span>${esc(label)}</span>${st.ids.length > 1 ? `<span class="n">${st.ids.length}</span>` : ''}`;
   document.body.append(g); st.ghost = g;
@@ -3282,7 +3324,7 @@ function showLine(st, el, after, sec) {
   st.line.hidden = false;
 }
 function sectionAccepts(sec, kind) {
-  if (!sec || /^(logbook|trash|repeating|tag|waiting|deadlines|smart)/.test(sec)) return false;
+  if (!sec || /^(logbook|trash|repeating|tag|waiting|deadlines|smart|colview)/.test(sec)) return false;
   const projectSec = sec.startsWith('areaprojects:') || sec.includes(':projects:');
   if (kind === 'project') return projectSec || /^(today|evening|upcoming)/.test(sec);
   return !projectSec;
@@ -3308,7 +3350,7 @@ function dragTrack(fromLoop) {
   const sb = el.closest('#sidebar [data-drop-list]');
   if (sb) {
     const key = sb.dataset.dropList;
-    if (key === 'board') { if (k === 'project' || k === 'area') { sb.classList.add('drop-hover'); st.target = { type: 'board', el: sb }; } return; }
+    if (key === 'board' || key.startsWith('board:')) { if (k === 'project' || k === 'area') { sb.classList.add('drop-hover'); st.target = { type: 'board', el: sb, bid: key.slice(6) || ui.boardId }; } return; }
     if (k === 'heading') { // a heading (with its to-dos) into another project
       const h = getH(st.id);
       if (sb.dataset.kind === 'project' && h && h.projectId !== sb.dataset.id) { sb.classList.add('drop-hover'); st.target = { type: 'headproj', ref: sb.dataset.id, el: sb }; }
@@ -3319,6 +3361,12 @@ function dragTrack(fromLoop) {
       const r = sb.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
       showLine(st, sb, after); st.target = { type: 'sbproj', ref: sb.dataset.id, after }; return;
     }
+    if (k === 'smart') {
+      if (sb.dataset.kind !== 'smart' || sb.dataset.id === st.id) return;
+      const r = sb.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
+      showLine(st, sb, after); st.target = { type: 'sbsmart', ref: sb.dataset.id, after }; return;
+    }
+    if (key.startsWith('smart:')) return; // smart lists show what fits them; nothing to drop in
     if (k === 'area' && sb.dataset.kind === 'area') {
       if (sb.dataset.id === st.id) return;
       const r = sb.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
@@ -3329,7 +3377,7 @@ function dragTrack(fromLoop) {
     if (k === 'project' && key === 'inbox') return;
     sb.classList.add('drop-hover'); st.target = { type: 'list', key, el: sb }; return;
   }
-  if (!el.closest('#content')) return;
+  if (!el.closest('#content') || k === 'smart') return;
   // --- a day on Upcoming's calendar: schedule for that day
   const cday = el.closest('#content [data-drop-day]');
   if (cday) { if (k === 'todo' || k === 'project' || k === 'magic') { cday.classList.add('drop-hover'); st.target = { type: 'day', date: cday.dataset.dropDay }; } return; }
@@ -3373,6 +3421,10 @@ function dragTrack(fromLoop) {
     if (!sec) { const cz = el.closest('[data-colzone]'); if (cz && cz.dataset.colzone) sec = $(`#content [data-sec="${CSS.escape(cz.dataset.colzone)}"]`); } // anywhere in a board column
     if (sec) { const rows = $$(':scope > .row[data-id]', sec).filter((r) => !st.ids.includes(r.dataset.id)); index = rows.length; refEl = rows[rows.length - 1]; after = true; }
   }
+  if ((!sec || !sectionAccepts(sec.dataset.sec, k)) && (k === 'todo' || k === 'project')) {
+    const cd = el.closest('#content [data-coldrop]');
+    if (cd && !(k === 'project' && /^(tag|waiting)/.test(cd.dataset.coldrop))) { cd.classList.add('drop-hover'); st.target = { type: 'list', key: cd.dataset.coldrop, el: cd }; return; }
+  }
   if (k === 'project' && sec && /^area:/.test(sec.dataset.sec)) {
     const aid = sec.dataset.sec.slice(5), col = sec.closest('.bcol');
     const ps = col ? $(`[data-sec="areaprojects:${CSS.escape(aid)}"]`, col) : $(`#content [data-sec="areaprojects:${CSS.escape(aid)}"]`);
@@ -3401,7 +3453,10 @@ function performDrop(st, t) {
   if (t.type === 'list') return dropOnList(ids, t.key, st.kind, t.el);
   if (t.type === 'day') { if (st.kind === 'magic') newTodo({ extra: { date: t.date } }); else scheduleOn(ids, t.date); return; }
   if (t.type === 'board') {
-    const cols = (st.kind === 'area' ? [{ t: 'a', id: st.id }] : ids.map((id) => ({ t: 'p', id }))).filter((c) => !onBoard(c.t, c.id));
+    const bd = ui.boards.find((b) => b.id === t.bid) || curBoard();
+    const all = st.kind === 'area' ? [{ t: 'a', id: st.id }] : ids.map((id) => ({ t: 'p', id }));
+    if (bd.id !== ui.boardId) { const fresh = all.filter((c) => !onBoardOf(bd, c.t, c.id)); if (!fresh.length) toast(`Already on “${bd.name}”`); else addToBoardOf(bd, fresh); return; }
+    const cols = all.filter((c) => !onBoard(c.t, c.id));
     if (!cols.length) { toast(ids.length > 1 ? 'Already on the Board' : `“${colName(st.kind === 'area' ? 'a' : 'p', ids[0] || st.id)}” is already on the Board`, { action: 'Show Board', fn: () => navigate('board') }); return; }
     boardAdd(cols, { toast: cols.length > 1 ? `Added ${cols.length} projects to the Board` : `Added “${colName(cols[0].t, cols[0].id)}” to the Board` });
     return;
@@ -3457,6 +3512,12 @@ function performDrop(st, t) {
     commit('Move Project', () => ids.forEach((id, k) => { const p = getP(id); if (p) { p.areaId = ref.areaId || null; p.order = vals[k]; } }));
     return;
   }
+  if (t.type === 'sbsmart') {
+    const sl = getSmart(st.id), ref = getSmart(t.ref); if (!sl || !ref) return;
+    const ls = S.smart.filter((x) => x !== sl).sort(byOrder); const i = ls.indexOf(ref) + (t.after ? 1 : 0);
+    commit('Move Smart List', () => { sl.order = orderBetween(ls[i - 1] ? ls[i - 1].order : null, ls[i] ? ls[i].order : null)[0]; touch(sl); });
+    return;
+  }
   if (t.type === 'sbarea') {
     const a = getA(st.id), ref = getA(t.ref); if (!a || !ref) return;
     const as = S.areas.filter((x) => x !== a).sort(byOrder); const i = as.indexOf(ref) + (t.after ? 1 : 0);
@@ -3474,6 +3535,7 @@ function dropOnList(ids, key, kind, anchorEl) {
     case 'logbook': completeIds(ids); break;
     case 'waiting': if (kind === 'todo') openWaiting(ids, anchorEl); break;
     case 'deadlines': openWhen(ids, anchorEl, 'deadline'); break;
+    case 'tag': { const items = itemsFor(ids).filter((x) => !x.tags.includes(id)); if (items.length && getTag(id)) { commit('Tags', () => items.forEach((x) => { x.tags = x.tags.concat(id); touch(x); })); toast(`Tagged ${items.length > 1 ? plural(items.length, 'item') : `“${items[0].title || 'New To-Do'}”`} #${tagTitle(id)}`, { undo: true }); } break; }
     case 'trash': trashItems(ids); break;
     case 'project': if (kind === 'todo') moveItems(ids, { type: 'project', id }); break;
     case 'area': moveItems(ids, { type: 'area', id }); break;
@@ -3493,6 +3555,7 @@ function completeIds(ids) {
 /* ===================== Events: clicks, typing, keyboard ===================== */
 function navigate(key, opts = {}) {
   closeEditor({ noRender: true });
+  if (key.startsWith('board:')) { switchBoard(key.slice(6)); key = 'board'; } // one of several Boards
   const [type, id] = key.split(':');
   ui.view = id ? { type, id } : { type };
   ui.sel.clear(); ui.anchor = null; ui.tagFilter = null; ui.selectMode = false; ui.logbookLimit = 150; ui.notesEdit = null;
@@ -3601,6 +3664,9 @@ function handleAction(act, el, e) {
       return;
     }
     case 'cal-prev': case 'cal-next': case 'cal-now': case 'cal-fold': case 'cal-day': calAction(act, el); return;
+    case 'smart-edit': openSmartEditor(getSmart(id)); return;
+    case 'lcol-add': listColAdd(el.dataset.col); return;
+    case 'board-switch': openMenu(el, boardsMenuItems()); return;
     case 'board-add': openBoardPicker(el); return;
     case 'board-add-below': openBoardPicker(el, { below: el.dataset.col }); return;
     case 'sort-menu': openSortMenu(el); return;
@@ -3628,7 +3694,7 @@ function handleAction(act, el, e) {
     case 'find': openFind(); return;
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
-    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
+    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { label: 'New Smart List…', icon: 'funnel', fn: () => openSmartEditor() }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
     case 'm-back': closeEditor({ noRender: true }); ui.mobile = 'home'; ui.sel.clear(); ui.selectMode = false; render(); return;
     case 'select-done': ui.selectMode = false; ui.sel.clear(); render(); return;
     case 'select-all': visibleRowIds().forEach((x) => ui.sel.add(x)); paintSelection(); return;
@@ -3728,7 +3794,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Move Into Project…', icon: 'heading', fn: () => openMove([], el, { heading: true, noHeadings: true, exclude: p.id, title: `Make “${pTitle(p)}” a Heading In`, onPick: (t) => { if (t.type === 'project') projectToHeading(p, t.id); } }) });
     items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
-    items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
+    items.push(...boardMenuItems('p', p.id, isColMenu(extra), el));
     if (!isMobile()) items.push({ label: ui.projBoard.has(p.id) ? 'Show as List' : 'Show Headings as Board', icon: 'columns', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); setProjectBoard(p.id, !ui.projBoard.has(p.id)); } });
     if (ui.view.type === 'project' && ui.view.id === p.id && !isColMenu(extra)) items.push(sortMenuItem(el));
     items.push({ label: 'Add To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'], sec: `project:${p.id}:` }) });
@@ -3740,7 +3806,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
   } else {
-    if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra)));
+    if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra), el));
     if (!p.trashed) items.push(colorMenuItem('p', p, el));
     if (!p.trashed) items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
     if (completedMenuItem([p.id], el)) items.push(completedMenuItem([p.id], el));
@@ -3759,7 +3825,7 @@ function areaMenu(a, el, extra = []) {
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
-    ...boardMenuItems('a', a.id, isColMenu(extra)),
+    ...boardMenuItems('a', a.id, isColMenu(extra), el),
     { label: 'Add from Template…', icon: 'template', fn: () => openTemplatePicker(el, { sec: `area:${a.id}`, areaId: a.id }) },
     { label: 'Expand All Projects', icon: 'chevD', fn: () => setExpanded(areaProjectIds(a.id), true) },
     { label: ui.sbCollapsed.size ? 'Show All Projects in Sidebar' : 'Hide All Projects in Sidebar', icon: 'layers', fn: () => setSidebarAreas(!ui.sbCollapsed.size) },
@@ -3840,12 +3906,18 @@ document.addEventListener('contextmenu', (e) => {
 function viewMenu(el) {
   const v = ui.view.type;
   const batch = batchMenuItems(el);
+  if (v === 'smart') {
+    const sl = getSmart(ui.view.id); if (!sl) return;
+    openMenu(el, [...batch, ...smartMenuItems(sl, el), sortMenuItem(el), { label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) }, { sep: 1 }, { label: 'Keyboard Shortcuts', icon: 'key', fn: openShortcuts }, { label: 'Settings', icon: 'gear', fn: openSettings }]);
+    return;
+  }
   const items = [...batch];
   if (v === 'project') { projectMenu(getP(ui.view.id), el, batch); return; }
   if (v === 'area') { areaMenu(getA(ui.view.id), el, batch); return; }
   if (v === 'board') {
     const n = boardCols().length;
     openMenu(el, [...batch,
+      ...boardsMenuItems(), { sep: 1 },
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
       { label: 'Fit All Sizes Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w || c.h), fn: resetAllSizes },
       sortMenuItem(el),
@@ -3898,6 +3970,7 @@ document.addEventListener('input', (e) => {
     const a = getA(id); if (!a) return; editSnap(f + id); a.title = el.value; renderSidebar(); renderShell();
   } else if (f === 'heading-title') {
     const h = getH(id); if (!h) return; editSnap(f + id); h.title = el.value;
+  } else if (f === 'board-name') { renameBoardTo(el.value); fitBoardName(el); autosize(el); return; // a Board's name lives on this device, not in the synced data
   } else return;
   saveSoon();
 });
@@ -3952,7 +4025,7 @@ function fieldKeys(e) {
       return true;
     }
   }
-  if (f === 'area-title' && e.key === 'Enter') { e.preventDefault(); el.blur(); return true; }
+  if ((f === 'area-title' || f === 'board-name') && e.key === 'Enter') { e.preventDefault(); el.blur(); return true; }
   return false;
 }
 
@@ -4583,7 +4656,7 @@ function openImport() {
    recent edit of an item wins. Deletions leave a small marker. */
 const SYNC_KEY = 'sectis.sync.v1';
 const FB_VERSION = '10.14.1';
-const SYNC_KINDS = { todo: 'todos', project: 'projects', heading: 'headings', area: 'areas', tag: 'tags' };
+const SYNC_KINDS = { todo: 'todos', project: 'projects', heading: 'headings', area: 'areas', tag: 'tags', smart: 'smart' };
 const Y = {
   enabled: false, cfg: null, key: null, space: null, base: {}, pending: {}, cursor: [0, 0], lastSync: 0,
   status: 'off', error: '', db: null, col: null, aes: null, unsub: null, pushing: false, again: false,
@@ -5447,7 +5520,7 @@ async function dailyBackup() {
 }
 function restoreSnapshot(data) {
   commit('Restore Backup', () => {
-    for (const k of ['todos', 'projects', 'headings', 'areas', 'tags']) S[k] = Array.isArray(data[k]) ? data[k] : [];
+    for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart']) S[k] = Array.isArray(data[k]) ? data[k] : [];
     S = normalizeState(S);
   });
 }
@@ -5570,6 +5643,9 @@ function collectExport(scope) {
       title = 'Waiting'; const g = new Map();
       waitingItems().filter(f).forEach((t) => { const k = t.waitFor.trim(); if (!g.has(k.toLowerCase())) g.set(k.toLowerCase(), { name: k, list: [] }); g.get(k.toLowerCase()).list.push(t); });
       [...g.values()].sort((a, b) => a.name.localeCompare(b.name)).forEach((x) => { B.push({ h: 2, text: x.name }); x.list.sort((a, b) => ((a.when || '9999') < (b.when || '9999') ? -1 : (a.when || '9999') > (b.when || '9999') ? 1 : byOrder(a, b))).forEach((t) => B.push({ item: t })); });
+    } else if (v.type === 'smart') {
+      const sl = getSmart(v.id); title = smartTitle(sl);
+      smartGroups(sl, smartItems(sl).filter(f)).forEach((g) => { const h = g.head.replace(/<[^>]+>/g, '').trim(); if (h) B.push({ h: 2, text: h }); g.items.forEach((x) => B.push({ item: x })); });
     } else if (v.type === 'deadlines') {
       title = 'Deadlines'; deadlineGroups(deadlineItems().filter(f)).forEach((g) => { B.push({ h: 2, text: g.label }); g.items.forEach((x) => B.push({ item: x })); });
     } else if (v.type === 'project') return collectExport({ type: 'items', ids: [v.id] });
@@ -5918,26 +5994,47 @@ function projectChildrenHTML(p) {
    stack can hold several columns one under another, so the space below a short list gets used.
    It's a per-device layout (a Mac layout, not synced). Each column remembers its stack (l) and
    its own height (h); a stack's width (w) is kept on every column in it. */
+const COL_TYPES = ['p', 'a', 'l', 't', 's']; // project, area, built-in list, tag, smart list
+const BOARD_LISTS = ['inbox', 'today', 'upcoming', 'anytime', 'someday', 'waiting', 'deadlines'];
+function cleanCols(cols) {
+  cols = (Array.isArray(cols) ? cols : []).filter((c) => c && c.id && COL_TYPES.includes(c.t));
+  // a Board from before stacks: every column is a stack of its own, in the same order
+  let next = cols.reduce((m, c) => (Number.isInteger(c.l) && c.l >= 0 ? Math.max(m, c.l + 1) : m), 0);
+  cols.forEach((c) => { if (!(Number.isInteger(c.l) && c.l >= 0)) c.l = next++; });
+  return cols;
+}
 function loadBoard() {
   loadCkClip();
-  try { ui.board = JSON.parse(lsGet('sectis.board') || '[]').filter((c) => c && c.id && (c.t === 'p' || c.t === 'a')); } catch (e) { ui.board = []; }
-  // a Board from before stacks: every column is a stack of its own, in the same order
-  let next = ui.board.reduce((m, c) => (Number.isInteger(c.l) && c.l >= 0 ? Math.max(m, c.l + 1) : m), 0);
-  ui.board.forEach((c) => { if (!(Number.isInteger(c.l) && c.l >= 0)) c.l = next++; });
+  let saved = null;
+  try { saved = JSON.parse(lsGet('sectis.boards') || 'null'); } catch (e) { saved = null; }
+  if (saved && Array.isArray(saved.list) && saved.list.length) ui.boards = saved.list.filter((b) => b && b.id).map((b) => ({ id: b.id, name: b.name || 'Board', area: b.area || null, cols: cleanCols(b.cols) }));
+  if (!ui.boards || !ui.boards.length) { // the one Board from before there were several
+    let cols = []; try { cols = JSON.parse(lsGet('sectis.board') || '[]'); } catch (e) { cols = []; }
+    ui.boards = [{ id: 'main', name: 'Board', area: null, cols: cleanCols(cols) }];
+  }
+  ui.boardId = saved && ui.boards.some((b) => b.id === saved.cur) ? saved.cur : ui.boards[0].id;
+  ui.board = curBoard().cols;
   try { ui.projBoard = new Set(JSON.parse(lsGet('sectis.pboard') || '[]')); } catch (e) { ui.projBoard = new Set(); }
   try { ui.hcolW = JSON.parse(lsGet('sectis.hcolw') || '{}') || {}; } catch (e) { ui.hcolW = {}; }
   try { ui.hcolH = JSON.parse(lsGet('sectis.hcolh') || '{}') || {}; } catch (e) { ui.hcolH = {}; }
   try { ui.hUnder = new Set(JSON.parse(lsGet('sectis.hunder') || '[]')); } catch (e) { ui.hUnder = new Set(); }
 }
-function saveBoard() { lsSet('sectis.board', JSON.stringify(ui.board)); }
+function curBoard() { return (ui.boards || []).find((b) => b.id === ui.boardId) || ui.boards[0]; }
+function saveBoard() {
+  curBoard().cols = ui.board;
+  lsSet('sectis.boards', JSON.stringify({ cur: ui.boardId, list: ui.boards }));
+}
 function colShown(c) {
   if (c.t === 'a') return !!getA(c.id);
+  if (c.t === 'l') return BOARD_LISTS.includes(c.id);
+  if (c.t === 't') return !!getTag(c.id);
+  if (c.t === 's') return !!getSmart(c.id);
   const p = getP(c.id);
   return !!p && !p.trashed && !p.isTemplate && !(p.status !== 'open' && p.logged);
 }
 function boardCols() { return [].concat(...boardStacks()); }
 function onBoard(t, id) { return (ui.board || []).some((c) => c.t === t && c.id === id); }
-function colName(t, id) { return t === 'p' ? pTitle(getP(id)) : aTitle(getA(id)); }
+function colName(t, id) { return t === 'p' ? pTitle(getP(id)) : t === 'a' ? aTitle(getA(id)) : t === 'l' ? LISTS[id].title : t === 't' ? tagTitle(id) : smartTitle(getSmart(id)); }
 const colKey = (c) => `${c.t}:${c.id}`;
 
 /* ---- stacks: the columns on screen, left to right, each top to bottom ---- */
@@ -6019,7 +6116,10 @@ function areaAsBoard(a) {
   const projs = S.projects.filter((p) => p.areaId === a.id && !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday').sort(byOrder);
   const loose = S.todos.some((t) => t.areaId === a.id && !t.projectId && t.status === 'open' && liveTodo(t));
   const cols = (loose || !projs.length ? [{ t: 'a', id: a.id }] : []).concat(projs.map((p) => ({ t: 'p', id: p.id })));
-  boardAdd(cols, { replace: true, go: true });
+  // its own Board, named after it; opening it again brings that Board up to date
+  const b = ui.boards.find((x) => x.area === a.id);
+  if (b) { switchBoard(b.id); boardAdd(cols, { replace: true, go: true }); return; }
+  newBoard({ name: boardWithName(aTitle(a)), area: a.id, cols: cols.map((c, i) => ({ t: c.t, id: c.id, l: i })) });
 }
 
 /* ---- sizes: drag a column's right edge (width), bottom edge (height) or corner (both);
@@ -6090,8 +6190,12 @@ document.addEventListener('dblclick', (e) => {
   setColSize(h.dataset.colresize, axis === 'x' ? { w: 0 } : axis === 'y' ? { h: 0 } : { w: 0, h: 0 });
 });
 const isColMenu = (extra) => extra.some((x) => x.header === 'Column'); // a column's own menu has its own board items
-function boardMenuItems(t, id, fromColumn) {
+function boardMenuItems(t, id, fromColumn, el) {
   if (isMobile() || fromColumn) return [];
+  if (ui.boards.length > 1) { // which Boards it's on, ticked; choosing one adds or removes it there
+    const n = ui.boards.filter((b) => onBoardOf(b, t, id)).length;
+    return [{ label: n ? `On ${plural(n, 'Board')}…` : 'Add to Board…', icon: 'columns', fn: () => openMenu(el || { x: innerWidth / 2, y: 120 }, [{ header: colName(t, id) }, ...ui.boards.map((b) => ({ label: b.name || 'Board', icon: onBoardOf(b, t, id) ? 'check' : 'blank', fn: () => toggleOnBoardOf(b, t, id) }))]) }];
+  }
   const on = onBoard(t, id);
   return [on
     ? { label: 'Remove from Board', icon: 'columns', fn: () => { boardRemove(t, id); toast(`Removed “${colName(t, id)}” from the Board`); } }
@@ -6101,7 +6205,7 @@ function boardMenuItems(t, id, fromColumn) {
 /* ---- view ---- */
 function viewBoard() {
   const stacks = boardStacks();
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><h1 class="lh-title">Board</h1><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><textarea class="lh-title board-name" data-edit="board-name" data-fkey="board-name" placeholder="Board" aria-label="Board name" autocomplete="off" rows="1" data-autosize data-oneline>${esc(curBoard().name)}</textarea><button class="ib board-switch" data-action="board-switch" aria-label="Boards" title="Switch, add or rename Boards">${ic('chevD')}</button><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
   if (!stacks.length) {
     return html + emptyHTML('columns', 'See your lists side by side',
       'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');
@@ -6113,6 +6217,7 @@ function viewBoard() {
   }).join('')}</div>`;
 }
 function boardColHTML(c) {
+  if (c.t === 'l' || c.t === 't' || c.t === 's') return listColHTML(c);
   const key = colKey(c), more = `<button class="ib" data-action="bcol-menu" data-col="${key}" aria-label="Column options" title="Column options">${ic('more')}</button>`;
   const sizedH = c.h ? ' sized-h' : '', bodyAttr = c.h ? ` data-vscroll="${key}"` : '';
   if (c.t === 'p') {
@@ -6164,7 +6269,11 @@ function boardColMenu(key, el) {
     { label: 'Remove from Board', icon: 'x', fn: () => boardRemove(t, id) },
     { sep: 1 },
   ];
-  if (t === 'p') projectMenu(getP(id), el, extra); else areaMenu(getA(id), el, extra);
+  if (t === 'p') projectMenu(getP(id), el, extra);
+  else if (t === 'a') areaMenu(getA(id), el, extra);
+  else openMenu(el, [...extra.filter((x) => !x.sep && x.label !== 'Sort Board By…'), { sep: 1 },
+    { label: `Open ${colName(t, id)}`, icon: 'move', fn: () => navigate(t === 'l' ? id : t === 't' ? 'tag:' + id : 'smart:' + id) },
+    ...(t === 's' ? [{ label: 'Edit Smart List…', icon: 'sliders', fn: () => openSmartEditor(getSmart(id)) }] : [])]);
 }
 /* column of the selected row, else the first one that takes new to-dos */
 function boardNewSec() {
@@ -6288,6 +6397,15 @@ function openBoardPicker(anchor, opts = {}) {
     const projs = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === areaId).sort(byOrder);
     const prow = (p, inArea) => `<button class="pick-i p${inArea ? ' in-area' : ''}" data-col="p:${p.id}">${projIc(p)}<span>${esc(pTitle(p))}</span>${chk('p', p.id)}</button>`;
     let out = '';
+    const grp = (label) => `<div class="pk-grp">${label}</div>`;
+    const lists = BOARD_LISTS.filter((k) => m(LISTS[k].title));
+    if (lists.length) out += grp('Lists') + lists.map((k) => `<button class="pick-i l" data-col="l:${k}"><span class="ic" style="color:${LISTS[k].color}">${I[LISTS[k].icon]}</span><span>${LISTS[k].title}</span>${chk('l', k)}</button>`).join('');
+    const smarts = (S.smart || []).slice().sort(byOrder).filter((sl) => m(smartTitle(sl)));
+    if (smarts.length) out += grp('Smart Lists') + smarts.map((sl) => `<button class="pick-i s" data-col="s:${sl.id}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span>${esc(smartTitle(sl))}</span>${chk('s', sl.id)}</button>`).join('');
+    const tags = tagTree().filter(({ tag }) => m(tag.title));
+    if (tags.length) out += grp('Tags') + tags.map(({ tag, depth }) => `<button class="pick-i t${depth ? ' in-area' : ''}" data-col="t:${tag.id}"><span class="ic ${tcls(tag)}" style="color:var(--tc)">${I.tag}</span><span>${esc(tag.title)}</span>${chk('t', tag.id)}</button>`).join('');
+    const pa = S.projects.some((p) => !p.trashed && !p.isTemplate && p.status === 'open' && m(pTitle(p))) || S.areas.some((a) => m(aTitle(a)));
+    if (pa) out += grp('Projects & Areas');
     projs(null).forEach((p) => { if (m(pTitle(p))) out += prow(p, false); });
     S.areas.slice().sort(byOrder).forEach((a) => {
       const am = m(aTitle(a)), pr = projs(a.id).filter((p) => am || m(pTitle(p)));
@@ -6587,7 +6705,7 @@ function rangeText(r) { return r.from === r.to ? fmtDate(r.from, { weekday: fals
 function reportScope(scope) {
   if (scope.type === 'area' && getA(scope.id)) { const a = getA(scope.id); return { name: aTitle(a), level: 'area', has: (t) => (areaOf(t) || {}).id === a.id }; }
   if (scope.type === 'project' && getP(scope.id)) { const p = getP(scope.id); return { name: pTitle(p), level: 'project', has: (t) => t.projectId === p.id }; }
-  if (scope.type === 'board') { const cols = boardCols(); return { name: 'Board', level: 'all', has: (t) => cols.some((c) => (c.t === 'p' ? t.projectId === c.id : (areaOf(t) || {}).id === c.id)) }; }
+  if (scope.type === 'board') { const cols = boardCols(); return { name: 'Board', level: 'all', has: (t) => cols.some((c) => colHas(c, t)) }; }
   return { name: '', level: 'all', has: () => true };
 }
 /* group to-dos by project, then by area for to-dos outside projects; in sidebar order */
@@ -6699,10 +6817,10 @@ function openReport(scope = { type: 'all' }) {
    Compact rows (Settings → Row spacing) fit more on screen. */
 const SORTS = [['manual', 'Manual Order'], ['priority', 'Priority'], ['deadline', 'Deadline'], ['when', 'Date'], ['title', 'Title'], ['added', 'Recently Added']];
 const SORT_LABEL = { manual: 'Manual', priority: 'Priority', deadline: 'Deadline', when: 'Date', title: 'Title', added: 'Recently Added' };
-const SORT_SEC = /^(inbox|today|evening|anytime|someday|project|area|tag|waiting)/; // not Upcoming or the Logbook, which have their own order
+const SORT_SEC = /^(inbox|today|evening|anytime|someday|project|area|tag|waiting|smart)/; // not Upcoming or the Logbook, which have their own order
 function loadSorts() { try { ui.sorts = JSON.parse(lsGet('sectis.sort') || '{}') || {}; } catch (e) { ui.sorts = {}; } }
 function sortKeyFor(v = ui.view) { return v.id ? `${v.type}:${v.id}` : v.type; }
-function sortableView(v = ui.view) { return ['inbox', 'today', 'anytime', 'someday', 'project', 'area', 'tag', 'waiting', 'board'].includes(v.type); }
+function sortableView(v = ui.view) { return ['inbox', 'today', 'anytime', 'someday', 'project', 'area', 'tag', 'waiting', 'board', 'smart'].includes(v.type); }
 /* Lists you haven't sorted another way keep higher priorities on top (Settings → Keep higher
    priorities on top), so a list with no priorities looks just as you arranged it. */
 function defaultSort() { return S.settings.prioTop === false ? 'manual' : 'priority'; }
@@ -6733,7 +6851,7 @@ function sortedRows(items) { const m = currentSort(); return sinkDone(m === 'man
 /* Completed to-dos sink to the bottom of their list, the last one checked at the very bottom
    (Settings → Completed to-dos). Only how they're shown changes: each keeps its place, so
    unchecking one puts it right back. One just checked stays put for a moment first. */
-const SINK_SEC = /^(inbox|today|evening|upcoming|anytime|someday|project|area|tag|waiting|deadlines|smart)/; // not the Logbook or Trash
+const SINK_SEC = /^(inbox|today|evening|upcoming|anytime|someday|project|area|tag|waiting|deadlines|smart|colview)/; // not the Logbook or Trash
 const sinksDone = () => (S.settings.doneSink || 'bottom') === 'bottom';
 function sinkDone(items) {
   if (!sinksDone()) return items;
@@ -7434,6 +7552,354 @@ function openPlaceColor(kind, x, anchor) {
       if (!isCoarse()) { const f = $('.sw.on', el) || $('.sw', el); if (f) f.focus({ preventScroll: true }); }
     } });
   return L;
+}
+
+/* ===================== Smart lists =====================
+   Saved filters, kept in the sidebar: to-dos with these tags (any or all), in these projects
+   or areas, by start date, deadline, priority, Waiting For and words in the title or notes.
+   They update as to-dos come and go, sync like everything else, and can be Board columns.
+   A smart list is a record { id, type: 'smart', title, f: filters, group, order }. */
+const SMART_WHEN = [['any', 'Any'], ['today', 'Today'], ['week', 'Next 7 Days'], ['dated', 'Scheduled'], ['nodate', 'No Date'], ['someday', 'Someday']];
+const SMART_DL = [['any', 'Any'], ['has', 'Has One'], ['overdue', 'Overdue'], ['week', 'Within a Week'], ['month', 'Within a Month'], ['none', 'None']];
+const SMART_PRIO = [['0', 'Any'], ['1', 'Low or Higher'], ['2', 'Medium or Higher'], ['3', 'High']];
+const SMART_WAIT = [['any', 'Any'], ['only', 'Waiting'], ['not', 'Not Waiting'], ['stale', 'Waiting 7+ Days']];
+const SMART_GROUP = [['place', 'Project & Area'], ['date', 'Date'], ['none', 'None']];
+const getSmart = (id) => (S.smart || []).find((s) => s.id === id);
+const smartTitle = (sl) => (sl && sl.title) || 'Smart List';
+function smartFilter(sl) { return Object.assign({ tags: [], tagMode: 'any', places: [], when: 'any', deadline: 'any', priority: 0, waiting: 'any', text: '' }, (sl && sl.f) || {}); }
+function smartMatcher(sl) {
+  const f = smartFilter(sl), T = T0(), wk = addDays(T, 7), mo = addDays(T, 30);
+  const tagSets = f.tags.filter(getTag).map(tagDescendants);
+  const places = f.places.filter((k) => (k[0] === 'p' ? getP(k.slice(2)) : getA(k.slice(2))));
+  const q = (f.text || '').trim().toLowerCase();
+  return (t) => {
+    if (!liveTodo(t) || !inLiveProject(t)) return false;
+    if (tagSets.length) {
+      const eff = new Set(effectiveTags(t)), hit = (set) => [...set].some((id) => eff.has(id));
+      if (f.tagMode === 'all' ? !tagSets.every(hit) : !tagSets.some(hit)) return false;
+    }
+    if (places.length && !places.some((k) => (k[0] === 'p' ? t.projectId === k.slice(2) : (areaOf(t) || {}).id === k.slice(2)))) return false;
+    const dated = t.start === 'anytime' && !!t.when;
+    if (f.when === 'today' && !isTodayItem(t)) return false;
+    if (f.when === 'week' && !(isTodayItem(t) || (dated && t.when <= wk))) return false;
+    if (f.when === 'dated' && !dated) return false;
+    if (f.when === 'nodate' && (t.when || t.start === 'someday')) return false;
+    if (f.when === 'someday' && t.start !== 'someday') return false;
+    if (f.deadline === 'has' && !t.deadline) return false;
+    if (f.deadline === 'overdue' && !(t.deadline && t.deadline < T)) return false;
+    if (f.deadline === 'week' && !(t.deadline && t.deadline <= wk)) return false;
+    if (f.deadline === 'month' && !(t.deadline && t.deadline <= mo)) return false;
+    if (f.deadline === 'none' && t.deadline) return false;
+    if (+f.priority && prio(t) < +f.priority) return false;
+    if (f.waiting === 'only' && !t.waitFor) return false;
+    if (f.waiting === 'not' && t.waitFor) return false;
+    if (f.waiting === 'stale' && !(t.waitFor && t.waitSince && diffDays(t.waitSince, T) >= 7)) return false;
+    if (q && !`${t.title || ''}\n${t.notes || ''}`.toLowerCase().includes(q)) return false;
+    return true;
+  };
+}
+function smartItems(sl) { return S.todos.filter(smartMatcher(sl)); }
+function smartCount(sl) { return smartItems(sl).filter((t) => t.status === 'open').length; }
+function smartSummary(sl) {
+  const f = smartFilter(sl), bits = [], lab = (opts, v) => (opts.find((o) => String(o[0]) === String(v)) || [0, ''])[1];
+  const tags = f.tags.map(getTag).filter(Boolean).map((t) => '#' + t.title);
+  if (tags.length) bits.push(tags.join(f.tagMode === 'all' ? ' and ' : ' or '));
+  const places = f.places.map((k) => (k[0] === 'p' ? getP(k.slice(2)) && pTitle(getP(k.slice(2))) : getA(k.slice(2)) && aTitle(getA(k.slice(2))))).filter(Boolean);
+  if (places.length) bits.push('in ' + places.join(', '));
+  if (f.when !== 'any') bits.push(lab(SMART_WHEN, f.when));
+  if (f.deadline !== 'any') bits.push(f.deadline === 'none' ? 'No deadline' : 'Deadline: ' + lab(SMART_DL, f.deadline).toLowerCase());
+  if (+f.priority) bits.push('Priority: ' + lab(SMART_PRIO, f.priority).toLowerCase());
+  if (f.waiting !== 'any') bits.push(lab(SMART_WAIT, f.waiting));
+  if ((f.text || '').trim()) bits.push(`“${f.text.trim()}”`);
+  return bits.join(' · ') || 'Every open to-do';
+}
+/* the list grouped by project and area (like Anytime), by date (like a tag), or not at all */
+function smartGroups(sl, items) {
+  const g = sl.group || 'place', T = T0();
+  if (g === 'none') return [{ head: '', items, ctx: { parent: true, when: true, star: true } }];
+  if (g === 'date') {
+    return [
+      ['Today', items.filter(isTodayItem).sort(byToday)],
+      ['Upcoming', items.filter((t) => t.start === 'anytime' && t.when && t.when > T).sort((a, b) => (a.when < b.when ? -1 : a.when > b.when ? 1 : 0))],
+      ['Anytime', items.filter((t) => t.start === 'anytime' && !t.when && !isTodayItem(t)).sort(byOrder)],
+      ['Inbox', items.filter((t) => isInbox(t) && !isTodayItem(t)).sort(byOrder)],
+      ['Someday', items.filter((t) => t.start === 'someday' && !isTodayItem(t)).sort(byOrder)],
+    ].filter((x) => x[1].length).map(([label, list]) => ({ head: `<div class="sec-h"><span>${label}</span></div>`, items: list, ctx: { parent: true, when: true } }));
+  }
+  const out = [], ctx = { when: true, star: true };
+  const sortT = (a, b) => { const ha = a.headingId && getH(a.headingId), hb = b.headingId && getH(b.headingId); return ((ha ? ha.order + 1 : 0) - (hb ? hb.order + 1 : 0)) || byOrder(a, b); };
+  const loose = items.filter((t) => !t.projectId && !t.areaId).sort(byOrder);
+  if (loose.length) out.push({ head: '', items: loose, ctx: { when: true, star: true } });
+  const projGroup = (p) => { const ts = items.filter((t) => t.projectId === p.id).sort(sortT); if (ts.length) out.push({ head: `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>`, items: ts, ctx }); };
+  const projectsIn = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && (p.areaId || null) === areaId).sort(byOrder);
+  projectsIn(null).forEach(projGroup);
+  S.areas.slice().sort(byOrder).forEach((a) => {
+    const at = items.filter((t) => t.areaId === a.id && !t.projectId).sort(byOrder), ps = projectsIn(a.id);
+    if (!at.length && !ps.some((p) => items.some((t) => t.projectId === p.id))) return;
+    out.push({ head: `<div class="grp-h area-h">${placeColor(a) ? areaIc(a) : ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>`, items: at, ctx });
+    ps.forEach(projGroup);
+  });
+  return out;
+}
+function viewSmart(sl) {
+  const all = smartItems(sl), items = all.filter(matchesTagFilter), n = all.filter((t) => t.status === 'open').length;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-smart)">${I.funnel}</span><h1 class="lh-title">${esc(smartTitle(sl))}</h1>`
+    + `<button class="btn board-add" data-action="smart-edit" data-id="${sl.id}" title="Change what this list shows">${ic('sliders')}<span>Edit</span></button>`
+    + `<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="view-menu" aria-label="List options" title="List options">${ic('more')}</button></div>`
+    + `<div class="lh-sub">${esc(smartSummary(sl))} · ${plural(n, 'open to-do')}</div>` + tagBarHTML(all);
+  html += `<div class="list">${smartGroups(sl, items).map((g) => g.head + secHTML(`smart:${sl.id}`, g.items, g.ctx)).join('')}</div>`;
+  if (!all.length) html += emptyHTML('funnel', 'Nothing matches right now', 'To-dos that fit this list’s filters show up here as they come and go. Click <b>Edit</b> to change the filters.');
+  return html;
+}
+function smartMenuItems(sl, el) {
+  return [
+    { label: 'Edit Smart List…', icon: 'sliders', fn: () => openSmartEditor(sl) },
+    { label: 'Duplicate Smart List', icon: 'copy', fn: () => duplicateSmart(sl) },
+    ...boardMenuItems('s', sl.id, false, el),
+    { label: 'Delete Smart List', icon: 'trash', danger: true, fn: () => deleteSmart(sl) },
+  ];
+}
+function saveSmart(sl, data) {
+  let rec = sl;
+  commit(sl ? 'Edit Smart List' : 'New Smart List', () => {
+    if (!rec) { const now = Date.now(); rec = { id: uid(), type: 'smart', title: '', f: {}, group: 'place', order: (maxOf(S.smart, 'order') || 0) + 1, createdAt: now, modifiedAt: now }; S.smart.push(rec); }
+    Object.assign(rec, data); touch(rec);
+  }, { render: false });
+  navigate('smart:' + rec.id);
+  return rec;
+}
+function duplicateSmart(sl) {
+  saveSmart(null, { title: smartTitle(sl) + ' copy', f: JSON.parse(JSON.stringify(sl.f || {})), group: sl.group || 'place' });
+}
+async function deleteSmart(sl) {
+  const ok = await confirmDialog({ title: `Delete “${esc(smartTitle(sl))}”?`, body: 'Only the list goes; its to-dos stay where they are.', ok: 'Delete', danger: true });
+  if (!ok) return;
+  commit('Delete Smart List', () => { S.smart = S.smart.filter((x) => x.id !== sl.id); }, { render: false });
+  if (ui.view.type === 'smart' && ui.view.id === sl.id) navigate('today'); else render();
+  toast(`Deleted “${smartTitle(sl)}”`, { undo: true });
+}
+/* the editor: a name, then each filter; the count updates as you go */
+function openSmartEditor(sl = null) {
+  const st = { title: sl ? sl.title || '' : '', f: JSON.parse(JSON.stringify(smartFilter(sl))), group: (sl && sl.group) || 'place', q: '' };
+  const seg = (key, opts, val) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button type="button" data-k="${key}" data-v="${v}" class="${String(val) === String(v) ? 'on' : ''}" aria-pressed="${String(val) === String(v)}">${l}</button>`).join('')}</div>`;
+  const tagChips = () => tagTree().map(({ tag, depth }) => `<button type="button" class="sm-chip tagc ${tcls(tag)}${st.f.tags.includes(tag.id) ? ' on' : ''}" data-tag="${tag.id}" aria-pressed="${st.f.tags.includes(tag.id)}">${depth ? '<span class="sm-nest">›</span>' : ''}<span class="sm-dot"></span>${esc(tag.title)}</button>`).join('') || '<span class="note">No tags yet.</span>';
+  const placeChips = () => {
+    const ql = st.q.trim().toLowerCase(), m = (s) => !ql || s.toLowerCase().includes(ql);
+    const chip = (k, label, icon) => `<button type="button" class="sm-chip${st.f.places.includes(k) ? ' on' : ''}" data-place="${k}" aria-pressed="${st.f.places.includes(k)}">${icon}<span>${esc(label)}</span></button>`;
+    const projs = (aid) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === aid).sort(byOrder);
+    let out = projs(null).filter((p) => m(pTitle(p)) || st.f.places.includes('p:' + p.id)).map((p) => chip('p:' + p.id, pTitle(p), projIc(p))).join('');
+    S.areas.slice().sort(byOrder).forEach((a) => {
+      if (m(aTitle(a)) || st.f.places.includes('a:' + a.id)) out += chip('a:' + a.id, aTitle(a), areaIc(a));
+      out += projs(a.id).filter((p) => m(pTitle(p)) || st.f.places.includes('p:' + p.id)).map((p) => chip('p:' + p.id, pTitle(p), projIc(p))).join('');
+    });
+    return out || '<span class="note">No matching projects or areas.</span>';
+  };
+  const count = () => { const n = S.todos.filter(smartMatcher({ f: st.f })).filter((t) => t.status === 'open').length; return `${plural(n, 'open to-do')} ${n === 1 ? 'matches' : 'match'}`; };
+  const body = () => `<div class="modal-b sm-ed">
+      <label class="sm-row"><span class="sm-l">Name</span><input class="pk-in sm-in" id="sm-name" value="${esc(st.title)}" placeholder="PaperCut this week" autocomplete="off"></label>
+      <div class="sm-row"><span class="sm-l">Tags${st.f.tags.length > 1 ? seg('tagMode', [['any', 'Any of These'], ['all', 'All of These']], st.f.tagMode) : ''}</span><div class="sm-chips" id="sm-tags">${tagChips()}</div></div>
+      <div class="sm-row"><span class="sm-l">In<input class="pk-in sm-q" id="sm-q" value="${esc(st.q)}" placeholder="Find a project or area" autocomplete="off"></span><div class="sm-chips sm-places" id="sm-places">${placeChips()}</div></div>
+      <div class="sm-row"><span class="sm-l">When</span>${seg('when', SMART_WHEN, st.f.when)}</div>
+      <div class="sm-row"><span class="sm-l">Deadline</span>${seg('deadline', SMART_DL, st.f.deadline)}</div>
+      <div class="sm-row"><span class="sm-l">Priority</span>${seg('priority', SMART_PRIO, st.f.priority)}</div>
+      <div class="sm-row"><span class="sm-l">Waiting For</span>${seg('waiting', SMART_WAIT, st.f.waiting)}</div>
+      <label class="sm-row"><span class="sm-l">Contains</span><input class="pk-in sm-in" id="sm-text" value="${esc(st.f.text || '')}" placeholder="Words in the title or notes" autocomplete="off"></label>
+      <div class="sm-row"><span class="sm-l">Group By</span>${seg('group', SMART_GROUP, st.group)}</div>
+    </div>`;
+  const html = `<div class="modal-h"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><h2>${sl ? 'Edit Smart List' : 'New Smart List'}</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>`
+    + `<div id="sm-body">${body()}</div><div class="modal-f"><span class="sm-count" id="sm-count">${count()}</span>${sl ? '<button class="btn danger" data-sm="delete">Delete</button>' : ''}<button class="btn" data-sm="cancel">Cancel</button><button class="btn primary" data-sm="save">${sl ? 'Save' : 'Create'}</button></div>`;
+  const L = openLayer({ modal: true, cls: 'sm-modal', html, onMount: (el) => {
+    const redraw = (keepFocus) => { const f = keepFocus && document.activeElement && document.activeElement.id; const s = f && document.activeElement.selectionStart; $('#sm-body', el).innerHTML = body(); if (f) { const i = $('#' + f, el); if (i) { i.focus(); try { i.setSelectionRange(s, s); } catch (e) { /* ignore */ } } } $('#sm-count', el).textContent = count(); };
+    el.addEventListener('input', (e) => {
+      if (e.target.id === 'sm-name') st.title = e.target.value;
+      else if (e.target.id === 'sm-text') { st.f.text = e.target.value; $('#sm-count', el).textContent = count(); }
+      else if (e.target.id === 'sm-q') { st.q = e.target.value; $('#sm-places', el).innerHTML = placeChips(); }
+    });
+    el.addEventListener('click', async (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.k) { const k = b.dataset.k, v = b.dataset.v; if (k === 'group') st.group = v; else st.f[k] = k === 'priority' ? +v : v; redraw(); return; }
+      if (b.dataset.tag) { const id = b.dataset.tag; st.f.tags = st.f.tags.includes(id) ? st.f.tags.filter((x) => x !== id) : st.f.tags.concat(id); redraw(); return; }
+      if (b.dataset.place) { const k = b.dataset.place; st.f.places = st.f.places.includes(k) ? st.f.places.filter((x) => x !== k) : st.f.places.concat(k); redraw(); return; }
+      if (b.dataset.sm === 'cancel') { closeLayer(L); return; }
+      if (b.dataset.sm === 'delete') { closeLayer(L); deleteSmart(sl); return; }
+      if (b.dataset.sm === 'save') { closeLayer(L); saveSmart(sl, { title: st.title.trim() || smartSuggestName(st.f), f: st.f, group: st.group }); }
+    });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matches('#sm-name, #sm-text')) { e.preventDefault(); $('[data-sm="save"]', el).click(); } });
+    const n = $('#sm-name', el); if (n && !isCoarse()) { n.focus(); n.select(); }
+  } });
+  return L;
+}
+/* a name from the filters, when none was typed */
+function smartSuggestName(f) {
+  const s = smartSummary({ f }); return s === 'Every open to-do' ? 'Smart List' : s.length > 40 ? s.slice(0, 38) + '…' : s;
+}
+
+/* ===================== Several Boards, and lists as columns =====================
+   Boards have names (click the title to rename) and each keeps its own columns and sizes; the
+   sidebar lists them once there's more than one. Besides projects and areas, a column can be a
+   built-in list (Today, Upcoming, Deadlines…), a tag or a smart list. Dropping a to-do on one of
+   those does what dropping it on that list in the sidebar does: schedule it, tag it… */
+function switchBoard(id) {
+  if (!ui.boards.some((b) => b.id === id) || id === ui.boardId) return;
+  saveBoard(); ui.boardId = id; ui.board = curBoard().cols; saveBoard();
+}
+function boardWithName(name) { let n = name, i = 2; while (ui.boards.some((b) => b.name === n)) n = `${name} ${i++}`; return n; }
+function newBoard(opts = {}) {
+  saveBoard();
+  const b = { id: uid(), name: opts.name || boardWithName('New Board'), area: opts.area || null, cols: cleanCols(opts.cols || []) };
+  ui.boards.push(b); ui.boardId = b.id; ui.board = b.cols; saveBoard();
+  if (!opts.name) ui.focusAfter = '[data-fkey="board-name"]';
+  navigate('board');
+  if (!opts.name) { const t = $('[data-fkey="board-name"]'); if (t) { t.focus(); t.select(); } }
+  return b;
+}
+function duplicateBoard() {
+  const b = curBoard();
+  newBoard({ name: boardWithName(b.name + ' copy'), cols: JSON.parse(JSON.stringify(b.cols)) });
+  toast(`Made “${curBoard().name}”`);
+}
+async function deleteBoard() {
+  const b = curBoard(); if (ui.boards.length < 2) return;
+  const ok = await confirmDialog({ title: `Delete “${esc(b.name)}”?`, body: 'Only the board goes. Its projects, areas and lists stay as they are.', ok: 'Delete Board', danger: true });
+  if (!ok) return;
+  const at = ui.boards.indexOf(b);
+  ui.boards.splice(at, 1); ui.boardId = ui.boards[Math.max(0, at - 1)].id; ui.board = curBoard().cols; saveBoard(); render();
+  toast(`Deleted “${b.name}”`, { action: 'Undo', fn: () => { ui.boards.splice(at, 0, b); ui.boardId = b.id; ui.board = b.cols; saveBoard(); navigate('board'); } });
+}
+function renameBoardTo(name) { curBoard().name = name; saveBoard(); renderSidebar(); }
+/* the name field is as wide as the name, so the switcher sits right after it */
+function fitBoardName(el) {
+  if (!el) return;
+  const s = getComputedStyle(el), c = fitBoardName.c || (fitBoardName.c = document.createElement('canvas').getContext('2d'));
+  c.font = `${s.fontWeight} ${s.fontSize} ${s.fontFamily}`;
+  el.style.width = Math.ceil(c.measureText(el.value || el.placeholder).width + parseFloat(s.paddingLeft || 0) + parseFloat(s.paddingRight || 0) + 6) + 'px';
+}
+/* the switcher next to a Board's title (and the same items in its ••• menu) */
+function boardsMenuItems() {
+  return [
+    ...(ui.boards.length > 1 ? [{ header: 'Boards' }, ...ui.boards.map((b) => ({ label: b.name || 'Board', icon: b.id === ui.boardId ? 'check' : 'columns', fn: () => { switchBoard(b.id); navigate('board'); } })), { sep: 1 }] : []),
+    { label: 'New Board', icon: 'plus', fn: () => newBoard() },
+    { label: 'Rename Board', icon: 'pencil', fn: () => { const t = $('[data-fkey="board-name"]'); if (t) { t.focus(); t.select(); } } },
+    { label: 'Duplicate Board', icon: 'copy', fn: duplicateBoard },
+    { label: 'Delete Board…', icon: 'trash', danger: true, disabled: ui.boards.length < 2, fn: deleteBoard },
+  ];
+}
+/* add or take a column off a board other than the one on screen */
+function onBoardOf(b, t, id) { return b.cols.some((c) => c.t === t && c.id === id); }
+function toggleOnBoardOf(b, t, id) {
+  if (b.id === ui.boardId) { boardToggle(t, id); return; }
+  if (onBoardOf(b, t, id)) b.cols = b.cols.filter((c) => !(c.t === t && c.id === id));
+  else b.cols.push({ t, id, l: b.cols.reduce((m, c) => Math.max(m, c.l + 1), 0) });
+  saveBoard(); render();
+  toast(`${onBoardOf(b, t, id) ? 'Added to' : 'Removed from'} “${b.name}”`, { action: 'Show', fn: () => { switchBoard(b.id); navigate('board'); } });
+}
+function addToBoardOf(b, cols) {
+  if (b.id === ui.boardId) { boardAdd(cols, { toast: `Added to “${b.name}”` }); return; }
+  cols.forEach((c) => { if (!onBoardOf(b, c.t, c.id)) b.cols.push({ t: c.t, id: c.id, l: b.cols.reduce((m, x) => Math.max(m, x.l + 1), 0) }); });
+  saveBoard(); render();
+  toast(`Added to “${b.name}”`, { action: 'Show', fn: () => { switchBoard(b.id); navigate('board'); } });
+}
+
+/* ---- built-in lists, tags and smart lists as columns ---- */
+const colIcon = (c) => (c.t === 'l' ? `<span class="ic bcol-ic" style="color:${LISTS[c.id].color}">${I[LISTS[c.id].icon]}</span>`
+  : c.t === 't' ? `<span class="ic bcol-ic ${tcls(getTag(c.id))}" style="color:var(--tc)">${I.tag}</span>` : `<span class="ic bcol-ic" style="color:var(--c-smart)">${I.funnel}</span>`);
+/* what a column holds, for counts, reports and "is this to-do on screen" */
+function colHas(c, x) {
+  switch (c.t) {
+    case 'p': return x.projectId === c.id || x.id === c.id;
+    case 'a': return (areaOf(x) || {}).id === c.id;
+    case 't': return x.type === 'todo' && effectiveTags(x).has(c.id);
+    case 's': { const sl = getSmart(c.id); return !!sl && x.type === 'todo' && smartMatcher(sl)(x); }
+    default: switch (c.id) {
+      case 'inbox': return x.type === 'todo' && isInbox(x);
+      case 'today': return isTodayItem(x);
+      case 'upcoming': return x.start === 'anytime' && !!x.when && x.when > T0();
+      case 'anytime': return x.type === 'todo' && anytimeTodo(x);
+      case 'someday': return x.type === 'todo' ? somedayTodo(x) : x.start === 'someday';
+      case 'waiting': return x.type === 'todo' && isWaiting(x);
+      case 'deadlines': return !!x.deadline;
+      default: return false;
+    }
+  }
+}
+/* the column's body and how it takes drops: a real section (Inbox, Today) where to-dos can be
+   arranged, or a whole-column drop that works like dropping on the list in the sidebar */
+function listColBody(c) {
+  const live = (t) => liveTodo(t) && inLiveProject(t);
+  const sub = (label) => `<div class="sub-h">${esc(label)}</div>`;
+  const view = (list, ctx = { parent: true, when: true }) => secHTML('colview:' + c.t + ':' + c.id, list, ctx);
+  if (c.t === 't') {
+    const want = tagDescendants(c.id), has = (x) => { for (const t of effectiveTags(x)) if (want.has(t)) return true; return false; };
+    const todos = S.todos.filter((t) => live(t) && has(t)), T = T0();
+    const groups = [['Today', todos.filter(isTodayItem).sort(byToday)], ['Upcoming', todos.filter((t) => t.start === 'anytime' && t.when && t.when > T).sort((a, b) => (a.when < b.when ? -1 : 1))],
+      ['Anytime', todos.filter((t) => t.start === 'anytime' && !t.when && !isTodayItem(t)).sort(byOrder)], ['Inbox', todos.filter((t) => isInbox(t) && !isTodayItem(t)).sort(byOrder)],
+      ['Someday', todos.filter((t) => t.start === 'someday' && !isTodayItem(t)).sort(byOrder)]].filter((g) => g[1].length);
+    return { open: todos.filter((t) => t.status === 'open').length, drop: 'tag:' + c.id, html: groups.map(([l, list]) => sub(l) + view(list)).join('') };
+  }
+  if (c.t === 's') {
+    const sl = getSmart(c.id), items = smartItems(sl);
+    return { open: items.filter((t) => t.status === 'open').length, drop: '', html: smartGroups(sl, items).map((g) => g.head.replace('grp-h', 'grp-h bcol-grp') + view(g.items, g.ctx)).join('') };
+  }
+  switch (c.id) {
+    case 'inbox': { const items = inboxItems().sort(byOrder); return { open: items.filter((t) => t.status === 'open').length, sec: 'inbox', html: secHTML('inbox', items, {}) }; }
+    case 'today': {
+      const items = todayItems().sort(byToday), main = items.filter((x) => !isEveningItem(x)), eve = items.filter(isEveningItem);
+      return { open: items.filter((x) => x.status === 'open').length, sec: 'today', html: secHTML('today', main, { parent: true }, 'todayOrder') + (eve.length ? `<div class="sub-h" data-zone="evening">${ic('moon')} This Evening</div>` + secHTML('evening', eve, { parent: true }, 'todayOrder') : '') };
+    }
+    case 'upcoming': {
+      const items = upcomingItems().sort((a, b) => (a.when < b.when ? -1 : a.when > b.when ? 1 : byToday(a, b))), days = [...new Set(items.map((x) => x.when))];
+      return { open: items.filter((x) => x.status === 'open').length, drop: 'upcoming', html: days.map((d) => `<div class="sub-h" data-zone="upcoming:${d}">${esc(fmtDate(d))}</div>` + secHTML('upcoming:' + d, items.filter((x) => x.when === d), { parent: true }, 'todayOrder')).join('') };
+    }
+    case 'anytime': case 'someday': {
+      const items = S.todos.filter(c.id === 'anytime' ? anytimeTodo : somedayTodo).sort(byOrder);
+      return { open: items.filter((t) => t.status === 'open').length, drop: c.id, html: view(items, { parent: true, star: true }) };
+    }
+    case 'waiting': {
+      const items = waitingItems(), g = new Map();
+      items.forEach((t) => { const k = t.waitFor.trim(); if (!g.has(k.toLowerCase())) g.set(k.toLowerCase(), { name: k, list: [] }); g.get(k.toLowerCase()).list.push(t); });
+      return { open: items.filter((t) => t.status === 'open').length, drop: 'waiting', html: [...g.values()].sort((a, b) => a.name.localeCompare(b.name)).map((x) => sub(x.name) + view(x.list.sort(byOrder), { parent: true, when: true, noWait: true })).join('') };
+    }
+    default: { // deadlines
+      const items = deadlineItems();
+      return { open: items.filter((x) => x.status === 'open').length, drop: 'deadlines', html: deadlineGroups(items).map((g) => `<div class="sub-h${g.key === 'overdue' ? ' overdue' : ''}">${esc(g.label)}</div>` + secHTML('deadlines', g.items, { parent: true, when: true })).join('') };
+    }
+  }
+}
+function listColHTML(c) {
+  const key = colKey(c), body = listColBody(c);
+  const nav = c.t === 'l' ? c.id : c.t === 't' ? 'tag:' + c.id : 'smart:' + c.id;
+  const sub = c.t === 'l' ? 'List' : c.t === 't' ? 'Tag' : esc(smartSummary(getSmart(c.id)));
+  const canAdd = c.t !== 'l' || !['upcoming', 'waiting'].includes(c.id);
+  const sized = c.h ? ' sized-h' : '';
+  return `<section class="bcol lcol${sized}" data-col="${key}" data-newsec="${body.sec || ''}" data-colzone="${body.sec || ''}"${body.drop ? ` data-coldrop="${body.drop}"` : ''}${colHStyle(c.h)}>${gripHTML}
+    <div class="bcol-h" data-col="${key}">${colIcon(c)}<div class="bcol-t"><button class="bcol-title" data-nav="${nav}" title="Open ${esc(colName(c.t, c.id))}">${esc(colName(c.t, c.id))}</button><div class="bcol-sub">${sub}</div></div>${body.open ? `<span class="bcol-count" title="Open to-dos">${body.open}</span>` : ''}${canAdd ? `<button class="ib" data-action="lcol-add" data-col="${key}" aria-label="New to-do" title="New to-do">${ic('plus')}</button>` : ''}<button class="ib" data-action="bcol-menu" data-col="${key}" aria-label="Column options" title="Column options">${ic('more')}</button></div>
+    <div class="bcol-body"${c.h ? ` data-vscroll="${key}"` : ''}>${body.html || `<div class="bcol-empty">${c.t === 's' ? 'Nothing matches right now' : 'Nothing here'}</div>`}</div>${resizeHandlesHTML(key)}</section>`;
+}
+/* the + on a list, tag or smart-list column: a new to-do that belongs there */
+function listColAdd(key) {
+  const [t, id] = key.split(':');
+  if (t === 'l') {
+    if (id === 'inbox' || id === 'today') { newTodo({ sec: id }); return; }
+    if (id === 'anytime' || id === 'someday') { newTodo({ sec: id + ':loose' }); return; }
+    if (id === 'deadlines') { const n = newTodo({ sec: 'inbox' }); if (n) { n.deadline = T0(); saveSoon(); render(); } return; }
+    return;
+  }
+  const n = newTodo({ sec: 'inbox' }); if (!n) return;
+  if (t === 't') { if (!n.tags.includes(id)) n.tags = n.tags.concat(id); }
+  else Object.assign(n, smartNewProps(getSmart(id)));
+  touch(n); saveSoon(); render();
+}
+/* a new to-do made in a smart list (or its column) starts out fitting it, where it can */
+function smartNewProps(sl) {
+  const f = smartFilter(sl), out = {}, T = T0();
+  const tags = f.tags.filter(getTag); if (tags.length) out.tags = f.tagMode === 'all' ? tags : [tags[0]];
+  const places = f.places.filter((k) => (k[0] === 'p' ? getP(k.slice(2)) : getA(k.slice(2))));
+  if (places.length === 1) { const [k, pid] = [places[0][0], places[0].slice(2)]; if (k === 'p') Object.assign(out, { projectId: pid, areaId: null, start: 'anytime' }); else Object.assign(out, { areaId: pid, projectId: null, start: 'anytime' }); }
+  if (f.when === 'today' || f.when === 'week' || f.when === 'dated') Object.assign(out, { start: 'anytime', when: T });
+  if (f.when === 'someday') out.start = 'someday';
+  if (['has', 'overdue', 'week', 'month'].includes(f.deadline)) out.deadline = T;
+  if (+f.priority) out.priority = +f.priority;
+  return out;
 }
 
 /* ===================== Start ===================== */

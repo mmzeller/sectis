@@ -3,26 +3,47 @@
    stack can hold several columns one under another, so the space below a short list gets used.
    It's a per-device layout (a Mac layout, not synced). Each column remembers its stack (l) and
    its own height (h); a stack's width (w) is kept on every column in it. */
+const COL_TYPES = ['p', 'a', 'l', 't', 's']; // project, area, built-in list, tag, smart list
+const BOARD_LISTS = ['inbox', 'today', 'upcoming', 'anytime', 'someday', 'waiting', 'deadlines'];
+function cleanCols(cols) {
+  cols = (Array.isArray(cols) ? cols : []).filter((c) => c && c.id && COL_TYPES.includes(c.t));
+  // a Board from before stacks: every column is a stack of its own, in the same order
+  let next = cols.reduce((m, c) => (Number.isInteger(c.l) && c.l >= 0 ? Math.max(m, c.l + 1) : m), 0);
+  cols.forEach((c) => { if (!(Number.isInteger(c.l) && c.l >= 0)) c.l = next++; });
+  return cols;
+}
 function loadBoard() {
   loadCkClip();
-  try { ui.board = JSON.parse(lsGet('sectis.board') || '[]').filter((c) => c && c.id && (c.t === 'p' || c.t === 'a')); } catch (e) { ui.board = []; }
-  // a Board from before stacks: every column is a stack of its own, in the same order
-  let next = ui.board.reduce((m, c) => (Number.isInteger(c.l) && c.l >= 0 ? Math.max(m, c.l + 1) : m), 0);
-  ui.board.forEach((c) => { if (!(Number.isInteger(c.l) && c.l >= 0)) c.l = next++; });
+  let saved = null;
+  try { saved = JSON.parse(lsGet('sectis.boards') || 'null'); } catch (e) { saved = null; }
+  if (saved && Array.isArray(saved.list) && saved.list.length) ui.boards = saved.list.filter((b) => b && b.id).map((b) => ({ id: b.id, name: b.name || 'Board', area: b.area || null, cols: cleanCols(b.cols) }));
+  if (!ui.boards || !ui.boards.length) { // the one Board from before there were several
+    let cols = []; try { cols = JSON.parse(lsGet('sectis.board') || '[]'); } catch (e) { cols = []; }
+    ui.boards = [{ id: 'main', name: 'Board', area: null, cols: cleanCols(cols) }];
+  }
+  ui.boardId = saved && ui.boards.some((b) => b.id === saved.cur) ? saved.cur : ui.boards[0].id;
+  ui.board = curBoard().cols;
   try { ui.projBoard = new Set(JSON.parse(lsGet('sectis.pboard') || '[]')); } catch (e) { ui.projBoard = new Set(); }
   try { ui.hcolW = JSON.parse(lsGet('sectis.hcolw') || '{}') || {}; } catch (e) { ui.hcolW = {}; }
   try { ui.hcolH = JSON.parse(lsGet('sectis.hcolh') || '{}') || {}; } catch (e) { ui.hcolH = {}; }
   try { ui.hUnder = new Set(JSON.parse(lsGet('sectis.hunder') || '[]')); } catch (e) { ui.hUnder = new Set(); }
 }
-function saveBoard() { lsSet('sectis.board', JSON.stringify(ui.board)); }
+function curBoard() { return (ui.boards || []).find((b) => b.id === ui.boardId) || ui.boards[0]; }
+function saveBoard() {
+  curBoard().cols = ui.board;
+  lsSet('sectis.boards', JSON.stringify({ cur: ui.boardId, list: ui.boards }));
+}
 function colShown(c) {
   if (c.t === 'a') return !!getA(c.id);
+  if (c.t === 'l') return BOARD_LISTS.includes(c.id);
+  if (c.t === 't') return !!getTag(c.id);
+  if (c.t === 's') return !!getSmart(c.id);
   const p = getP(c.id);
   return !!p && !p.trashed && !p.isTemplate && !(p.status !== 'open' && p.logged);
 }
 function boardCols() { return [].concat(...boardStacks()); }
 function onBoard(t, id) { return (ui.board || []).some((c) => c.t === t && c.id === id); }
-function colName(t, id) { return t === 'p' ? pTitle(getP(id)) : aTitle(getA(id)); }
+function colName(t, id) { return t === 'p' ? pTitle(getP(id)) : t === 'a' ? aTitle(getA(id)) : t === 'l' ? LISTS[id].title : t === 't' ? tagTitle(id) : smartTitle(getSmart(id)); }
 const colKey = (c) => `${c.t}:${c.id}`;
 
 /* ---- stacks: the columns on screen, left to right, each top to bottom ---- */
@@ -104,7 +125,10 @@ function areaAsBoard(a) {
   const projs = S.projects.filter((p) => p.areaId === a.id && !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday').sort(byOrder);
   const loose = S.todos.some((t) => t.areaId === a.id && !t.projectId && t.status === 'open' && liveTodo(t));
   const cols = (loose || !projs.length ? [{ t: 'a', id: a.id }] : []).concat(projs.map((p) => ({ t: 'p', id: p.id })));
-  boardAdd(cols, { replace: true, go: true });
+  // its own Board, named after it; opening it again brings that Board up to date
+  const b = ui.boards.find((x) => x.area === a.id);
+  if (b) { switchBoard(b.id); boardAdd(cols, { replace: true, go: true }); return; }
+  newBoard({ name: boardWithName(aTitle(a)), area: a.id, cols: cols.map((c, i) => ({ t: c.t, id: c.id, l: i })) });
 }
 
 /* ---- sizes: drag a column's right edge (width), bottom edge (height) or corner (both);
@@ -175,8 +199,12 @@ document.addEventListener('dblclick', (e) => {
   setColSize(h.dataset.colresize, axis === 'x' ? { w: 0 } : axis === 'y' ? { h: 0 } : { w: 0, h: 0 });
 });
 const isColMenu = (extra) => extra.some((x) => x.header === 'Column'); // a column's own menu has its own board items
-function boardMenuItems(t, id, fromColumn) {
+function boardMenuItems(t, id, fromColumn, el) {
   if (isMobile() || fromColumn) return [];
+  if (ui.boards.length > 1) { // which Boards it's on, ticked; choosing one adds or removes it there
+    const n = ui.boards.filter((b) => onBoardOf(b, t, id)).length;
+    return [{ label: n ? `On ${plural(n, 'Board')}…` : 'Add to Board…', icon: 'columns', fn: () => openMenu(el || { x: innerWidth / 2, y: 120 }, [{ header: colName(t, id) }, ...ui.boards.map((b) => ({ label: b.name || 'Board', icon: onBoardOf(b, t, id) ? 'check' : 'blank', fn: () => toggleOnBoardOf(b, t, id) }))]) }];
+  }
   const on = onBoard(t, id);
   return [on
     ? { label: 'Remove from Board', icon: 'columns', fn: () => { boardRemove(t, id); toast(`Removed “${colName(t, id)}” from the Board`); } }
@@ -186,7 +214,7 @@ function boardMenuItems(t, id, fromColumn) {
 /* ---- view ---- */
 function viewBoard() {
   const stacks = boardStacks();
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><h1 class="lh-title">Board</h1><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><textarea class="lh-title board-name" data-edit="board-name" data-fkey="board-name" placeholder="Board" aria-label="Board name" autocomplete="off" rows="1" data-autosize data-oneline>${esc(curBoard().name)}</textarea><button class="ib board-switch" data-action="board-switch" aria-label="Boards" title="Switch, add or rename Boards">${ic('chevD')}</button><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
   if (!stacks.length) {
     return html + emptyHTML('columns', 'See your lists side by side',
       'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');
@@ -198,6 +226,7 @@ function viewBoard() {
   }).join('')}</div>`;
 }
 function boardColHTML(c) {
+  if (c.t === 'l' || c.t === 't' || c.t === 's') return listColHTML(c);
   const key = colKey(c), more = `<button class="ib" data-action="bcol-menu" data-col="${key}" aria-label="Column options" title="Column options">${ic('more')}</button>`;
   const sizedH = c.h ? ' sized-h' : '', bodyAttr = c.h ? ` data-vscroll="${key}"` : '';
   if (c.t === 'p') {
@@ -249,7 +278,11 @@ function boardColMenu(key, el) {
     { label: 'Remove from Board', icon: 'x', fn: () => boardRemove(t, id) },
     { sep: 1 },
   ];
-  if (t === 'p') projectMenu(getP(id), el, extra); else areaMenu(getA(id), el, extra);
+  if (t === 'p') projectMenu(getP(id), el, extra);
+  else if (t === 'a') areaMenu(getA(id), el, extra);
+  else openMenu(el, [...extra.filter((x) => !x.sep && x.label !== 'Sort Board By…'), { sep: 1 },
+    { label: `Open ${colName(t, id)}`, icon: 'move', fn: () => navigate(t === 'l' ? id : t === 't' ? 'tag:' + id : 'smart:' + id) },
+    ...(t === 's' ? [{ label: 'Edit Smart List…', icon: 'sliders', fn: () => openSmartEditor(getSmart(id)) }] : [])]);
 }
 /* column of the selected row, else the first one that takes new to-dos */
 function boardNewSec() {
@@ -373,6 +406,15 @@ function openBoardPicker(anchor, opts = {}) {
     const projs = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === areaId).sort(byOrder);
     const prow = (p, inArea) => `<button class="pick-i p${inArea ? ' in-area' : ''}" data-col="p:${p.id}">${projIc(p)}<span>${esc(pTitle(p))}</span>${chk('p', p.id)}</button>`;
     let out = '';
+    const grp = (label) => `<div class="pk-grp">${label}</div>`;
+    const lists = BOARD_LISTS.filter((k) => m(LISTS[k].title));
+    if (lists.length) out += grp('Lists') + lists.map((k) => `<button class="pick-i l" data-col="l:${k}"><span class="ic" style="color:${LISTS[k].color}">${I[LISTS[k].icon]}</span><span>${LISTS[k].title}</span>${chk('l', k)}</button>`).join('');
+    const smarts = (S.smart || []).slice().sort(byOrder).filter((sl) => m(smartTitle(sl)));
+    if (smarts.length) out += grp('Smart Lists') + smarts.map((sl) => `<button class="pick-i s" data-col="s:${sl.id}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span>${esc(smartTitle(sl))}</span>${chk('s', sl.id)}</button>`).join('');
+    const tags = tagTree().filter(({ tag }) => m(tag.title));
+    if (tags.length) out += grp('Tags') + tags.map(({ tag, depth }) => `<button class="pick-i t${depth ? ' in-area' : ''}" data-col="t:${tag.id}"><span class="ic ${tcls(tag)}" style="color:var(--tc)">${I.tag}</span><span>${esc(tag.title)}</span>${chk('t', tag.id)}</button>`).join('');
+    const pa = S.projects.some((p) => !p.trashed && !p.isTemplate && p.status === 'open' && m(pTitle(p))) || S.areas.some((a) => m(aTitle(a)));
+    if (pa) out += grp('Projects & Areas');
     projs(null).forEach((p) => { if (m(pTitle(p))) out += prow(p, false); });
     S.areas.slice().sort(byOrder).forEach((a) => {
       const am = m(aTitle(a)), pr = projs(a.id).filter((p) => am || m(pTitle(p)));

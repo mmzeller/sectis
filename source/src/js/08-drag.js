@@ -83,7 +83,7 @@ function startDrag() {
     st.ids = ui.sel.has(st.id) && sameKind.length > 1 ? sameKind : [st.id];
   } else st.ids = st.id ? [st.id] : [];
   if (ui.editing && st.ids.includes(ui.editing)) { D.st = null; return; }
-  const label = st.kind === 'magic' ? 'New To-Do' : st.kind === 'heading' ? (getH(st.id) || {}).title || 'Heading' : st.kind === 'area' ? aTitle(getA(st.id)) : st.kind === 'project' ? pTitle(getP(st.id)) : (getT(st.id) || {}).title || 'New To-Do';
+  const label = st.kind === 'magic' ? 'New To-Do' : st.kind === 'heading' ? (getH(st.id) || {}).title || 'Heading' : st.kind === 'area' ? aTitle(getA(st.id)) : st.kind === 'smart' ? smartTitle(getSmart(st.id)) : st.kind === 'project' ? pTitle(getP(st.id)) : (getT(st.id) || {}).title || 'New To-Do';
   const g = document.createElement('div'); g.className = 'drag-ghost';
   g.innerHTML = `${st.kind === 'magic' ? ic('plus') : ''}<span>${esc(label)}</span>${st.ids.length > 1 ? `<span class="n">${st.ids.length}</span>` : ''}`;
   document.body.append(g); st.ghost = g;
@@ -104,7 +104,7 @@ function showLine(st, el, after, sec) {
   st.line.hidden = false;
 }
 function sectionAccepts(sec, kind) {
-  if (!sec || /^(logbook|trash|repeating|tag|waiting|deadlines|smart)/.test(sec)) return false;
+  if (!sec || /^(logbook|trash|repeating|tag|waiting|deadlines|smart|colview)/.test(sec)) return false;
   const projectSec = sec.startsWith('areaprojects:') || sec.includes(':projects:');
   if (kind === 'project') return projectSec || /^(today|evening|upcoming)/.test(sec);
   return !projectSec;
@@ -130,7 +130,7 @@ function dragTrack(fromLoop) {
   const sb = el.closest('#sidebar [data-drop-list]');
   if (sb) {
     const key = sb.dataset.dropList;
-    if (key === 'board') { if (k === 'project' || k === 'area') { sb.classList.add('drop-hover'); st.target = { type: 'board', el: sb }; } return; }
+    if (key === 'board' || key.startsWith('board:')) { if (k === 'project' || k === 'area') { sb.classList.add('drop-hover'); st.target = { type: 'board', el: sb, bid: key.slice(6) || ui.boardId }; } return; }
     if (k === 'heading') { // a heading (with its to-dos) into another project
       const h = getH(st.id);
       if (sb.dataset.kind === 'project' && h && h.projectId !== sb.dataset.id) { sb.classList.add('drop-hover'); st.target = { type: 'headproj', ref: sb.dataset.id, el: sb }; }
@@ -141,6 +141,12 @@ function dragTrack(fromLoop) {
       const r = sb.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
       showLine(st, sb, after); st.target = { type: 'sbproj', ref: sb.dataset.id, after }; return;
     }
+    if (k === 'smart') {
+      if (sb.dataset.kind !== 'smart' || sb.dataset.id === st.id) return;
+      const r = sb.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
+      showLine(st, sb, after); st.target = { type: 'sbsmart', ref: sb.dataset.id, after }; return;
+    }
+    if (key.startsWith('smart:')) return; // smart lists show what fits them; nothing to drop in
     if (k === 'area' && sb.dataset.kind === 'area') {
       if (sb.dataset.id === st.id) return;
       const r = sb.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
@@ -151,7 +157,7 @@ function dragTrack(fromLoop) {
     if (k === 'project' && key === 'inbox') return;
     sb.classList.add('drop-hover'); st.target = { type: 'list', key, el: sb }; return;
   }
-  if (!el.closest('#content')) return;
+  if (!el.closest('#content') || k === 'smart') return;
   // --- a day on Upcoming's calendar: schedule for that day
   const cday = el.closest('#content [data-drop-day]');
   if (cday) { if (k === 'todo' || k === 'project' || k === 'magic') { cday.classList.add('drop-hover'); st.target = { type: 'day', date: cday.dataset.dropDay }; } return; }
@@ -195,6 +201,10 @@ function dragTrack(fromLoop) {
     if (!sec) { const cz = el.closest('[data-colzone]'); if (cz && cz.dataset.colzone) sec = $(`#content [data-sec="${CSS.escape(cz.dataset.colzone)}"]`); } // anywhere in a board column
     if (sec) { const rows = $$(':scope > .row[data-id]', sec).filter((r) => !st.ids.includes(r.dataset.id)); index = rows.length; refEl = rows[rows.length - 1]; after = true; }
   }
+  if ((!sec || !sectionAccepts(sec.dataset.sec, k)) && (k === 'todo' || k === 'project')) {
+    const cd = el.closest('#content [data-coldrop]');
+    if (cd && !(k === 'project' && /^(tag|waiting)/.test(cd.dataset.coldrop))) { cd.classList.add('drop-hover'); st.target = { type: 'list', key: cd.dataset.coldrop, el: cd }; return; }
+  }
   if (k === 'project' && sec && /^area:/.test(sec.dataset.sec)) {
     const aid = sec.dataset.sec.slice(5), col = sec.closest('.bcol');
     const ps = col ? $(`[data-sec="areaprojects:${CSS.escape(aid)}"]`, col) : $(`#content [data-sec="areaprojects:${CSS.escape(aid)}"]`);
@@ -223,7 +233,10 @@ function performDrop(st, t) {
   if (t.type === 'list') return dropOnList(ids, t.key, st.kind, t.el);
   if (t.type === 'day') { if (st.kind === 'magic') newTodo({ extra: { date: t.date } }); else scheduleOn(ids, t.date); return; }
   if (t.type === 'board') {
-    const cols = (st.kind === 'area' ? [{ t: 'a', id: st.id }] : ids.map((id) => ({ t: 'p', id }))).filter((c) => !onBoard(c.t, c.id));
+    const bd = ui.boards.find((b) => b.id === t.bid) || curBoard();
+    const all = st.kind === 'area' ? [{ t: 'a', id: st.id }] : ids.map((id) => ({ t: 'p', id }));
+    if (bd.id !== ui.boardId) { const fresh = all.filter((c) => !onBoardOf(bd, c.t, c.id)); if (!fresh.length) toast(`Already on “${bd.name}”`); else addToBoardOf(bd, fresh); return; }
+    const cols = all.filter((c) => !onBoard(c.t, c.id));
     if (!cols.length) { toast(ids.length > 1 ? 'Already on the Board' : `“${colName(st.kind === 'area' ? 'a' : 'p', ids[0] || st.id)}” is already on the Board`, { action: 'Show Board', fn: () => navigate('board') }); return; }
     boardAdd(cols, { toast: cols.length > 1 ? `Added ${cols.length} projects to the Board` : `Added “${colName(cols[0].t, cols[0].id)}” to the Board` });
     return;
@@ -279,6 +292,12 @@ function performDrop(st, t) {
     commit('Move Project', () => ids.forEach((id, k) => { const p = getP(id); if (p) { p.areaId = ref.areaId || null; p.order = vals[k]; } }));
     return;
   }
+  if (t.type === 'sbsmart') {
+    const sl = getSmart(st.id), ref = getSmart(t.ref); if (!sl || !ref) return;
+    const ls = S.smart.filter((x) => x !== sl).sort(byOrder); const i = ls.indexOf(ref) + (t.after ? 1 : 0);
+    commit('Move Smart List', () => { sl.order = orderBetween(ls[i - 1] ? ls[i - 1].order : null, ls[i] ? ls[i].order : null)[0]; touch(sl); });
+    return;
+  }
   if (t.type === 'sbarea') {
     const a = getA(st.id), ref = getA(t.ref); if (!a || !ref) return;
     const as = S.areas.filter((x) => x !== a).sort(byOrder); const i = as.indexOf(ref) + (t.after ? 1 : 0);
@@ -296,6 +315,7 @@ function dropOnList(ids, key, kind, anchorEl) {
     case 'logbook': completeIds(ids); break;
     case 'waiting': if (kind === 'todo') openWaiting(ids, anchorEl); break;
     case 'deadlines': openWhen(ids, anchorEl, 'deadline'); break;
+    case 'tag': { const items = itemsFor(ids).filter((x) => !x.tags.includes(id)); if (items.length && getTag(id)) { commit('Tags', () => items.forEach((x) => { x.tags = x.tags.concat(id); touch(x); })); toast(`Tagged ${items.length > 1 ? plural(items.length, 'item') : `“${items[0].title || 'New To-Do'}”`} #${tagTitle(id)}`, { undo: true }); } break; }
     case 'trash': trashItems(ids); break;
     case 'project': if (kind === 'todo') moveItems(ids, { type: 'project', id }); break;
     case 'area': moveItems(ids, { type: 'area', id }); break;

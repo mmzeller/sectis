@@ -5,7 +5,7 @@
    recent edit of an item wins. Deletions leave a small marker. */
 const SYNC_KEY = 'sectis.sync.v1';
 const FB_VERSION = '10.14.1';
-const SYNC_KINDS = { todo: 'todos', project: 'projects', heading: 'headings', area: 'areas', tag: 'tags' };
+const SYNC_KINDS = { todo: 'todos', project: 'projects', heading: 'headings', area: 'areas', tag: 'tags', smart: 'smart' };
 const Y = {
   enabled: false, cfg: null, key: null, space: null, base: {}, pending: {}, cursor: [0, 0], lastSync: 0,
   status: 'off', error: '', db: null, col: null, aes: null, unsub: null, pushing: false, again: false,
