@@ -178,7 +178,7 @@ function rowHTML(x, ctx = {}) {
   line += tagPills(x);
   const parent = [ctx.parent ? parentLabel(x) : '', ctx.waitInfo && x.waitSince ? `Waiting since ${fmtDate(x.waitSince, { weekday: false })}` : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
-  const right = deadlineHTML(x) + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
+  const right = deadlineHTML(x) + (ctx.doneOn ? `<span class="r-done" title="Logged, done ${esc(ctx.doneOn)}">${esc(ctx.doneOn)}</span>` : '') + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
   return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
 }
 /* a to-do's checklist shown under its row; items can be ticked here without opening the to-do */
@@ -499,19 +499,16 @@ function viewProject(p) {
   html += tagBarHTML(live);
   if (projectBoardOn(p)) html += projectBoardHTML(p, items, headings, ctx);
   else {
-  html += `<div class="list">${secHTML(`project:${p.id}:`, items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx)}`;
+  const lbs = loggedBySec(p, matchesTagFilter), lin = (k) => loggedInHTML(k, lbs.get(k) || []);
+  html += `<div class="list">${secHTML(`project:${p.id}:`, items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx)}${lin(`project:${p.id}:`)}`;
   headings.forEach((h) => {
     html += `<div class="hrow${headingDoneCls(h)}" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><textarea class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea>${p.status === 'open' && !p.trashed ? `<button class="ib" data-action="heading-add" data-id="${h.id}" aria-label="New to-do under this heading" title="New to-do under this heading">${ic('plus')}</button>` : ''}<button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button></div>`;
-    html += secHTML(`project:${p.id}:${h.id}`, items.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
+    html += secHTML(`project:${p.id}:${h.id}`, items.filter((t) => t.headingId === h.id).sort(byOrder), ctx) + lin(`project:${p.id}:${h.id}`);
   });
   html += '</div>';
   }
   if (!p.isTemplate) html += repeatingSectionHTML(templatesIn((t) => t.projectId === p.id));
-  if (logged.length) {
-    const open = ui.showLogged[p.id];
-    html += `<button class="show-more" data-action="toggle-logged" data-id="${p.id}">${open ? 'Hide' : 'Show'} ${plural(logged.length, 'logged item')}</button>`;
-    if (open) html += `<div class="sec" data-sec="logbook">${logged.map((t) => rowHTML(t, { date: fmtDate(stampDay(t.completedAt), { weekday: false }) })).join('')}</div>`;
-  }
+  html += loggedFooterHTML(p.id, logged);
   if (!todosAll.length && !headings.length && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and headings you add here.');
   else if (!todosAll.length && !headings.length && !projectBoardOn(p)) html += emptyHTML('project', 'No to-dos yet', 'Press N or the + button to add the first one. Add headings from the ••• menu to split the project into stages.');
   return html;
@@ -526,7 +523,8 @@ function viewArea(a) {
   let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
-  html += `<div class="list">${secHTML(`area:${a.id}`, items, { when: true })}`;
+  const loggedA = loggedOfArea(a);
+  html += `<div class="list">${secHTML(`area:${a.id}`, items, { when: true })}${loggedShownIn(a.id) ? loggedInHTML(`area:${a.id}`, loggedA.filter(matchesTagFilter)) : ''}`;
   if (projAll.length) { const allOpen = projAll.every((p) => ui.expanded.has(p.id)), noneOpen = !projAll.some((p) => ui.expanded.has(p.id)); html += `<div class="exp-bar"><span>${plural(projAll.length, 'project')}</span><button class="link-btn" data-action="expand-all" data-id="${a.id}"${allOpen ? ' disabled' : ''}>Expand All</button><button class="link-btn" data-action="collapse-all" data-id="${a.id}"${noneOpen ? ' disabled' : ''}>Collapse All</button></div>`; }
   html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(active).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (later.length) {
@@ -534,7 +532,7 @@ function viewArea(a) {
     html += `<button class="show-more" data-action="toggle-later" data-id="${a.id}">${open ? 'Hide' : 'Show'} ${plural(later.length, 'later project')}</button>`;
     if (open) html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(later).map((p) => projRowHTML(p, { when: true, expandable: true })).join('')}</div>`;
   }
-  html += '</div>' + repeatingSectionHTML([...projectTemplatesIn((p) => p.areaId === a.id), ...templatesIn((t) => t.areaId === a.id && !t.projectId)]);
+  html += '</div>' + repeatingSectionHTML([...projectTemplatesIn((p) => p.areaId === a.id), ...templatesIn((t) => t.areaId === a.id && !t.projectId)]) + loggedFooterHTML(a.id, loggedA);
   if (!todosAll.length && !projAll.length) html += emptyHTML('area', 'This area is empty', 'Areas hold the ongoing parts of your life, like Home or Work. Add to-dos here, or create a project inside it from the ••• menu.');
   return html;
 }

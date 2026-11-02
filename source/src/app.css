@@ -214,6 +214,10 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .row.ghost:hover { opacity: .8; }
 .row.trashed-row .r-title { color: var(--muted); }
 .r-date { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; flex: none; min-width: 48px; padding-top: 1px; }
+/* logged to-dos shown under their heading (Settings → Logged to-dos), with the day they were done */
+.r-done { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.logged-in .row .r-title { color: var(--muted); }
+.logged-in .row .cb { opacity: .7; }
 .restore { font-size: 12px; color: var(--accent); font-weight: 600; padding: 0 4px; }
 
 .cb { position: relative; flex: none; width: var(--cb-size); height: var(--cb-size); margin-top: 2.5px; border: 1.5px solid var(--cb); border-radius: 4.5px; background: var(--bg); display: inline-flex; align-items: center; justify-content: center; color: transparent; transition: background .15s, border-color .15s; }

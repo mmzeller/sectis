@@ -213,7 +213,7 @@ function boardColHTML(c) {
   const projs = S.projects.filter((p) => p.areaId === a.id && liveProject(p) && !onBoard('p', p.id) && (p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0())))).sort(byOrder);
   const n = todos.filter((t) => t.status === 'open').length + projs.reduce((s, p) => s + projectProgress(p).open, 0);
   const sec = `area:${a.id}`;
-  let body = secHTML(sec, todos, { when: true });
+  let body = secHTML(sec, todos, { when: true }) + (loggedShownIn(a.id) ? loggedInHTML(sec, loggedOfArea(a)) : '');
   if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(projs).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
   return `<section class="bcol${sizedH}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h)}>${gripHTML}
@@ -224,9 +224,10 @@ function boardProjectBody(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged));
   const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
   const ctx = { when: true };
-  let html = secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
+  const lbs = loggedBySec(p), lin = (k) => loggedInHTML(k, lbs.get(k) || []);
+  let html = secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx) + lin(`project:${p.id}:`);
   headings.forEach((h) => {
-    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
+    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx) + lin(`project:${p.id}:${h.id}`);
   });
   if (!todos.length) html += emptyProjectHTML(p, 'bcol-empty');
   return html;
@@ -270,16 +271,17 @@ function saveHUnder() { lsSet('sectis.hunder', JSON.stringify([...ui.hUnder])); 
 const hStackW = (keys) => { const w = keys.map(getColW).find(Boolean); return w ? clampW(w) : 0; };
 function projectBoardHTML(p, items, headings, ctx) {
   const open = p.status === 'open' && !p.trashed;
+  const lbs = loggedBySec(p, matchesTagFilter);
   const col = (key, sec, titleHTML, list, menuBtn) => {
     const h = getColH(key);
     const hd = key.startsWith('h:') && getH(key.slice(2)) ? headingDoneCls(getH(key.slice(2))) : '';
     return `<section class="bcol hcol${h ? ' sized-h' : ''}${hd}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(h)}>${key.startsWith('h:') ? gripHTML : ''}
       <div class="bcol-h" data-hcol="${key}">${titleHTML}${list.filter((t) => t.status === 'open').length ? `<span class="bcol-count" title="Open to-dos">${list.filter((t) => t.status === 'open').length}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" title="New to-do" aria-label="New to-do">${ic('plus')}</button>` : ''}${menuBtn}</div>
-      <div class="bcol-body"${h ? ` data-vscroll="${key}"` : ''}>${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}</div>${resizeHandlesHTML(key)}</section>`;
+      <div class="bcol-body"${h ? ` data-vscroll="${key}"` : ''}>${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}${loggedInHTML(sec, lbs.get(sec) || [])}</div>${resizeHandlesHTML(key)}</section>`;
   };
   const loose = items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder);
   const cols = [];
-  if (loose.length || !headings.length) cols.push([`n:${p.id}`, () => col(`n:${p.id}`, `project:${p.id}:`, `<div class="bcol-t"><div class="bcol-title static">No Heading</div></div>`, loose, `<button class="ib" data-action="hcol-menu" data-id="" data-col="n:${p.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`)]);
+  if (loose.length || !headings.length || (lbs.get(`project:${p.id}:`) || []).length) cols.push([`n:${p.id}`, () => col(`n:${p.id}`, `project:${p.id}:`, `<div class="bcol-t"><div class="bcol-title static">No Heading</div></div>`, loose, `<button class="ib" data-action="hcol-menu" data-id="" data-col="n:${p.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`)]);
   headings.forEach((h) => cols.push([`h:${h.id}`, () => col(`h:${h.id}`, `project:${p.id}:${h.id}`,
     `<div class="bcol-t"><textarea class="bcol-htitle" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" title="Click to rename, drag to move" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea></div>`,
     items.filter((t) => t.headingId === h.id).sort(byOrder), `<button class="ib" data-action="hcol-menu" data-id="${h.id}" data-col="h:${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button>`)]));

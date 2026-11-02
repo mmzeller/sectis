@@ -3,12 +3,12 @@ let S = null;
 const idx = { todo: new Map(), project: new Map(), heading: new Map(), area: new Map(), tag: new Map() };
 const ui = {
   today: todayStr(), view: { type: 'today' }, sel: new Set(), anchor: null, editing: null, newId: null,
-  tagFilter: null, mobile: 'home', selectMode: false, showLogged: {}, laterOpen: {}, tplModal: null,
+  tagFilter: null, mobile: 'home', selectMode: false, showLogged: {}, hideLogged: {}, laterOpen: {}, tplModal: null,
   lastEditKey: null, logbookLimit: 150, focusAfter: null, scrollToEditor: false, expanded: new Set(), sbCollapsed: new Set(),
 };
 
 function defaultSettings() {
-  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true };
+  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true, loggedPlace: 'bottom' };
 }
 function emptyState() {
   return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };

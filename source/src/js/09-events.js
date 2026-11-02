@@ -127,7 +127,7 @@ function handleAction(act, el, e) {
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
     case 'collapse-all': setExpanded(areaProjectIds(id), false); return;
     case 'reveal': revealTodo(id); return;
-    case 'toggle-logged': ui.showLogged[id] = !ui.showLogged[id]; render(); return;
+    case 'toggle-logged': toggleLogged(id); return;
     case 'toggle-later': ui.laterOpen[id] = !ui.laterOpen[id]; render(); return;
     case 'logbook-more': ui.logbookLimit += 150; render(); return;
     case 'empty-trash': emptyTrash(); return;

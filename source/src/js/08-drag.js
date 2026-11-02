@@ -154,7 +154,11 @@ function dragTrack(fromLoop) {
   let sec = null, index = 0, refEl = null, after = false;
   const row = el.closest('.row[data-id]');
   const zone = el.closest('[data-zone]');
-  if (row && row.closest('[data-sec]') && !st.ids.includes(row.dataset.id)) {
+  const under = el.closest('[data-for]'); // logged to-dos shown under a heading: a drop there goes at the end of that heading
+  if (under) {
+    sec = $(`#content [data-sec="${CSS.escape(under.dataset.for)}"]`);
+    if (sec) { const rows = $$(':scope > .row[data-id]', sec).filter((r) => !st.ids.includes(r.dataset.id)); index = rows.length; refEl = rows[rows.length - 1]; after = true; }
+  } else if (row && row.closest('[data-sec]') && !st.ids.includes(row.dataset.id)) {
     sec = row.closest('[data-sec]');
     const rows = $$(':scope > .row[data-id]', sec).filter((r) => !st.ids.includes(r.dataset.id));
     const r = row.getBoundingClientRect(); after = st.y > r.top + r.height / 2;

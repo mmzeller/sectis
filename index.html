@@ -235,6 +235,10 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .row.ghost:hover { opacity: .8; }
 .row.trashed-row .r-title { color: var(--muted); }
 .r-date { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; flex: none; min-width: 48px; padding-top: 1px; }
+/* logged to-dos shown under their heading (Settings → Logged to-dos), with the day they were done */
+.r-done { color: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.logged-in .row .r-title { color: var(--muted); }
+.logged-in .row .cb { opacity: .7; }
 .restore { font-size: 12px; color: var(--accent); font-weight: 600; padding: 0 4px; }
 
 .cb { position: relative; flex: none; width: var(--cb-size); height: var(--cb-size); margin-top: 2.5px; border: 1.5px solid var(--cb); border-radius: 4.5px; background: var(--bg); display: inline-flex; align-items: center; justify-content: center; color: transparent; transition: background .15s, border-color .15s; }
@@ -922,7 +926,7 @@ body.col-resizing .bstack-add { opacity: 0 !important; }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.30.0';
+const APP_VERSION = '1.31.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1129,12 +1133,12 @@ let S = null;
 const idx = { todo: new Map(), project: new Map(), heading: new Map(), area: new Map(), tag: new Map() };
 const ui = {
   today: todayStr(), view: { type: 'today' }, sel: new Set(), anchor: null, editing: null, newId: null,
-  tagFilter: null, mobile: 'home', selectMode: false, showLogged: {}, laterOpen: {}, tplModal: null,
+  tagFilter: null, mobile: 'home', selectMode: false, showLogged: {}, hideLogged: {}, laterOpen: {}, tplModal: null,
   lastEditKey: null, logbookLimit: 150, focusAfter: null, scrollToEditor: false, expanded: new Set(), sbCollapsed: new Set(),
 };
 
 function defaultSettings() {
-  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true };
+  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true, loggedPlace: 'bottom' };
 }
 function emptyState() {
   return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
@@ -2206,7 +2210,7 @@ function rowHTML(x, ctx = {}) {
   line += tagPills(x);
   const parent = [ctx.parent ? parentLabel(x) : '', ctx.waitInfo && x.waitSince ? `Waiting since ${fmtDate(x.waitSince, { weekday: false })}` : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
-  const right = deadlineHTML(x) + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
+  const right = deadlineHTML(x) + (ctx.doneOn ? `<span class="r-done" title="Logged, done ${esc(ctx.doneOn)}">${esc(ctx.doneOn)}</span>` : '') + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
   return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
 }
 /* a to-do's checklist shown under its row; items can be ticked here without opening the to-do */
@@ -2527,19 +2531,16 @@ function viewProject(p) {
   html += tagBarHTML(live);
   if (projectBoardOn(p)) html += projectBoardHTML(p, items, headings, ctx);
   else {
-  html += `<div class="list">${secHTML(`project:${p.id}:`, items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx)}`;
+  const lbs = loggedBySec(p, matchesTagFilter), lin = (k) => loggedInHTML(k, lbs.get(k) || []);
+  html += `<div class="list">${secHTML(`project:${p.id}:`, items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx)}${lin(`project:${p.id}:`)}`;
   headings.forEach((h) => {
     html += `<div class="hrow${headingDoneCls(h)}" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><textarea class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea>${p.status === 'open' && !p.trashed ? `<button class="ib" data-action="heading-add" data-id="${h.id}" aria-label="New to-do under this heading" title="New to-do under this heading">${ic('plus')}</button>` : ''}<button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button></div>`;
-    html += secHTML(`project:${p.id}:${h.id}`, items.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
+    html += secHTML(`project:${p.id}:${h.id}`, items.filter((t) => t.headingId === h.id).sort(byOrder), ctx) + lin(`project:${p.id}:${h.id}`);
   });
   html += '</div>';
   }
   if (!p.isTemplate) html += repeatingSectionHTML(templatesIn((t) => t.projectId === p.id));
-  if (logged.length) {
-    const open = ui.showLogged[p.id];
-    html += `<button class="show-more" data-action="toggle-logged" data-id="${p.id}">${open ? 'Hide' : 'Show'} ${plural(logged.length, 'logged item')}</button>`;
-    if (open) html += `<div class="sec" data-sec="logbook">${logged.map((t) => rowHTML(t, { date: fmtDate(stampDay(t.completedAt), { weekday: false }) })).join('')}</div>`;
-  }
+  html += loggedFooterHTML(p.id, logged);
   if (!todosAll.length && !headings.length && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and headings you add here.');
   else if (!todosAll.length && !headings.length && !projectBoardOn(p)) html += emptyHTML('project', 'No to-dos yet', 'Press N or the + button to add the first one. Add headings from the ••• menu to split the project into stages.');
   return html;
@@ -2554,7 +2555,8 @@ function viewArea(a) {
   let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-area)">${I.area}</span><textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
-  html += `<div class="list">${secHTML(`area:${a.id}`, items, { when: true })}`;
+  const loggedA = loggedOfArea(a);
+  html += `<div class="list">${secHTML(`area:${a.id}`, items, { when: true })}${loggedShownIn(a.id) ? loggedInHTML(`area:${a.id}`, loggedA.filter(matchesTagFilter)) : ''}`;
   if (projAll.length) { const allOpen = projAll.every((p) => ui.expanded.has(p.id)), noneOpen = !projAll.some((p) => ui.expanded.has(p.id)); html += `<div class="exp-bar"><span>${plural(projAll.length, 'project')}</span><button class="link-btn" data-action="expand-all" data-id="${a.id}"${allOpen ? ' disabled' : ''}>Expand All</button><button class="link-btn" data-action="collapse-all" data-id="${a.id}"${noneOpen ? ' disabled' : ''}>Collapse All</button></div>`; }
   html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(active).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (later.length) {
@@ -2562,7 +2564,7 @@ function viewArea(a) {
     html += `<button class="show-more" data-action="toggle-later" data-id="${a.id}">${open ? 'Hide' : 'Show'} ${plural(later.length, 'later project')}</button>`;
     if (open) html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(later).map((p) => projRowHTML(p, { when: true, expandable: true })).join('')}</div>`;
   }
-  html += '</div>' + repeatingSectionHTML([...projectTemplatesIn((p) => p.areaId === a.id), ...templatesIn((t) => t.areaId === a.id && !t.projectId)]);
+  html += '</div>' + repeatingSectionHTML([...projectTemplatesIn((p) => p.areaId === a.id), ...templatesIn((t) => t.areaId === a.id && !t.projectId)]) + loggedFooterHTML(a.id, loggedA);
   if (!todosAll.length && !projAll.length) html += emptyHTML('area', 'This area is empty', 'Areas hold the ongoing parts of your life, like Home or Work. Add to-dos here, or create a project inside it from the ••• menu.');
   return html;
 }
@@ -3283,7 +3285,11 @@ function dragTrack(fromLoop) {
   let sec = null, index = 0, refEl = null, after = false;
   const row = el.closest('.row[data-id]');
   const zone = el.closest('[data-zone]');
-  if (row && row.closest('[data-sec]') && !st.ids.includes(row.dataset.id)) {
+  const under = el.closest('[data-for]'); // logged to-dos shown under a heading: a drop there goes at the end of that heading
+  if (under) {
+    sec = $(`#content [data-sec="${CSS.escape(under.dataset.for)}"]`);
+    if (sec) { const rows = $$(':scope > .row[data-id]', sec).filter((r) => !st.ids.includes(r.dataset.id)); index = rows.length; refEl = rows[rows.length - 1]; after = true; }
+  } else if (row && row.closest('[data-sec]') && !st.ids.includes(row.dataset.id)) {
     sec = row.closest('[data-sec]');
     const rows = $$(':scope > .row[data-id]', sec).filter((r) => !st.ids.includes(r.dataset.id));
     const r = row.getBoundingClientRect(); after = st.y > r.top + r.height / 2;
@@ -3519,7 +3525,7 @@ function handleAction(act, el, e) {
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
     case 'collapse-all': setExpanded(areaProjectIds(id), false); return;
     case 'reveal': revealTodo(id); return;
-    case 'toggle-logged': ui.showLogged[id] = !ui.showLogged[id]; render(); return;
+    case 'toggle-logged': toggleLogged(id); return;
     case 'toggle-later': ui.laterOpen[id] = !ui.laterOpen[id]; render(); return;
     case 'logbook-more': ui.logbookLimit += 150; render(); return;
     case 'empty-trash': emptyTrash(); return;
@@ -4146,6 +4152,7 @@ function openSettings() {
       <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
       <div class="set-row"><span class="lbl">Keep higher priorities on top<small>Lists you haven’t sorted another way show High, then Medium, then Low, then the rest. Drag or use ⌘↑ / ⌘↓ to arrange them within each priority. Each list’s Sort By… still changes it.</small></span>${sw('prioTop')}</div>
       <div class="set-row"><span class="lbl">Completed to-dos<small>Move to Bottom puts checked to-dos below the rest of their list. Unchecking one puts it back where it was.</small></span>${seg('doneSink', [['bottom', 'Move to Bottom'], ['stay', 'Stay in Place']])}</div>
+      <div class="set-row"><span class="lbl">Logged to-dos in projects and areas<small>At the Bottom keeps them in one list at the end, behind Show logged items. Under Their Heading shows each one where it was, just below the completed to-dos, with the day it was done.</small></span>${seg('loggedPlace', [['bottom', 'At the Bottom'], ['inline', 'Under Their Heading']])}</div>
       <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
       <div class="set-row"><span class="lbl">To-dos take on the tags of their project and area<small>When you add or move a to-do into a project or area, it gets that place’s tags. Moving it elsewhere swaps them.</small></span>${sw('inheritTags')}</div>
       <div class="set-row"><span class="lbl">Tags shown in lists<small>Own Only hides the tags a to-do already gets from its project or area, so lists stay clean. Open a to-do to see all of its tags.</small></span>${seg('rowTags', [['own', 'Own Only'], ['all', 'All'], ['none', 'None']])}</div>
@@ -6021,7 +6028,7 @@ function boardColHTML(c) {
   const projs = S.projects.filter((p) => p.areaId === a.id && liveProject(p) && !onBoard('p', p.id) && (p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0())))).sort(byOrder);
   const n = todos.filter((t) => t.status === 'open').length + projs.reduce((s, p) => s + projectProgress(p).open, 0);
   const sec = `area:${a.id}`;
-  let body = secHTML(sec, todos, { when: true });
+  let body = secHTML(sec, todos, { when: true }) + (loggedShownIn(a.id) ? loggedInHTML(sec, loggedOfArea(a)) : '');
   if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(projs).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
   return `<section class="bcol${sizedH}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h)}>${gripHTML}
@@ -6032,9 +6039,10 @@ function boardProjectBody(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged));
   const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
   const ctx = { when: true };
-  let html = secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
+  const lbs = loggedBySec(p), lin = (k) => loggedInHTML(k, lbs.get(k) || []);
+  let html = secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx) + lin(`project:${p.id}:`);
   headings.forEach((h) => {
-    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx);
+    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx) + lin(`project:${p.id}:${h.id}`);
   });
   if (!todos.length) html += emptyProjectHTML(p, 'bcol-empty');
   return html;
@@ -6078,16 +6086,17 @@ function saveHUnder() { lsSet('sectis.hunder', JSON.stringify([...ui.hUnder])); 
 const hStackW = (keys) => { const w = keys.map(getColW).find(Boolean); return w ? clampW(w) : 0; };
 function projectBoardHTML(p, items, headings, ctx) {
   const open = p.status === 'open' && !p.trashed;
+  const lbs = loggedBySec(p, matchesTagFilter);
   const col = (key, sec, titleHTML, list, menuBtn) => {
     const h = getColH(key);
     const hd = key.startsWith('h:') && getH(key.slice(2)) ? headingDoneCls(getH(key.slice(2))) : '';
     return `<section class="bcol hcol${h ? ' sized-h' : ''}${hd}" data-hcol="${key}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(h)}>${key.startsWith('h:') ? gripHTML : ''}
       <div class="bcol-h" data-hcol="${key}">${titleHTML}${list.filter((t) => t.status === 'open').length ? `<span class="bcol-count" title="Open to-dos">${list.filter((t) => t.status === 'open').length}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" title="New to-do" aria-label="New to-do">${ic('plus')}</button>` : ''}${menuBtn}</div>
-      <div class="bcol-body"${h ? ` data-vscroll="${key}"` : ''}>${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}</div>${resizeHandlesHTML(key)}</section>`;
+      <div class="bcol-body"${h ? ` data-vscroll="${key}"` : ''}>${secHTML(sec, list, ctx)}${list.length ? '' : `<div class="bcol-empty">${open ? 'Drag to-dos here' : 'Nothing here'}</div>`}${loggedInHTML(sec, lbs.get(sec) || [])}</div>${resizeHandlesHTML(key)}</section>`;
   };
   const loose = items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder);
   const cols = [];
-  if (loose.length || !headings.length) cols.push([`n:${p.id}`, () => col(`n:${p.id}`, `project:${p.id}:`, `<div class="bcol-t"><div class="bcol-title static">No Heading</div></div>`, loose, `<button class="ib" data-action="hcol-menu" data-id="" data-col="n:${p.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`)]);
+  if (loose.length || !headings.length || (lbs.get(`project:${p.id}:`) || []).length) cols.push([`n:${p.id}`, () => col(`n:${p.id}`, `project:${p.id}:`, `<div class="bcol-t"><div class="bcol-title static">No Heading</div></div>`, loose, `<button class="ib" data-action="hcol-menu" data-id="" data-col="n:${p.id}" aria-label="Column options" title="Column options">${ic('more')}</button>`)]);
   headings.forEach((h) => cols.push([`h:${h.id}`, () => col(`h:${h.id}`, `project:${p.id}:${h.id}`,
     `<div class="bcol-t"><textarea class="bcol-htitle" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" title="Click to rename, drag to move" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea></div>`,
     items.filter((t) => t.headingId === h.id).sort(byOrder), `<button class="ib" data-action="hcol-menu" data-id="${h.id}" data-col="h:${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button>`)]));
@@ -7098,6 +7107,53 @@ function colDragEnd(drop) {
   D.suppressClick = true; setTimeout(() => { D.suppressClick = false; }, 60); // the release isn't a click on the title
   const t = drop && st.target; if (!t) return;
   if (st.kind === 'board') boardPlace(st.key, t.to); else headingPlace(st.key, t.to);
+}
+
+/* ===================== Logged to-dos in their lists =====================
+   Settings → Logged to-dos: At the Bottom keeps a project's (or area's) logged to-dos in one
+   list at its end, behind Show logged items. Under Their Heading shows each one where it was,
+   just below the completed to-dos there, newest first, with the day it was done; the list's
+   Hide logged items button tucks them away for that list. Projects, areas, the Board and a
+   project's headings board all follow it. */
+const loggedInline = () => S.settings.loggedPlace === 'inline';
+/* logged to-dos of a project or area, newest first */
+function loggedTodos(pred) {
+  return S.todos.filter((t) => pred(t) && !t.trashed && !t.isTemplate && !t.isDraft && t.status !== 'open' && t.logged)
+    .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+}
+const loggedOfProject = (p) => loggedTodos((t) => t.projectId === p.id);
+const loggedOfArea = (a) => loggedTodos((t) => t.areaId === a.id && !t.projectId);
+/* the section a logged to-do belongs under in its project: its heading, or the top if that's gone */
+const loggedSecKey = (t) => `project:${t.projectId}:${t.headingId && getH(t.headingId) && !getH(t.headingId).archived ? t.headingId : ''}`;
+/* whether this list shows its logged to-dos where they were right now */
+function loggedShownIn(id) { return loggedInline() && !(ui.hideLogged || {})[id]; }
+function loggedDay(t) { return t.completedAt ? fmtDate(stampDay(t.completedAt), { weekday: false }) : ''; }
+/* the logged rows under one section; data-for says which section a drop there goes to */
+function loggedInHTML(sec, list) {
+  if (!list.length) return '';
+  return `<div class="sec logged-in" data-sec="logbook" data-for="${sec}">${list.map((t) => rowHTML(t, { doneOn: loggedDay(t) })).join('')}</div>`;
+}
+/* the button at the end of a project or area, and in At the Bottom, the list under it */
+function loggedFooterHTML(id, logged) {
+  if (!logged.length) return '';
+  if (loggedInline()) {
+    const hidden = (ui.hideLogged || {})[id];
+    return `<button class="show-more" data-action="toggle-logged" data-id="${id}" title="${hidden ? 'Show them under their headings' : 'Hide them from this list'}">${hidden ? 'Show' : 'Hide'} ${plural(logged.length, 'logged item')}</button>`;
+  }
+  const open = ui.showLogged[id];
+  return `<button class="show-more" data-action="toggle-logged" data-id="${id}">${open ? 'Hide' : 'Show'} ${plural(logged.length, 'logged item')}</button>`
+    + (open ? `<div class="sec" data-sec="logbook">${logged.map((t) => rowHTML(t, { date: loggedDay(t) })).join('')}</div>` : '');
+}
+function toggleLogged(id) {
+  if (loggedInline()) { ui.hideLogged = ui.hideLogged || {}; ui.hideLogged[id] = !ui.hideLogged[id]; } else ui.showLogged[id] = !ui.showLogged[id];
+  render();
+}
+/* a project's logged to-dos, grouped by the section they go under (when they're shown there) */
+function loggedBySec(p, filter = null) {
+  const m = new Map();
+  if (!loggedShownIn(p.id)) return m;
+  loggedOfProject(p).filter((t) => !filter || filter(t)).forEach((t) => { const k = loggedSecKey(t); if (!m.has(k)) m.set(k, []); m.get(k).push(t); });
+  return m;
 }
 
 /* ===================== Start ===================== */
