@@ -387,5 +387,6 @@ function defaultsForView(extra = {}) {
   if (extra.projectId !== undefined) { p.projectId = extra.projectId; p.areaId = null; p.start = p.start === 'inbox' ? 'anytime' : p.start; }
   if (extra.areaId !== undefined) { p.areaId = extra.areaId; p.projectId = null; p.start = p.start === 'inbox' ? 'anytime' : p.start; }
   if (ui.tagFilter && ui.tagFilter !== '__none') p.tags = Array.from(new Set((p.tags || []).concat(ui.tagFilter)));
+  focusNewProps(p);
   return p;
 }

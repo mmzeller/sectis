@@ -24,7 +24,7 @@ function seedSample() {
   m('Tag to-dos, then filter any list by tag', h3, { tags: [home], notes: 'Press # to tag. The tag bar at the top of each list filters it. Nest tags under each other in Settings → Manage Tags.' });
   m('Drag to-dos to reorder them, or onto the sidebar to move them', h3, { notes: 'On iPhone, press and hold a to-do, then drag. To move several at once, use ••• → Select To-Dos.' });
   m('Press / to find anything', h4);
-  m('Press Q for Quick Entry', h4, { notes: 'Quick Entry reads dates and tags as you type: “Call the dentist tomorrow #Errand”.' });
+  m('Press Q for Quick Entry', h4, { notes: 'Quick Entry reads dates, tags and places as you type: “Call the dentist tomorrow @Home #Errand”. Type @ to pick a project or area.' });
   m('Press ? to see every keyboard shortcut', h4);
   m('Export a backup from Settings', h4, { notes: 'Everything stays in this browser. Export a backup now and then. When you are done exploring, remove these sample to-dos in Settings.' });
   td('Pick up dry cleaning', { start: 'inbox', tags: [errand] });

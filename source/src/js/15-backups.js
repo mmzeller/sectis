@@ -40,7 +40,7 @@ async function dailyBackup() {
 }
 function restoreSnapshot(data) {
   commit('Restore Backup', () => {
-    for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart']) S[k] = Array.isArray(data[k]) ? data[k] : [];
+    for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart', 'focuses']) S[k] = Array.isArray(data[k]) ? data[k] : [];
     S = normalizeState(S);
   });
 }

@@ -17,7 +17,7 @@ function smartMatcher(sl) {
   const places = f.places.filter((k) => (k[0] === 'p' ? getP(k.slice(2)) : getA(k.slice(2))));
   const q = (f.text || '').trim().toLowerCase();
   return (t) => {
-    if (!liveTodo(t) || !inLiveProject(t)) return false;
+    if (!liveTodo(t) || !inLiveProject(t) || !inFocus(t)) return false;
     if (tagSets.length) {
       const eff = new Set(effectiveTags(t)), hit = (set) => [...set].some((id) => eff.has(id));
       if (f.tagMode === 'all' ? !tagSets.every(hit) : !tagSets.some(hit)) return false;

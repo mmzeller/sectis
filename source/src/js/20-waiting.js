@@ -2,7 +2,7 @@
    A to-do can wait on someone (waitFor: a name; waitSince: the day it started waiting).
    The follow-up date is simply the to-do's When date, so it comes back to Today then. */
 function isWaiting(t) { return !!(t && t.type === 'todo' && t.waitFor && t.status === 'open' && !t.trashed && !t.isTemplate); }
-function waitingItems() { return S.todos.filter((t) => isWaiting(t) && liveTodo(t) && inLiveProject(t)); }
+function waitingItems() { return S.todos.filter((t) => isWaiting(t) && liveTodo(t) && inLiveProject(t) && inFocus(t)); }
 function waitNames() {
   const seen = new Map();
   S.todos.filter((t) => t.waitFor && !t.trashed).sort((a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0))

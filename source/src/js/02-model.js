@@ -11,14 +11,15 @@ function defaultSettings() {
   return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true, loggedPlace: 'bottom' };
 }
 function emptyState() {
-  return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], smart: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
+  return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], smart: [], focuses: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
 }
 function normalizeState(s) {
   const base = emptyState();
   const out = Object.assign(base, s || {});
   out.settings = Object.assign(defaultSettings(), (s && s.settings) || {});
   out.meta = Object.assign({ fired: {} }, (s && s.meta) || {});
-  for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart']) if (!Array.isArray(out[k])) out[k] = [];
+  for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart', 'focuses']) if (!Array.isArray(out[k])) out[k] = [];
+  out.focuses = out.focuses.filter((x) => x && x.id).map(normalizeFocus);
   out.smart = out.smart.filter((x) => x && x.id).map((x) => Object.assign({ type: 'smart', title: '', f: {}, group: 'place', order: 0 }, x));
   out.todos = out.todos.filter((t) => t && t.id && !t.isDraft).map((t) => Object.assign(newTodoShape(), t, { tags: t.tags || [], checklist: t.checklist || [] }));
   out.projects = out.projects.filter((p) => p && p.id).map((p) => Object.assign(newProjectShape(), p, { tags: p.tags || [] }));
@@ -140,18 +141,18 @@ function projectHidesAnytime(p) { return p && (p.start === 'someday' || (p.when 
 
 function todayItems() {
   const out = [];
-  for (const p of S.projects) if (liveProject(p) && isTodayItem(p)) out.push(p);
-  for (const t of S.todos) if (liveTodo(t) && inLiveProject(t) && isTodayItem(t)) out.push(t);
+  for (const p of S.projects) if (liveProject(p) && isTodayItem(p) && inFocus(p)) out.push(p);
+  for (const t of S.todos) if (liveTodo(t) && inLiveProject(t) && isTodayItem(t) && inFocus(t)) out.push(t);
   return out;
 }
 function upcomingItems() {
   const out = [];
-  for (const p of S.projects) if (liveProject(p) && p.start === 'anytime' && p.when && p.when > T0()) out.push(p);
-  for (const t of S.todos) if (liveTodo(t) && inLiveProject(t) && t.start === 'anytime' && t.when && t.when > T0()) out.push(t);
+  for (const p of S.projects) if (liveProject(p) && p.start === 'anytime' && p.when && p.when > T0() && inFocus(p)) out.push(p);
+  for (const t of S.todos) if (liveTodo(t) && inLiveProject(t) && t.start === 'anytime' && t.when && t.when > T0() && inFocus(t)) out.push(t);
   return out;
 }
 function anytimeTodo(t) {
-  if (!liveTodo(t) || !inLiveProject(t) || t.start !== 'anytime') return false;
+  if (!liveTodo(t) || !inLiveProject(t) || t.start !== 'anytime' || !inFocus(t)) return false;
   if (t.when && t.when > T0()) return false;
   if (isScheduledToday(t)) return true;
   const p = projectOf(t);
@@ -159,7 +160,7 @@ function anytimeTodo(t) {
   return true;
 }
 function somedayTodo(t) {
-  if (!liveTodo(t) || !inLiveProject(t) || t.start !== 'someday') return false;
+  if (!liveTodo(t) || !inLiveProject(t) || t.start !== 'someday' || !inFocus(t)) return false;
   const p = projectOf(t);
   if (p && (p.start === 'someday' || !liveProject(p))) return false;
   return true;
@@ -171,6 +172,7 @@ function counts() {
   for (const t of S.todos) {
     if (t.trashed || t.isTemplate || t.isDraft || t.status !== 'open') continue;
     if (isInbox(t)) inbox++;
+    if (!inFocus(t)) continue;
     if (t.waitFor && inLiveProject(t)) waiting++;
     if (inLiveProject(t) && isTodayItem(t)) { today++; if (t.deadline && t.deadline <= T0()) due++; }
   }

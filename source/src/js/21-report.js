@@ -19,7 +19,7 @@ function reportScope(scope) {
   if (scope.type === 'area' && getA(scope.id)) { const a = getA(scope.id); return { name: aTitle(a), level: 'area', has: (t) => (areaOf(t) || {}).id === a.id }; }
   if (scope.type === 'project' && getP(scope.id)) { const p = getP(scope.id); return { name: pTitle(p), level: 'project', has: (t) => t.projectId === p.id }; }
   if (scope.type === 'board') { const cols = boardCols(); return { name: 'Board', level: 'all', has: (t) => cols.some((c) => colHas(c, t)) }; }
-  return { name: '', level: 'all', has: () => true };
+  return { name: '', level: 'all', has: (t) => inFocus(t) };
 }
 /* group to-dos by project, then by area for to-dos outside projects; in sidebar order */
 function reportGroups(items) {

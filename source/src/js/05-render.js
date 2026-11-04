@@ -19,6 +19,7 @@ const aTitle = (a) => (a && a.title) || 'New Area';
 
 function render() {
   if (!S) return;
+  refreshFocus();
   tagRankCache = null;
   if (ensureTagColors()) saveSoon();
   if (followMerges()) { reindex(); saveSoon(); }
@@ -61,6 +62,7 @@ function renderShell() {
   app.classList.toggle('sel-mode', ui.selectMode);
   app.classList.toggle('touch', isCoarse());
   app.classList.toggle('compact', S.settings.density === 'compact');
+  applySidebarMode();
   const magic = $('#magic');
   const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash', 'templates'].includes(ui.view.type));
   magic.classList.toggle('hidden-in', hide);
@@ -92,7 +94,7 @@ function renderSidebar() {
     return `<button class="sb-item sb-proj${on('project:' + p.id)}" data-nav="project:${p.id}" data-drop-list="project:${p.id}" data-drag="project" data-kind="project" data-id="${p.id}" data-sb="1">${projIc(p, '', pr.frac)}<span class="sb-name${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${p.deadline && p.deadline <= T0() ? `<span class="sb-due">!</span>` : ''}${cnt(openIn.p.get(p.id))}</button>`;
   };
   const sbProjects = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && (p.areaId || null) === areaId).sort(byOrder);
-  let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button></div><nav class="sb-scroll" id="sb-scroll">`;
+  let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button>${focusBarHTML()}</div><nav class="sb-scroll" id="sb-scroll">`;
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
   html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
@@ -100,13 +102,13 @@ function renderSidebar() {
   html += `<div class="sb-group sb-board-g">${(ui.boards || []).map((b) => `<button class="sb-item${v.type === 'board' && b.id === ui.boardId ? ' on' : ''}" data-nav="board:${b.id}" data-drop-list="board:${b.id}" title="${esc(b.name || 'Board')}${ui.boards.length > 1 ? '' : ' (8)'}. Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">${esc(b.name || 'Board')}</span></button>`).join('')}</div>`;
   const smarts = (S.smart || []).slice().sort(byOrder);
   if (smarts.length) html += `<div class="sb-group sb-smart-g">${smarts.map((sl) => `<button class="sb-item${on('smart:' + sl.id)}" data-nav="smart:${sl.id}" data-drop-list="smart:${sl.id}" data-drag="smart" data-kind="smart" data-id="${sl.id}" data-sb="1" title="${esc(smartSummary(sl))}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span class="sb-name">${esc(smartTitle(sl))}</span>${cnt(smartCount(sl))}</button>`).join('')}</div>`;
-  const loose = sbProjects(null);
+  const loose = ui.focusRec && ui.focusRec.loose === false ? [] : sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   else html += `<div class="sb-loose" data-drop-loose="1">${ic('project')}<span>No Area</span></div>`; // shows while a project is dragged
-  S.areas.slice().sort(byOrder).forEach((a) => {
+  S.areas.slice().sort(byOrder).filter((a) => !ui.focusRec || ui.focusAreas.has(a.id)).forEach((a) => {
     html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${placeColor(a) ? areaIc(a) : ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
   });
-  html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button></div>`;
+  html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button><button class="ib sb-hide" data-action="sb-toggle" aria-label="Hide Sidebar" title="Hide Sidebar (${IS_MAC ? '⌃⌘S' : 'Ctrl+Alt+S'})">${ic('sidebar')}</button></div>`;
   const sb = $('#sidebar');
   const scroll = $('#sb-scroll'); const st = scroll ? scroll.scrollTop : 0;
   sb.innerHTML = html;
@@ -369,7 +371,7 @@ function viewToday() {
 function templatePreviews(horizonDays = 400) {
   const out = [], T = T0(), end = addDays(T, horizonDays);
   for (const tpl of S.todos.concat(S.projects)) {
-    if (!tpl.isTemplate || tpl.trashed || !tpl.repeat || !tpl.next) continue;
+    if (!tpl.isTemplate || tpl.trashed || !tpl.repeat || !tpl.next || !inFocus(tpl)) continue;
     const p = tpl.type === 'todo' && tpl.projectId && getP(tpl.projectId); if (p && (p.trashed || p.status !== 'open' || p.isTemplate)) continue;
     if (!matchesTagFilter(tpl)) continue;
     if (tpl.repeat.mode === 'after') { out.push({ tpl, date: tpl.next }); continue; }
@@ -419,7 +421,7 @@ function viewUpcoming() {
 }
 function groupedView(key, todoFilter, somedayProjects) {
   const todosAll = S.todos.filter(todoFilter);
-  const projAll = somedayProjects ? S.projects.filter((p) => liveProject(p) && p.start === 'someday') : [];
+  const projAll = somedayProjects ? S.projects.filter((p) => liveProject(p) && p.start === 'someday' && inFocus(p)) : [];
   const tagSrc = todosAll.concat(projAll);
   const todos = todosAll.filter(matchesTagFilter), projs = projAll.filter(matchesTagFilter).sort(byOrder);
   const ctx = { star: key === 'anytime', when: key === 'someday' };
@@ -449,8 +451,8 @@ function groupedView(key, todoFilter, somedayProjects) {
 function viewAnytime() { return groupedView('anytime', anytimeTodo, false); }
 function viewSomeday() { return groupedView('someday', somedayTodo, true); }
 function logbookItems() {
-  return S.todos.filter((t) => !t.trashed && !t.isTemplate && t.status !== 'open' && t.logged)
-    .concat(S.projects.filter((p) => !p.trashed && p.status !== 'open' && p.logged))
+  return S.todos.filter((t) => !t.trashed && !t.isTemplate && t.status !== 'open' && t.logged && inFocus(t))
+    .concat(S.projects.filter((p) => !p.trashed && p.status !== 'open' && p.logged && inFocus(p)))
     .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
 }
 function dayGroupLabel(day) {
@@ -547,7 +549,7 @@ function viewArea(a) {
 function viewTag(tag) {
   const want = tagDescendants(tag.id);
   const has = (x) => { for (const t of effectiveTags(x)) if (want.has(t)) return true; return false; };
-  const todos = S.todos.filter((t) => liveTodo(t) && inLiveProject(t) && has(t));
+  const todos = S.todos.filter((t) => liveTodo(t) && inLiveProject(t) && has(t) && inFocus(t));
   const groups = [
     ['Today', todos.filter(isTodayItem).sort(byToday)],
     ['Upcoming', todos.filter((t) => t.start === 'anytime' && t.when && t.when > T0()).sort((a, b) => (a.when < b.when ? -1 : 1))],
@@ -576,6 +578,7 @@ function renderBatch() {
 
 function visibleInCurrentView(x) {
   const v = ui.view;
+  if (!['inbox', 'project', 'area', 'trash', 'templates'].includes(v.type) && !inFocus(x)) return false;
   switch (v.type) {
     case 'inbox': return x.type === 'todo' && isInbox(x);
     case 'today': return isTodayItem(x);

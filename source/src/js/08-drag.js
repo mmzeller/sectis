@@ -122,6 +122,7 @@ function dragTrack(fromLoop) {
   st.ghost.style.display = 'none';
   const el = document.elementFromPoint(st.x, st.y);
   st.ghost.style.display = '';
+  springSidebar(el);
   if (!el) return;
   const k = st.kind;
   // --- sidebar
@@ -227,6 +228,7 @@ function finishDrag(drop) {
   D.st = null;
   D.suppressClick = true; setTimeout(() => { D.suppressClick = false; }, 60);
   if (drop && st.target) performDrop(st, st.target);
+  unspringSidebar(st);
 }
 function performDrop(st, t) {
   const ids = st.ids;

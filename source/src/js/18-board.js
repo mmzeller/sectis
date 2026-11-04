@@ -33,14 +33,16 @@ function saveBoard() {
   curBoard().cols = ui.board;
   lsSet('sectis.boards', JSON.stringify({ cur: ui.boardId, list: ui.boards }));
 }
-function colShown(c) {
-  if (c.t === 'a') return !!getA(c.id);
+function colShown(c, anyFocus) {
+  if (c.t === 'a') return !!getA(c.id) && (anyFocus || !ui.focusRec || ui.focusAreas.has(c.id));
   if (c.t === 'l') return BOARD_LISTS.includes(c.id);
   if (c.t === 't') return !!getTag(c.id);
   if (c.t === 's') return !!getSmart(c.id);
   const p = getP(c.id);
-  return !!p && !p.trashed && !p.isTemplate && !(p.status !== 'open' && p.logged);
+  return !!p && !p.trashed && !p.isTemplate && !(p.status !== 'open' && p.logged) && (anyFocus || inFocus(p));
 }
+/* columns the current focus hides */
+function colsOutsideFocus() { return ui.focusRec ? (ui.board || []).filter((c) => colShown(c, true) && !colShown(c)).length : 0; }
 function boardCols() { return [].concat(...boardStacks()); }
 function onBoard(t, id) { return (ui.board || []).some((c) => c.t === t && c.id === id); }
 function colName(t, id) { return t === 'p' ? pTitle(getP(id)) : t === 'a' ? aTitle(getA(id)) : t === 'l' ? LISTS[id].title : t === 't' ? tagTitle(id) : smartTitle(getSmart(id)); }
@@ -49,7 +51,7 @@ const colKey = (c) => `${c.t}:${c.id}`;
 /* ---- stacks: the columns on screen, left to right, each top to bottom ---- */
 function boardStacks() {
   const m = new Map();
-  (ui.board || []).filter(colShown).forEach((c) => { if (!m.has(c.l)) m.set(c.l, []); m.get(c.l).push(c); });
+  (ui.board || []).filter((c) => colShown(c)).forEach((c) => { if (!m.has(c.l)) m.set(c.l, []); m.get(c.l).push(c); });
   return [...m.keys()].sort((a, b) => a - b).map((k) => m.get(k));
 }
 /* write the layout back from a list of stacks; empty stacks drop out. Columns not on screen
@@ -215,6 +217,9 @@ function boardMenuItems(t, id, fromColumn, el) {
 function viewBoard() {
   const stacks = boardStacks();
   let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><textarea class="lh-title board-name" data-edit="board-name" data-fkey="board-name" placeholder="Board" aria-label="Board name" autocomplete="off" rows="1" data-autosize data-oneline>${esc(curBoard().name)}</textarea><button class="ib board-switch" data-action="board-switch" aria-label="Boards" title="Switch, add or rename Boards">${ic('chevD')}</button><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
+  const hidden = colsOutsideFocus();
+  if (hidden) html += `<div class="lh-sub fx-hidden">${hidden === 1 ? '1 column is' : hidden + ' columns are'} outside the ${esc(focusTitle(ui.focusRec))} focus. <button class="link-btn" data-focus="">Show All Areas</button></div>`;
+  if (!stacks.length && hidden) return html;
   if (!stacks.length) {
     return html + emptyHTML('columns', 'See your lists side by side',
       'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');

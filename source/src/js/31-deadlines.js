@@ -3,7 +3,7 @@
    Overdue, Today, Tomorrow, This Week, then by month. Checked items stay until they're logged,
    like everywhere else. Dropping to-dos on Deadlines in the sidebar asks for a deadline. */
 function deadlineItems() {
-  const has = (x) => !!x.deadline && !x.isTemplate && !x.trashed;
+  const has = (x) => !!x.deadline && !x.isTemplate && !x.trashed && inFocus(x);
   return S.todos.filter((t) => has(t) && liveTodo(t) && inLiveProject(t)).concat(S.projects.filter((p) => has(p) && liveProject(p)));
 }
 const byDeadline = (a, b) => (a.deadline < b.deadline ? -1 : a.deadline > b.deadline ? 1 : (b.priority || 0) - (a.priority || 0) || byToday(a, b));

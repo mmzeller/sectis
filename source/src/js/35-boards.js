@@ -89,7 +89,7 @@ function colHas(c, x) {
 /* the column's body and how it takes drops: a real section (Inbox, Today) where to-dos can be
    arranged, or a whole-column drop that works like dropping on the list in the sidebar */
 function listColBody(c) {
-  const live = (t) => liveTodo(t) && inLiveProject(t);
+  const live = (t) => liveTodo(t) && inLiveProject(t) && inFocus(t);
   const sub = (label) => `<div class="sub-h">${esc(label)}</div>`;
   const view = (list, ctx = { parent: true, when: true }) => secHTML('colview:' + c.t + ':' + c.id, list, ctx);
   if (c.t === 't') {

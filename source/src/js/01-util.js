@@ -1,12 +1,15 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.34.0';
+const APP_VERSION = '1.35.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
 const uid = () => Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 9);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-const mq = window.matchMedia('(max-width: 760px)');
+/* The iPhone layout is for touch screens up to 760px wide, and any window narrower than a phone.
+   A narrow Mac window keeps the Mac layout: sidebar, Board and all (see 36-narrow.js). */
+const PHONE_MQ = '(max-width: 760px) and (pointer: coarse), (max-width: 419px)';
+const mq = window.matchMedia(PHONE_MQ);
 const isMobile = () => mq.matches;
 const isCoarse = () => window.matchMedia('(pointer: coarse)').matches;
 const IS_MAC = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || '');
@@ -190,6 +193,8 @@ const I = {
   grip: svg('<circle class="fill" cx="9" cy="6.5" r="1.5"/><circle class="fill" cx="15" cy="6.5" r="1.5"/><circle class="fill" cx="9" cy="12" r="1.5"/><circle class="fill" cx="15" cy="12" r="1.5"/><circle class="fill" cx="9" cy="17.5" r="1.5"/><circle class="fill" cx="15" cy="17.5" r="1.5"/>'),
   share: svg('<path d="M12 3.5v11M8 7.2 12 3.5l4 3.7"/><path d="M8.5 10H7a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2h-1.5"/>'),
   link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1.1 1.1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1"/>'),
+  sidebar: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M5.8 8.2h1.6M5.8 11.2h1.6"/>'),
+  focus: svg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><circle class="fill" cx="12" cy="12" r="1.4"/>'),
   bolt: svg('<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>'),
   mic: svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>'),
 };

@@ -119,7 +119,25 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .sb-resize { position: absolute; top: 0; bottom: 0; right: -5px; width: 9px; cursor: col-resize; z-index: 5; touch-action: none; }
 .sb-resize::after { content: ""; position: absolute; left: 3px; top: 0; bottom: 0; width: 3px; background: transparent; transition: background .12s; }
 .sb-resize:hover::after, .sb-resize.on::after { background: var(--accent); }
-@media (max-width: 760px), (pointer: coarse) { .sb-resize { display: none; } }
+@media (max-width: 419px), (pointer: coarse) { .sb-resize { display: none; } }
+/* hide the sidebar (Mac), or let it slide in over a narrow window */
+.app { position: relative; }
+.sb-show { position: absolute; z-index: 25; top: 10px; left: max(10px, env(safe-area-inset-left, 0px)); background: var(--bg); }
+.sb-show:hover { background: var(--hover); color: var(--fg); }
+.app > .sidebar { grid-column: 1; grid-row: 1; }
+.app > .main { grid-column: 2; grid-row: 1; }
+.app.sb-off { grid-template-columns: 0 minmax(0, 1fr); }
+.app.sb-off .sidebar { visibility: hidden; border-right: 0; overflow: hidden; }
+.app.sb-off .sb-resize { display: none; }
+.app.sb-float .sidebar { visibility: visible; overflow: visible; position: absolute; z-index: 40; top: 0; bottom: 0; left: 0; width: min(var(--sbw, 268px), calc(100% - 44px)); border-right: 1px solid var(--line); box-shadow: var(--shadow-pop); animation: sbIn .16s ease-out; }
+@keyframes sbIn { from { transform: translateX(-24px); opacity: .5; } }
+.app.sb-off .main { animation: none; }
+.sb-foot .sb-hide { margin-left: -2px; }
+.app.sb-off:not(.sb-float) .banner { padding-left: 52px; }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .sb-foot .sb-hide, .sb-show { display: none !important; } }
+/* a narrow main pane: lists keep more of the width */
+.app.main-narrow .content { padding-left: 22px; padding-right: max(18px, env(safe-area-inset-right, 0px)); padding-top: 46px; }
+.app.main-narrow .content.board-view { padding-left: 16px; padding-right: 12px; }
 .main { position: relative; min-width: 0; min-height: 0; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 .content { max-width: 780px; margin: 0 auto; padding-block: 52px 140px; padding-left: 40px; padding-right: max(40px, env(safe-area-inset-right, 0px)); }
 
@@ -433,6 +451,15 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .qe-p { font-size: 12px; display: inline-flex; align-items: center; gap: 5px; padding: 2px 4px 2px 8px; border-radius: 6px; background: var(--accent-tint); color: var(--accent); }
 .qe-p button { color: inherit; opacity: .7; display: inline-flex; }
 .qe-p .ic { width: 11px; height: 11px; }
+.qe { position: relative; }
+.qe-ac { position: absolute; z-index: 5; left: 40px; right: 18px; max-width: 420px; margin-top: 4px; padding: 4px; background: var(--pop); border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-pop); }
+.qe-ac-i { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border-radius: 7px; text-align: left; font-size: 13.5px; }
+.qe-ac-i .ic { width: 16px; height: 16px; color: var(--muted); }
+.qe-ac-i:hover { background: var(--hover); }
+.qe-ac-i.on { background: var(--accent-tint); }
+.qe-ac-t { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qe-ac-s { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--muted); text-align: right; }
+.qe-p.qe-place .ic { width: 12px; height: 12px; }
 .qe-dest { font-size: 12px; color: var(--muted); padding: 10px 0 0 25px; display: flex; gap: 6px; align-items: center; }
 .qe-dest .ic { width: 14px; height: 14px; }
 
@@ -481,7 +508,7 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tm-grip .ic { width: 14px; height: 14px; }
 .tm-row:hover .tm-grip, .tm-dragging .tm-grip { opacity: .9; }
 @media (pointer: coarse) { .tm-grip { opacity: .7; } }
-@media (max-width: 760px) { .tm-grip { width: 28px; height: 36px; margin-right: -6px; } .tm-kids { margin-left: 14px; } .tm-sw { width: 32px; height: 32px; padding: 8px; } }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .tm-grip { width: 28px; height: 36px; margin-right: -6px; } .tm-kids { margin-left: 14px; } .tm-sw { width: 32px; height: 32px; padding: 8px; } }
 
 /* Repeat editor */
 #rp-body > .seg { margin-bottom: 8px; }
@@ -527,7 +554,7 @@ body.drag-project .sb-loose { display: flex; }
 }
 
 /* ---------- phones ---------- */
-@media (max-width: 760px) {
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
   :root { --fs: 16px; --row-h: 44px; --cb-size: 20px; }
   .app { display: block; position: relative; }
   .sidebar, .main { position: absolute; inset: 0; }
@@ -604,7 +631,7 @@ body.drag-project .sb-loose { display: flex; }
 .qe-modal .qe .c-notes { min-height: 44px; }
 .find .qf-res:empty { display: none; }
 .menu .menu-i { font-size: 13.5px; }
-@media (max-width: 760px) { .menu .menu-i { font-size: 16px; } }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .menu .menu-i { font-size: 16px; } }
 [data-sec^="areaprojects"]:not(:empty) { margin-top: 16px; }
 
 /* sync */
@@ -667,7 +694,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .bk-row:first-child { border-top: 0; }
 .bk-main { flex: 1; min-width: 180px; }
 .bk-main small { display: block; color: var(--muted); font-size: 12px; }
-@media (max-width: 760px) { .ck-grip { width: 30px; height: 34px; } .ck-more { width: 32px; height: 32px; } .lh-notes.notes-view { padding-left: 44px; } }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .ck-grip { width: 30px; height: 34px; } .ck-more { width: 32px; height: 32px; } .lh-notes.notes-view { padding-left: 44px; } }
 
 /* checklist items wrap */
 .ck-item { align-items: flex-start; }
@@ -675,7 +702,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .ck-item .ck-box { margin-top: 8.5px; }
 .ck-item .ck-more { margin-top: 3px; }
 .ck-item .ck-grip { margin-top: 2px; }
-@media (max-width: 760px) {
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
   .ck-item .ck-input { line-height: 23px; padding: 8px 0; }
   .ck-item .ck-box { margin-top: 11px; }
   .ck-item .ck-more { margin-top: 3px; }
@@ -696,7 +723,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
   html.printing body > *:not(#print-root) { display: none !important; }
   html.printing #print-root { display: block !important; }
 }
-@media (max-width: 760px) {
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
   .share-modal .modal-f .btn { flex: 1 1 0; margin-right: 0 !important; white-space: nowrap; }
   .share-modal .modal-f .btn.primary { order: -1; flex-basis: 100%; padding-block: 11px; }
 }
@@ -728,7 +755,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .r-link { color: var(--accent); opacity: .75; }
 .chip.linkc .chip-main .ic { color: var(--accent); }
 .chip.linkc.done { color: var(--muted); }
-@media (max-width: 760px) {
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
   .disc { width: 28px; height: 28px; margin: 0 -2px 0 -8px; }
   .disc .ic { width: 16px; height: 16px; }
   .pchildren { margin-left: 18px; padding-left: 6px; }
@@ -742,7 +769,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .sb-disc.open .ic { transform: rotate(90deg); }
 .sb-disc:hover { background: var(--line); color: var(--fg); }
 .sb-item:hover .sb-disc, .sb-disc:not(.open), .sb-disc:focus-visible, .touch .sb-disc { opacity: .75; }
-@media (max-width: 760px) { .sb-disc { width: 30px; height: 30px; margin-right: -6px; } .sb-disc .ic, .sb-area-row .sb-disc .ic { width: 16px; height: 16px; } }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .sb-disc { width: 30px; height: 30px; margin-right: -6px; } .sb-disc .ic, .sb-area-row .sb-disc .ic { width: 16px; height: 16px; } }
 
 /* a to-do's checklist, opened under its row */
 .r-line > .r-ck-btn { vertical-align: -1px; }
@@ -759,7 +786,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .r-ckt { min-width: 0; overflow-wrap: anywhere; }
 .r-ckit.on .r-ckt, .r-ckt.untitled { color: var(--muted); }
 .r-ckit.on .r-ckt { text-decoration: line-through; }
-@media (max-width: 760px) {
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
   .r-ck-btn { padding: 2px 5px 2px 6px; }
   .r-ck-btn .r-ck-chev { width: 12px; height: 12px; }
   .r-ckit { font-size: 15px; line-height: 21px; padding: 6px 0; gap: 11px; }
@@ -794,7 +821,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .bcol .card { margin-left: 0; margin-right: 0; }
 .board-pop .pick-i.in-area { padding-left: 30px; }
 .board-pop .pk-foot { padding: 8px 12px 4px; font-size: 11.5px; border-top: 1px solid var(--line); margin-top: 4px; }
-@media (max-width: 760px) {
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
   .sb-board-g { display: none; }
   .content.board-view { padding-left: 0; padding-right: 0; }
   .board-view .lh { padding-left: 16px; padding-right: 16px; }
@@ -859,7 +886,7 @@ body.col-resizing .bstack-add { opacity: 0 !important; }
 
 /* a project's headings as columns */
 .lh-board.on { color: var(--accent); background: var(--accent-tint); }
-@media (max-width: 760px) { .lh-board { display: none; } }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .lh-board { display: none; } }
 .board-view .lh-banner, .board-view .lh-notes, .board-view .lh-meta, .board-view .tagbar { max-width: 760px; }
 .hboard { padding-top: 12px; }
 .bcol-title.static { cursor: default; color: var(--muted); }
@@ -887,7 +914,7 @@ body.col-resizing .bstack-add { opacity: 0 !important; }
 .wf-note { margin: 10px 0 0; font-size: 12px; }
 .wf-f { display: flex; align-items: center; gap: 8px; padding: 12px 12px 0; }
 .wf-f .spacer { flex: 1; }
-@media (max-width: 760px) { .wait-pop { width: auto; } .r-line > .r-wait { font-size: 13px; } }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .wait-pop { width: auto; } .r-line > .r-wait { font-size: 13px; } }
 
 /* status report */
 .report-modal .seg { margin-bottom: 10px; }
@@ -899,7 +926,7 @@ body.col-resizing .bstack-add { opacity: 0 !important; }
 .sort-pill { flex: none; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; padding: 3px 10px 3px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-tint); white-space: nowrap; }
 .sort-pill .ic { width: 13px; height: 13px; }
 .sort-pill:hover { filter: brightness(1.05); }
-@media (max-width: 760px) { .sort-pill { margin-top: 8px; } }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .sort-pill { margin-top: 8px; } }
 
 /* compact rows */
 #app.compact { --row-h: 26px; }
@@ -913,7 +940,7 @@ body.col-resizing .bstack-add { opacity: 0 !important; }
 #app.compact .board, #app.compact .bstack { gap: 10px; }
 #app.compact .r-cklist { margin-top: 3px; }
 #app.compact .r-ckit { padding: 1px 0; }
-@media (max-width: 760px) {
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
   #app.compact { --row-h: 36px; }
   #app.compact .row { padding-top: 6px; padding-bottom: 6px; }
   #app.compact .r-ckit { padding: 4px 0; }
@@ -981,11 +1008,46 @@ button.ucal-d:hover { border-color: var(--line-strong); }
 .sm-modal { display: flex; flex-direction: column; }
 .sm-modal #sm-body { overflow-y: auto; min-height: 0; flex: 1 1 auto; }
 
+/* ---------- Focus ---------- */
+.fx-bar { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+.fx-menu { width: 28px; height: 28px; color: var(--faint); }
+.fx-menu.on { color: var(--accent); }
+.fx-menu:hover { background: var(--hover); color: var(--fg); }
+.fx-segs { flex: 1; min-width: 0; display: flex; background: var(--hover); border-radius: 8px; padding: 2px; }
+.fx-seg { flex: 1 1 0; min-width: 0; padding: 3px 6px; border-radius: 6px; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fx-seg:hover { color: var(--fg); }
+.fx-seg.on { background: var(--pop); color: var(--fg); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
+.fx-seg.on:not([data-focus=""]) { background: var(--accent); color: var(--accent-ink); }
+.fx-pill { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: var(--hover); color: var(--muted); font-size: 13px; }
+.fx-pill > span:not(.ic) { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-pill .ic { width: 14px; height: 14px; }
+.fx-pill.on { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+.fx-ed .fx-line { flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.fx-ed .fx-line > .sm-l { flex: 1 1 220px; }
+.fx-ed .fx-line > .seg { flex: none; flex-wrap: nowrap; }
+.fx-ed .fx-line .sm-l { flex-direction: column; align-items: flex-start; gap: 2px; }
+.fx-ed .fx-line .sm-l small { text-transform: none; letter-spacing: 0; font-weight: 400; font-size: 12px; color: var(--muted); }
+.fx-days { display: flex; gap: 4px; flex-wrap: wrap; }
+.fx-day { width: 36px; height: 30px; border-radius: 8px; background: var(--hover); color: var(--muted); font-size: 12.5px; font-weight: 600; border: 1px solid transparent; }
+.fx-day.on { background: var(--accent-tint); border-color: var(--accent); color: var(--accent); }
+.fx-times { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; font-size: 13px; color: var(--muted); }
+.fx-times label { display: inline-flex; align-items: center; gap: 6px; }
+.fx-times input { width: auto; padding: 4px 8px; }
+.fx-note { margin: 0; }
+.fx-on { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--accent-tint); color: var(--accent); font-size: 11px; font-weight: 650; vertical-align: 1px; }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
+  .fx-bar { margin-top: 10px; }
+  .fx-seg { padding: 6px 8px; font-size: 14px; }
+  .fx-menu { width: 34px; height: 34px; }
+  .fx-day { width: 40px; height: 36px; }
+}
+
 </style>
 </head>
 <body>
 <div id="app" class="app m-list">
   <aside id="sidebar" class="sidebar" aria-label="Lists"></aside>
+  <button id="sb-show" class="sb-show ib" data-action="sb-toggle" aria-label="Show Sidebar" hidden><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M5.8 8.2h1.6M5.8 11.2h1.6"/></svg></span></button>
   <main id="main" class="main"><div id="banner" hidden></div><div id="content" class="content"></div></main>
 </div>
 <button id="magic" class="magic" aria-label="New To-Do" title="New To-Do (N). Drag into the list to place it."><span class="ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></button>
@@ -998,14 +1060,17 @@ button.ucal-d:hover { border-color: var(--line-strong); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.34.0';
+const APP_VERSION = '1.35.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
 const uid = () => Date.now().toString(36).slice(-5) + Math.random().toString(36).slice(2, 9);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
-const mq = window.matchMedia('(max-width: 760px)');
+/* The iPhone layout is for touch screens up to 760px wide, and any window narrower than a phone.
+   A narrow Mac window keeps the Mac layout: sidebar, Board and all (see 36-narrow.js). */
+const PHONE_MQ = '(max-width: 760px) and (pointer: coarse), (max-width: 419px)';
+const mq = window.matchMedia(PHONE_MQ);
 const isMobile = () => mq.matches;
 const isCoarse = () => window.matchMedia('(pointer: coarse)').matches;
 const IS_MAC = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || '');
@@ -1189,6 +1254,8 @@ const I = {
   grip: svg('<circle class="fill" cx="9" cy="6.5" r="1.5"/><circle class="fill" cx="15" cy="6.5" r="1.5"/><circle class="fill" cx="9" cy="12" r="1.5"/><circle class="fill" cx="15" cy="12" r="1.5"/><circle class="fill" cx="9" cy="17.5" r="1.5"/><circle class="fill" cx="15" cy="17.5" r="1.5"/>'),
   share: svg('<path d="M12 3.5v11M8 7.2 12 3.5l4 3.7"/><path d="M8.5 10H7a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2h-1.5"/>'),
   link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1.1 1.1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1"/>'),
+  sidebar: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M5.8 8.2h1.6M5.8 11.2h1.6"/>'),
+  focus: svg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><circle class="fill" cx="12" cy="12" r="1.4"/>'),
   bolt: svg('<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>'),
   mic: svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>'),
 };
@@ -1217,14 +1284,15 @@ function defaultSettings() {
   return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true, loggedPlace: 'bottom' };
 }
 function emptyState() {
-  return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], smart: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
+  return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], smart: [], focuses: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
 }
 function normalizeState(s) {
   const base = emptyState();
   const out = Object.assign(base, s || {});
   out.settings = Object.assign(defaultSettings(), (s && s.settings) || {});
   out.meta = Object.assign({ fired: {} }, (s && s.meta) || {});
-  for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart']) if (!Array.isArray(out[k])) out[k] = [];
+  for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart', 'focuses']) if (!Array.isArray(out[k])) out[k] = [];
+  out.focuses = out.focuses.filter((x) => x && x.id).map(normalizeFocus);
   out.smart = out.smart.filter((x) => x && x.id).map((x) => Object.assign({ type: 'smart', title: '', f: {}, group: 'place', order: 0 }, x));
   out.todos = out.todos.filter((t) => t && t.id && !t.isDraft).map((t) => Object.assign(newTodoShape(), t, { tags: t.tags || [], checklist: t.checklist || [] }));
   out.projects = out.projects.filter((p) => p && p.id).map((p) => Object.assign(newProjectShape(), p, { tags: p.tags || [] }));
@@ -1346,18 +1414,18 @@ function projectHidesAnytime(p) { return p && (p.start === 'someday' || (p.when 
 
 function todayItems() {
   const out = [];
-  for (const p of S.projects) if (liveProject(p) && isTodayItem(p)) out.push(p);
-  for (const t of S.todos) if (liveTodo(t) && inLiveProject(t) && isTodayItem(t)) out.push(t);
+  for (const p of S.projects) if (liveProject(p) && isTodayItem(p) && inFocus(p)) out.push(p);
+  for (const t of S.todos) if (liveTodo(t) && inLiveProject(t) && isTodayItem(t) && inFocus(t)) out.push(t);
   return out;
 }
 function upcomingItems() {
   const out = [];
-  for (const p of S.projects) if (liveProject(p) && p.start === 'anytime' && p.when && p.when > T0()) out.push(p);
-  for (const t of S.todos) if (liveTodo(t) && inLiveProject(t) && t.start === 'anytime' && t.when && t.when > T0()) out.push(t);
+  for (const p of S.projects) if (liveProject(p) && p.start === 'anytime' && p.when && p.when > T0() && inFocus(p)) out.push(p);
+  for (const t of S.todos) if (liveTodo(t) && inLiveProject(t) && t.start === 'anytime' && t.when && t.when > T0() && inFocus(t)) out.push(t);
   return out;
 }
 function anytimeTodo(t) {
-  if (!liveTodo(t) || !inLiveProject(t) || t.start !== 'anytime') return false;
+  if (!liveTodo(t) || !inLiveProject(t) || t.start !== 'anytime' || !inFocus(t)) return false;
   if (t.when && t.when > T0()) return false;
   if (isScheduledToday(t)) return true;
   const p = projectOf(t);
@@ -1365,7 +1433,7 @@ function anytimeTodo(t) {
   return true;
 }
 function somedayTodo(t) {
-  if (!liveTodo(t) || !inLiveProject(t) || t.start !== 'someday') return false;
+  if (!liveTodo(t) || !inLiveProject(t) || t.start !== 'someday' || !inFocus(t)) return false;
   const p = projectOf(t);
   if (p && (p.start === 'someday' || !liveProject(p))) return false;
   return true;
@@ -1377,6 +1445,7 @@ function counts() {
   for (const t of S.todos) {
     if (t.trashed || t.isTemplate || t.isDraft || t.status !== 'open') continue;
     if (isInbox(t)) inbox++;
+    if (!inFocus(t)) continue;
     if (t.waitFor && inLiveProject(t)) waiting++;
     if (inLiveProject(t) && isTodayItem(t)) { today++; if (t.deadline && t.deadline <= T0()) due++; }
   }
@@ -1877,6 +1946,7 @@ function defaultsForView(extra = {}) {
   if (extra.projectId !== undefined) { p.projectId = extra.projectId; p.areaId = null; p.start = p.start === 'inbox' ? 'anytime' : p.start; }
   if (extra.areaId !== undefined) { p.areaId = extra.areaId; p.projectId = null; p.start = p.start === 'inbox' ? 'anytime' : p.start; }
   if (ui.tagFilter && ui.tagFilter !== '__none') p.tags = Array.from(new Set((p.tags || []).concat(ui.tagFilter)));
+  focusNewProps(p);
   return p;
 }
 
@@ -2130,6 +2200,7 @@ const aTitle = (a) => (a && a.title) || 'New Area';
 
 function render() {
   if (!S) return;
+  refreshFocus();
   tagRankCache = null;
   if (ensureTagColors()) saveSoon();
   if (followMerges()) { reindex(); saveSoon(); }
@@ -2172,6 +2243,7 @@ function renderShell() {
   app.classList.toggle('sel-mode', ui.selectMode);
   app.classList.toggle('touch', isCoarse());
   app.classList.toggle('compact', S.settings.density === 'compact');
+  applySidebarMode();
   const magic = $('#magic');
   const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash', 'templates'].includes(ui.view.type));
   magic.classList.toggle('hidden-in', hide);
@@ -2203,7 +2275,7 @@ function renderSidebar() {
     return `<button class="sb-item sb-proj${on('project:' + p.id)}" data-nav="project:${p.id}" data-drop-list="project:${p.id}" data-drag="project" data-kind="project" data-id="${p.id}" data-sb="1">${projIc(p, '', pr.frac)}<span class="sb-name${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${p.deadline && p.deadline <= T0() ? `<span class="sb-due">!</span>` : ''}${cnt(openIn.p.get(p.id))}</button>`;
   };
   const sbProjects = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && (p.areaId || null) === areaId).sort(byOrder);
-  let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button></div><nav class="sb-scroll" id="sb-scroll">`;
+  let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button>${focusBarHTML()}</div><nav class="sb-scroll" id="sb-scroll">`;
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
   html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
@@ -2211,13 +2283,13 @@ function renderSidebar() {
   html += `<div class="sb-group sb-board-g">${(ui.boards || []).map((b) => `<button class="sb-item${v.type === 'board' && b.id === ui.boardId ? ' on' : ''}" data-nav="board:${b.id}" data-drop-list="board:${b.id}" title="${esc(b.name || 'Board')}${ui.boards.length > 1 ? '' : ' (8)'}. Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">${esc(b.name || 'Board')}</span></button>`).join('')}</div>`;
   const smarts = (S.smart || []).slice().sort(byOrder);
   if (smarts.length) html += `<div class="sb-group sb-smart-g">${smarts.map((sl) => `<button class="sb-item${on('smart:' + sl.id)}" data-nav="smart:${sl.id}" data-drop-list="smart:${sl.id}" data-drag="smart" data-kind="smart" data-id="${sl.id}" data-sb="1" title="${esc(smartSummary(sl))}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span class="sb-name">${esc(smartTitle(sl))}</span>${cnt(smartCount(sl))}</button>`).join('')}</div>`;
-  const loose = sbProjects(null);
+  const loose = ui.focusRec && ui.focusRec.loose === false ? [] : sbProjects(null);
   if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
   else html += `<div class="sb-loose" data-drop-loose="1">${ic('project')}<span>No Area</span></div>`; // shows while a project is dragged
-  S.areas.slice().sort(byOrder).forEach((a) => {
+  S.areas.slice().sort(byOrder).filter((a) => !ui.focusRec || ui.focusAreas.has(a.id)).forEach((a) => {
     html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${placeColor(a) ? areaIc(a) : ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
   });
-  html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button></div>`;
+  html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button><button class="ib sb-hide" data-action="sb-toggle" aria-label="Hide Sidebar" title="Hide Sidebar (${IS_MAC ? '⌃⌘S' : 'Ctrl+Alt+S'})">${ic('sidebar')}</button></div>`;
   const sb = $('#sidebar');
   const scroll = $('#sb-scroll'); const st = scroll ? scroll.scrollTop : 0;
   sb.innerHTML = html;
@@ -2480,7 +2552,7 @@ function viewToday() {
 function templatePreviews(horizonDays = 400) {
   const out = [], T = T0(), end = addDays(T, horizonDays);
   for (const tpl of S.todos.concat(S.projects)) {
-    if (!tpl.isTemplate || tpl.trashed || !tpl.repeat || !tpl.next) continue;
+    if (!tpl.isTemplate || tpl.trashed || !tpl.repeat || !tpl.next || !inFocus(tpl)) continue;
     const p = tpl.type === 'todo' && tpl.projectId && getP(tpl.projectId); if (p && (p.trashed || p.status !== 'open' || p.isTemplate)) continue;
     if (!matchesTagFilter(tpl)) continue;
     if (tpl.repeat.mode === 'after') { out.push({ tpl, date: tpl.next }); continue; }
@@ -2530,7 +2602,7 @@ function viewUpcoming() {
 }
 function groupedView(key, todoFilter, somedayProjects) {
   const todosAll = S.todos.filter(todoFilter);
-  const projAll = somedayProjects ? S.projects.filter((p) => liveProject(p) && p.start === 'someday') : [];
+  const projAll = somedayProjects ? S.projects.filter((p) => liveProject(p) && p.start === 'someday' && inFocus(p)) : [];
   const tagSrc = todosAll.concat(projAll);
   const todos = todosAll.filter(matchesTagFilter), projs = projAll.filter(matchesTagFilter).sort(byOrder);
   const ctx = { star: key === 'anytime', when: key === 'someday' };
@@ -2560,8 +2632,8 @@ function groupedView(key, todoFilter, somedayProjects) {
 function viewAnytime() { return groupedView('anytime', anytimeTodo, false); }
 function viewSomeday() { return groupedView('someday', somedayTodo, true); }
 function logbookItems() {
-  return S.todos.filter((t) => !t.trashed && !t.isTemplate && t.status !== 'open' && t.logged)
-    .concat(S.projects.filter((p) => !p.trashed && p.status !== 'open' && p.logged))
+  return S.todos.filter((t) => !t.trashed && !t.isTemplate && t.status !== 'open' && t.logged && inFocus(t))
+    .concat(S.projects.filter((p) => !p.trashed && p.status !== 'open' && p.logged && inFocus(p)))
     .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
 }
 function dayGroupLabel(day) {
@@ -2658,7 +2730,7 @@ function viewArea(a) {
 function viewTag(tag) {
   const want = tagDescendants(tag.id);
   const has = (x) => { for (const t of effectiveTags(x)) if (want.has(t)) return true; return false; };
-  const todos = S.todos.filter((t) => liveTodo(t) && inLiveProject(t) && has(t));
+  const todos = S.todos.filter((t) => liveTodo(t) && inLiveProject(t) && has(t) && inFocus(t));
   const groups = [
     ['Today', todos.filter(isTodayItem).sort(byToday)],
     ['Upcoming', todos.filter((t) => t.start === 'anytime' && t.when && t.when > T0()).sort((a, b) => (a.when < b.when ? -1 : 1))],
@@ -2687,6 +2759,7 @@ function renderBatch() {
 
 function visibleInCurrentView(x) {
   const v = ui.view;
+  if (!['inbox', 'project', 'area', 'trash', 'templates'].includes(v.type) && !inFocus(x)) return false;
   switch (v.type) {
     case 'inbox': return x.type === 'todo' && isInbox(x);
     case 'today': return isTodayItem(x);
@@ -3342,6 +3415,7 @@ function dragTrack(fromLoop) {
   st.ghost.style.display = 'none';
   const el = document.elementFromPoint(st.x, st.y);
   st.ghost.style.display = '';
+  springSidebar(el);
   if (!el) return;
   const k = st.kind;
   // --- sidebar
@@ -3447,6 +3521,7 @@ function finishDrag(drop) {
   D.st = null;
   D.suppressClick = true; setTimeout(() => { D.suppressClick = false; }, 60);
   if (drop && st.target) performDrop(st, st.target);
+  unspringSidebar(st);
 }
 function performDrop(st, t) {
   const ids = st.ids;
@@ -3692,9 +3767,11 @@ function handleAction(act, el, e) {
     case 'empty-trash': emptyTrash(); return;
     case 'tag-filter': ui.tagFilter = el.dataset.tag || null; ui.sel.clear(); render(); return;
     case 'find': openFind(); return;
+    case 'sb-toggle': toggleSidebar(); return;
+    case 'focus-menu': openFocusMenu(el); return;
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
-    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { label: 'New Smart List…', icon: 'funnel', fn: () => openSmartEditor() }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
+    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { label: 'New Smart List…', icon: 'funnel', fn: () => openSmartEditor() }, { label: 'New Focus…', icon: 'focus', fn: () => openFocusEditor() }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
     case 'm-back': closeEditor({ noRender: true }); ui.mobile = 'home'; ui.sel.clear(); ui.selectMode = false; render(); return;
     case 'select-done': ui.selectMode = false; ui.sel.clear(); render(); return;
     case 'select-all': visibleRowIds().forEach((x) => ui.sel.add(x)); paintSelection(); return;
@@ -4188,6 +4265,7 @@ function revealTodo(id) {
   else if (t.start === 'someday') key = 'someday';
   else if (t.when && t.when > T0()) key = 'upcoming';
   else key = 'anytime';
+  if (!/^(project|area):/.test(key) && !inFocus(t)) showAllAreas(); // a list the focus hides it from
   navigate(key);
   if (key === 'logbook' || key === 'trash') { ui.sel = new Set([id]); ui.anchor = id; render(); const r = $(`#content .row[data-id="${CSS.escape(id)}"]`); if (r) r.scrollIntoView({ block: 'center' }); }
   else openEditor(id);
@@ -4203,7 +4281,9 @@ function inlineDateOK(phrase) {
   return true;
 }
 function parseEntry(raw) {
-  const out = { title: raw, tags: [], when: null, deadline: null, whenText: '', deadlineText: '', priority: 0 };
+  const out = { title: raw, tags: [], when: null, deadline: null, whenText: '', deadlineText: '', priority: 0, place: null, placeText: '' };
+  const pl = parsePlace(raw); // @Project, @Area or @Project/Heading
+  if (pl) { out.place = pl.place; out.placeText = pl.text; raw = raw.slice(0, pl.start) + ' ' + raw.slice(pl.end); }
   let s = ' ' + raw + ' ';
   s = s.replace(/\s(!{1,3})(?=\s)/, (m, b) => { out.priority = b.length; return ' '; }); // ! low, !! medium, !!! high
   s = s.replace(/\s#([^\s#!]+)(?=\s)/g, (m, name) => { out.tags.push(name.replace(/[.,;:]+$/, '')); return ' '; });
@@ -4229,17 +4309,18 @@ function openQuickEntry(prefill = '') {
   if (ui.editing) closeEditor({ noRender: false });
   const draft = makeTodo({ start: 'inbox', isDraft: true });
   S.todos.push(draft); idx.todo.set(draft.id, draft);
-  const ignore = { when: false, deadline: false, tags: false, priority: false };
+  const ignore = { when: false, deadline: false, tags: false, priority: false, place: false };
   let saved = false, parsed = null;
   const L = openLayer({ modal: true, cls: 'qe-modal top',
     html: `<div class="qe"><div class="c-top"><span class="cb" aria-hidden="true"></span><textarea class="qe-title" id="qe-title" placeholder="New To-Do" autocomplete="off" aria-label="Title" enterkeyhint="done" rows="1" data-autosize data-oneline></textarea></div>
+      <div class="qe-ac" id="qe-ac" role="listbox" aria-label="Projects and areas" hidden></div>
       <div class="qe-parsed" id="qe-parsed"></div>
       <div class="c-body"><textarea class="c-notes" id="qe-notes" rows="2" placeholder="Notes" aria-label="Notes"></textarea>
       <div class="c-foot"><div class="c-chips" id="qe-chips"></div><div class="c-tools">
         <button class="ib" data-qe="tags" title="Tags" aria-label="Tags">${ic('tag')}</button><button class="ib" data-qe="deadline" title="Deadline" aria-label="Deadline">${ic('flag')}</button>
         <button class="ib" data-qe="when" title="When" aria-label="When">${ic('calendar')}</button><button class="ib" data-qe="move" title="List" aria-label="Choose list">${ic('move')}</button></div></div>
       <div class="qe-dest" id="qe-dest"></div></div></div>
-      <div class="modal-f"><span class="note" style="margin-right:auto;align-self:center">${S.settings.parseEntry ? 'Try “Call Sam tomorrow #Errand !fri !!”' : ''}</span><button class="btn" data-qe="cancel">Cancel</button><button class="btn primary" data-qe="save">Save</button></div>`,
+      <div class="modal-f"><span class="note" style="margin-right:auto;align-self:center">${S.settings.parseEntry ? 'Try “Call Sam tomorrow @Work #Errand !fri !!”' : ''}</span><button class="btn" data-qe="cancel">Cancel</button><button class="btn primary" data-qe="save">Save</button></div>`,
     onClose: () => { if (!saved) { S.todos = S.todos.filter((x) => x.id !== draft.id); reindex(); } },
     onMount: (el) => {
       const ti = $('#qe-title', el), no = $('#qe-notes', el);
@@ -4248,13 +4329,16 @@ function openQuickEntry(prefill = '') {
         const x = d();
         parsed = S.settings.parseEntry ? parseEntry(ti.value) : null;
         const chips = [];
+        const placeOK = parsed && parsed.place && !ignore.place && !x.projectId && !x.areaId; // not once you've chosen a list
+        if (placeOK) chips.push(`<span class="qe-p qe-place">${placeIcon(parsed.place)}${esc(placeLabel(parsed.place))}<button data-ign="place" aria-label="Don’t file it there">${ic('x')}</button></span>`);
         if (parsed && parsed.when && !ignore.when && x.start === 'inbox' && !x.when) chips.push(`<span class="qe-p">${ic('calendar')}${esc(parsed.when.date ? fmtRel(parsed.when.date) : describeParsed({ special: parsed.when }))}<button data-ign="when" aria-label="Ignore date">${ic('x')}</button></span>`);
         if (parsed && parsed.deadline && !ignore.deadline && !x.deadline) chips.push(`<span class="qe-p">${ic('flag')}Deadline ${esc(fmtRel(parsed.deadline))}<button data-ign="deadline" aria-label="Ignore deadline">${ic('x')}</button></span>`);
         if (parsed && parsed.priority && !ignore.priority && !prio(x)) chips.push(`<span class="qe-p"><b class="pri-bangs p${parsed.priority}">${'!'.repeat(parsed.priority)}</b>${PRIORITY_NAMES[parsed.priority]} Priority<button data-ign="priority" aria-label="Ignore priority">${ic('x')}</button></span>`);
         if (parsed && parsed.tags.length && !ignore.tags) chips.push(`<span class="qe-p">${ic('tag')}${parsed.tags.map(esc).join(', ')}<button data-ign="tags" aria-label="Ignore tags">${ic('x')}</button></span>`);
         $('#qe-parsed', el).innerHTML = chips.join('');
         $('#qe-chips', el).innerHTML = whenChipHTML(x).replace(/data-action="(when|clear-when)"/g, 'data-qe="$1"') + deadlineChipHTML(x).replace(/data-action="(deadline|clear-deadline)"/g, 'data-qe="$1"') + x.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="tg ${tcls(g)}">${esc(g.title)}</span>`).join('');
-        const p = x.projectId && getP(x.projectId), a = x.areaId && getA(x.areaId), h = x.headingId && getH(x.headingId);
+        const pp = placeOK ? parsed.place : null;
+        const p = pp ? (pp.type === 'project' && getP(pp.id)) : x.projectId && getP(x.projectId), a = pp ? (pp.type === 'area' && getA(pp.id)) : x.areaId && getA(x.areaId), h = pp ? pp.headingId && getH(pp.headingId) : x.headingId && getH(x.headingId);
         $('#qe-dest', el).innerHTML = `${p ? projIc(p) : a ? (placeColor(a) ? areaIc(a) : ic('area')) : ic('inbox')}<span>${esc(p ? pTitle(p) + (h ? ' › ' + (h.title || 'New Heading') : '') : a ? aTitle(a) : x.start === 'inbox' ? 'Inbox' : 'No list')}</span>`;
       };
       const save = () => {
@@ -4262,12 +4346,14 @@ function openQuickEntry(prefill = '') {
         if (!raw.trim() && !no.value.trim()) { closeLayer(L); return; }
         commit('Quick Entry', () => {
           const pz = S.settings.parseEntry ? parseEntry(raw) : null;
-          x.title = pz && ((pz.when && !ignore.when && x.start === 'inbox' && !x.when) || (pz.deadline && !ignore.deadline && !x.deadline) || (pz.tags.length && !ignore.tags) || (pz.priority && !ignore.priority && !prio(x))) ? rebuildTitle(raw, pz, ignore) : raw.trim();
+          const placeOK = pz && pz.place && !ignore.place && !x.projectId && !x.areaId;
+          x.title = pz && (placeOK || (pz.place && ignore.place) || (pz.when && !ignore.when && x.start === 'inbox' && !x.when) || (pz.deadline && !ignore.deadline && !x.deadline) || (pz.tags.length && !ignore.tags) || (pz.priority && !ignore.priority && !prio(x))) ? rebuildTitle(raw, pz, Object.assign({}, ignore, { place: ignore.place || !!(pz.place && !placeOK) })) : raw.trim();
           x.notes = no.value;
           if (pz && pz.when && !ignore.when && x.start === 'inbox' && !x.when) scheduleItems(x, pz.when);
           if (pz && pz.deadline && !ignore.deadline && !x.deadline) x.deadline = pz.deadline;
           if (pz && pz.priority && !ignore.priority && !prio(x)) x.priority = pz.priority;
           if (pz && pz.tags.length && !ignore.tags) pz.tags.forEach((n) => { const tg = findOrCreateTag(n); if (tg && !x.tags.includes(tg.id)) x.tags.push(tg.id); });
+          if (placeOK) moveItems([x.id], { type: pz.place.type, id: pz.place.id, headingId: pz.place.headingId }, { noCommit: true, silent: true });
           delete x.isDraft;
           x.order = topOrder(S.todos.filter((y) => y !== x && !y.trashed && containerKey(y) === containerKey(x)));
           x.todayOrder = todayTop();
@@ -4277,13 +4363,14 @@ function openQuickEntry(prefill = '') {
         const x2 = getT(draft.id);
         if (x2) toast(`Added to ${isTodayItem(x2) ? 'Today' : x2.projectId ? pTitle(getP(x2.projectId)) : x2.areaId ? aTitle(getA(x2.areaId)) : x2.start === 'someday' ? 'Someday' : x2.when ? 'Upcoming' : x2.start === 'inbox' ? 'Inbox' : 'Anytime'}`, { action: visibleInCurrentView(x2) ? null : 'Show', fn: () => revealTodo(draft.id) });
       };
+      const ac = placeAutocomplete(ti, $('#qe-ac', el), () => { autosize(ti); refresh(); });
       ti.value = prefill; autosize(ti); refresh();
-      ti.addEventListener('input', refresh);
-      ti.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); save(); } });
+      ti.addEventListener('input', () => { refresh(); ac.update(); });
+      ti.addEventListener('keydown', (e) => { if (ac.key(e)) return; if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); save(); } });
       no.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); } });
       no.addEventListener('input', () => autosize(no));
       el.addEventListener('click', (e) => {
-        const ig = e.target.closest('[data-ign]'); if (ig) { ignore[ig.dataset.ign] = true; refresh(); return; }
+        const ig = e.target.closest('[data-ign]'); if (ig) { ignore[ig.dataset.ign] = true; refresh(); if (!isCoarse()) ti.focus(); return; }
         const b = e.target.closest('[data-qe]'); if (!b) return;
         const act = b.dataset.qe, x = d();
         const after = (P) => { if (!P) return; const prev = P.onClose; P.onClose = () => { if (prev) prev(); if (L.el.isConnected) { refresh(); if (!isCoarse()) ti.focus(); } }; };
@@ -4306,6 +4393,7 @@ function rebuildTitle(raw, pz, ignore) {
   if (ignore.deadline && pz.deadlineText) t += ' !' + pz.deadlineText;
   if (ignore.priority && pz.priority) t += ' ' + '!'.repeat(pz.priority);
   if (ignore.when && pz.whenText) t += ' ' + pz.whenText;
+  if (ignore.place && pz.placeText) t += ' @' + pz.placeText;
   return t.trim() || raw.trim();
 }
 
@@ -4329,7 +4417,8 @@ function openSettings() {
       <div class="set-row"><span class="lbl">Tags shown in lists<small>Own Only hides the tags a to-do already gets from its project or area, so lists stay clean. Open a to-do to see all of its tags.</small></span>${seg('rowTags', [['own', 'Own Only'], ['all', 'All'], ['none', 'None']])}</div>
       <div class="set-row"><span class="lbl">Tag to-dos already in projects and areas<small>Adds each project’s and area’s tags to the to-dos inside it now. You can undo it.</small></span><button class="btn" data-s="retag-all">Tag Them Now</button></div>
       <div class="set-row"><span class="lbl">Week starts on</span>${seg('weekStart', [[0, 'Sunday'], [1, 'Monday']])}</div>
-      <div class="set-row"><span class="lbl">Quick Entry reads dates and tags<small>“Pay rent friday #Home !oct 31” sets When, tag and deadline.</small></span>${sw('parseEntry')}</div></div>
+      <div class="set-row"><span class="lbl">Quick Entry reads dates, tags and places<small>“Pay rent friday @Home #Bills !oct 31” sets When, the area, a tag and a deadline.</small></span>${sw('parseEntry')}</div></div>
+    <div class="set-sec"><h3>Focus</h3>${focusSettingsHTML()}</div>
     <div class="set-sec"><h3>Sync</h3>${syncSettingsHTML()}</div>
     <div class="set-sec"><h3>Reminders</h3>
       <div class="set-row"><span class="lbl">System notifications<small>${notifState === 'unavailable' ? 'Not available here. Reminders still show inside Sectis while it is open.' : notifState === 'denied' ? 'Blocked in your browser settings. Reminders still show inside Sectis.' : 'Reminders fire while Sectis is open, in a tab or as an installed app.'}</small></span>${notifState === 'unavailable' || notifState === 'denied' ? '' : sw('notify')}</div></div>
@@ -4353,6 +4442,8 @@ function openSettings() {
       const b = e.target.closest('[data-s]'); if (!b) return;
       const act = b.dataset.s;
       if (act === 'tags') { closeLayer(L); openTagManager(); }
+      if (act === 'focus-new') { closeLayer(L); openFocusEditor(); }
+      if (act === 'focus-edit') { const f = getFocus(b.dataset.id); closeLayer(L); if (f) openFocusEditor(f); }
       if (act === 'retag-all') {
         let n = 0;
         commit('Tag To-Dos', () => S.todos.forEach((t) => {
@@ -4561,7 +4652,7 @@ function openShortcuts() {
   const rows = [
     ['Create', [['New to-do', k('N') + ' or ' + k('Space')], ['New heading (in a project)', k('⇧', 'N')], ['Quick Entry', k('Q')], ['Quick Find', k('/') + ' or ' + k(MODK + 'F')]]],
     ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
-    ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
+    ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Show or hide the sidebar', IS_MAC ? k('⌃', '⌘', 'S') : k('Ctrl', 'Alt', 'S')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing', [['Save and close', k('Return') + ' or ' + k(MODK + '↩')], ['Complete', k(MODK + 'K')], ['When…', k(MODK + 'S')], ['Deadline…', k(MODK + '⇧', 'D')], ['Add checklist', k(MODK + '⇧', 'C')], ['Move checklist item', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Paste several lines', 'one to-do per line']]],
   ];
   openLayer({ modal: true, html: `<div class="modal-h"><h2>Keyboard Shortcuts</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b"><div class="sc-grid">${rows.map(([h, list]) => `<h4>${h}</h4>${list.map(([l, keys]) => `<div class="sc"><span>${l}</span><span>${keys}</span></div>`).join('')}`).join('')}</div></div>` });
@@ -4656,7 +4747,7 @@ function openImport() {
    recent edit of an item wins. Deletions leave a small marker. */
 const SYNC_KEY = 'sectis.sync.v1';
 const FB_VERSION = '10.14.1';
-const SYNC_KINDS = { todo: 'todos', project: 'projects', heading: 'headings', area: 'areas', tag: 'tags', smart: 'smart' };
+const SYNC_KINDS = { todo: 'todos', project: 'projects', heading: 'headings', area: 'areas', tag: 'tags', smart: 'smart', focus: 'focuses' };
 const Y = {
   enabled: false, cfg: null, key: null, space: null, base: {}, pending: {}, cursor: [0, 0], lastSync: 0,
   status: 'off', error: '', db: null, col: null, aes: null, unsub: null, pushing: false, again: false,
@@ -4850,6 +4941,7 @@ function normalizeRecord(kind, rec) {
   if (kind === 'todo') return Object.assign(newTodoShape(), rec, { tags: rec.tags || [], checklist: rec.checklist || [] });
   if (kind === 'project') return Object.assign(newProjectShape(), rec, { tags: rec.tags || [] });
   if (kind === 'area') return Object.assign({ title: '', tags: [], order: 0 }, rec, { tags: rec.tags || [] });
+  if (kind === 'focus') return normalizeFocus(rec);
   return rec;
 }
 function tsAfter(t, cur) { return t.seconds > cur[0] || (t.seconds === cur[0] && t.nanoseconds > cur[1]); }
@@ -5078,7 +5170,7 @@ function seedSample() {
   m('Tag to-dos, then filter any list by tag', h3, { tags: [home], notes: 'Press # to tag. The tag bar at the top of each list filters it. Nest tags under each other in Settings → Manage Tags.' });
   m('Drag to-dos to reorder them, or onto the sidebar to move them', h3, { notes: 'On iPhone, press and hold a to-do, then drag. To move several at once, use ••• → Select To-Dos.' });
   m('Press / to find anything', h4);
-  m('Press Q for Quick Entry', h4, { notes: 'Quick Entry reads dates and tags as you type: “Call the dentist tomorrow #Errand”.' });
+  m('Press Q for Quick Entry', h4, { notes: 'Quick Entry reads dates, tags and places as you type: “Call the dentist tomorrow @Home #Errand”. Type @ to pick a project or area.' });
   m('Press ? to see every keyboard shortcut', h4);
   m('Export a backup from Settings', h4, { notes: 'Everything stays in this browser. Export a backup now and then. When you are done exploring, remove these sample to-dos in Settings.' });
   td('Pick up dry cleaning', { start: 'inbox', tags: [errand] });
@@ -5520,7 +5612,7 @@ async function dailyBackup() {
 }
 function restoreSnapshot(data) {
   commit('Restore Backup', () => {
-    for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart']) S[k] = Array.isArray(data[k]) ? data[k] : [];
+    for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart', 'focuses']) S[k] = Array.isArray(data[k]) ? data[k] : [];
     S = normalizeState(S);
   });
 }
@@ -5635,7 +5727,7 @@ function collectExport(scope) {
         B.push({ item: x });
       });
     } else if (v.type === 'anytime') { title = 'Anytime'; addGrouped(B, S.todos.filter((t) => anytimeTodo(t) && f(t))); }
-    else if (v.type === 'someday') { title = 'Someday'; addGrouped(B, S.todos.filter((t) => somedayTodo(t) && f(t)), S.projects.filter((p) => liveProject(p) && p.start === 'someday' && f(p)).sort(byOrder)); }
+    else if (v.type === 'someday') { title = 'Someday'; addGrouped(B, S.todos.filter((t) => somedayTodo(t) && f(t)), S.projects.filter((p) => liveProject(p) && p.start === 'someday' && inFocus(p) && f(p)).sort(byOrder)); }
     else if (v.type === 'logbook') {
       title = 'Logbook'; forceDone = true; let cur = null;
       logbookItems().filter(f).slice(0, 500).forEach((x) => { const g = dayGroupLabel(stampDay(x.completedAt || Date.now())); if (g !== cur) { cur = g; B.push({ h: 2, text: g }); } B.push({ item: x }); });
@@ -5653,7 +5745,7 @@ function collectExport(scope) {
     else if (v.type === 'tag') {
       const tag = getTag(v.id); title = '#' + tag.title;
       const want = tagDescendants(tag.id); const has = (x) => { for (const t of effectiveTags(x)) if (want.has(t)) return true; return false; };
-      const todos = S.todos.filter((t) => liveTodo(t) && inLiveProject(t) && has(t));
+      const todos = S.todos.filter((t) => liveTodo(t) && inLiveProject(t) && has(t) && inFocus(t));
       [['Today', todos.filter(isTodayItem).sort(byToday)], ['Upcoming', todos.filter((t) => t.start === 'anytime' && t.when && t.when > T0()).sort((a, b) => (a.when < b.when ? -1 : 1))],
         ['Anytime', todos.filter((t) => t.start === 'anytime' && !t.when && !isTodayItem(t)).sort(byOrder)], ['Inbox', todos.filter((t) => isInbox(t) && !isTodayItem(t)).sort(byOrder)],
         ['Someday', todos.filter((t) => t.start === 'someday' && !isTodayItem(t)).sort(byOrder)]].forEach(([label, list]) => { if (list.length) { B.push({ h: 2, text: label }); list.forEach((t) => B.push({ item: t })); } });
@@ -6024,14 +6116,16 @@ function saveBoard() {
   curBoard().cols = ui.board;
   lsSet('sectis.boards', JSON.stringify({ cur: ui.boardId, list: ui.boards }));
 }
-function colShown(c) {
-  if (c.t === 'a') return !!getA(c.id);
+function colShown(c, anyFocus) {
+  if (c.t === 'a') return !!getA(c.id) && (anyFocus || !ui.focusRec || ui.focusAreas.has(c.id));
   if (c.t === 'l') return BOARD_LISTS.includes(c.id);
   if (c.t === 't') return !!getTag(c.id);
   if (c.t === 's') return !!getSmart(c.id);
   const p = getP(c.id);
-  return !!p && !p.trashed && !p.isTemplate && !(p.status !== 'open' && p.logged);
+  return !!p && !p.trashed && !p.isTemplate && !(p.status !== 'open' && p.logged) && (anyFocus || inFocus(p));
 }
+/* columns the current focus hides */
+function colsOutsideFocus() { return ui.focusRec ? (ui.board || []).filter((c) => colShown(c, true) && !colShown(c)).length : 0; }
 function boardCols() { return [].concat(...boardStacks()); }
 function onBoard(t, id) { return (ui.board || []).some((c) => c.t === t && c.id === id); }
 function colName(t, id) { return t === 'p' ? pTitle(getP(id)) : t === 'a' ? aTitle(getA(id)) : t === 'l' ? LISTS[id].title : t === 't' ? tagTitle(id) : smartTitle(getSmart(id)); }
@@ -6040,7 +6134,7 @@ const colKey = (c) => `${c.t}:${c.id}`;
 /* ---- stacks: the columns on screen, left to right, each top to bottom ---- */
 function boardStacks() {
   const m = new Map();
-  (ui.board || []).filter(colShown).forEach((c) => { if (!m.has(c.l)) m.set(c.l, []); m.get(c.l).push(c); });
+  (ui.board || []).filter((c) => colShown(c)).forEach((c) => { if (!m.has(c.l)) m.set(c.l, []); m.get(c.l).push(c); });
   return [...m.keys()].sort((a, b) => a - b).map((k) => m.get(k));
 }
 /* write the layout back from a list of stacks; empty stacks drop out. Columns not on screen
@@ -6206,6 +6300,9 @@ function boardMenuItems(t, id, fromColumn, el) {
 function viewBoard() {
   const stacks = boardStacks();
   let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><textarea class="lh-title board-name" data-edit="board-name" data-fkey="board-name" placeholder="Board" aria-label="Board name" autocomplete="off" rows="1" data-autosize data-oneline>${esc(curBoard().name)}</textarea><button class="ib board-switch" data-action="board-switch" aria-label="Boards" title="Switch, add or rename Boards">${ic('chevD')}</button><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
+  const hidden = colsOutsideFocus();
+  if (hidden) html += `<div class="lh-sub fx-hidden">${hidden === 1 ? '1 column is' : hidden + ' columns are'} outside the ${esc(focusTitle(ui.focusRec))} focus. <button class="link-btn" data-focus="">Show All Areas</button></div>`;
+  if (!stacks.length && hidden) return html;
   if (!stacks.length) {
     return html + emptyHTML('columns', 'See your lists side by side',
       'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');
@@ -6598,7 +6695,7 @@ function viewTemplates() {
    A to-do can wait on someone (waitFor: a name; waitSince: the day it started waiting).
    The follow-up date is simply the to-do's When date, so it comes back to Today then. */
 function isWaiting(t) { return !!(t && t.type === 'todo' && t.waitFor && t.status === 'open' && !t.trashed && !t.isTemplate); }
-function waitingItems() { return S.todos.filter((t) => isWaiting(t) && liveTodo(t) && inLiveProject(t)); }
+function waitingItems() { return S.todos.filter((t) => isWaiting(t) && liveTodo(t) && inLiveProject(t) && inFocus(t)); }
 function waitNames() {
   const seen = new Map();
   S.todos.filter((t) => t.waitFor && !t.trashed).sort((a, b) => (b.modifiedAt || 0) - (a.modifiedAt || 0))
@@ -6706,7 +6803,7 @@ function reportScope(scope) {
   if (scope.type === 'area' && getA(scope.id)) { const a = getA(scope.id); return { name: aTitle(a), level: 'area', has: (t) => (areaOf(t) || {}).id === a.id }; }
   if (scope.type === 'project' && getP(scope.id)) { const p = getP(scope.id); return { name: pTitle(p), level: 'project', has: (t) => t.projectId === p.id }; }
   if (scope.type === 'board') { const cols = boardCols(); return { name: 'Board', level: 'all', has: (t) => cols.some((c) => colHas(c, t)) }; }
-  return { name: '', level: 'all', has: () => true };
+  return { name: '', level: 'all', has: (t) => inFocus(t) };
 }
 /* group to-dos by project, then by area for to-dos outside projects; in sidebar order */
 function reportGroups(items) {
@@ -7411,7 +7508,7 @@ document.addEventListener('dblclick', (e) => {
    Overdue, Today, Tomorrow, This Week, then by month. Checked items stay until they're logged,
    like everywhere else. Dropping to-dos on Deadlines in the sidebar asks for a deadline. */
 function deadlineItems() {
-  const has = (x) => !!x.deadline && !x.isTemplate && !x.trashed;
+  const has = (x) => !!x.deadline && !x.isTemplate && !x.trashed && inFocus(x);
   return S.todos.filter((t) => has(t) && liveTodo(t) && inLiveProject(t)).concat(S.projects.filter((p) => has(p) && liveProject(p)));
 }
 const byDeadline = (a, b) => (a.deadline < b.deadline ? -1 : a.deadline > b.deadline ? 1 : (b.priority || 0) - (a.priority || 0) || byToday(a, b));
@@ -7573,7 +7670,7 @@ function smartMatcher(sl) {
   const places = f.places.filter((k) => (k[0] === 'p' ? getP(k.slice(2)) : getA(k.slice(2))));
   const q = (f.text || '').trim().toLowerCase();
   return (t) => {
-    if (!liveTodo(t) || !inLiveProject(t)) return false;
+    if (!liveTodo(t) || !inLiveProject(t) || !inFocus(t)) return false;
     if (tagSets.length) {
       const eff = new Set(effectiveTags(t)), hit = (set) => [...set].some((id) => eff.has(id));
       if (f.tagMode === 'all' ? !tagSets.every(hit) : !tagSets.some(hit)) return false;
@@ -7825,7 +7922,7 @@ function colHas(c, x) {
 /* the column's body and how it takes drops: a real section (Inbox, Today) where to-dos can be
    arranged, or a whole-column drop that works like dropping on the list in the sidebar */
 function listColBody(c) {
-  const live = (t) => liveTodo(t) && inLiveProject(t);
+  const live = (t) => liveTodo(t) && inLiveProject(t) && inFocus(t);
   const sub = (label) => `<div class="sub-h">${esc(label)}</div>`;
   const view = (list, ctx = { parent: true, when: true }) => secHTML('colview:' + c.t + ':' + c.id, list, ctx);
   if (c.t === 't') {
@@ -7900,6 +7997,477 @@ function smartNewProps(sl) {
   if (['has', 'overdue', 'week', 'month'].includes(f.deadline)) out.deadline = T;
   if (+f.priority) out.priority = +f.priority;
   return out;
+}
+
+/* ===================== Narrow Mac windows =====================
+   A Mac window keeps the Mac layout at any width down to phone size (see PHONE_MQ), so the
+   Board and the sidebar stay put when Sectis shares the screen with another app.
+   - The sidebar can be hidden: the button at the bottom of the sidebar, or ⌃⌘S. Each device
+     remembers. The button at the top left brings it back.
+   - In a window 640px wide or less the sidebar starts hidden and slides in over the list when
+     you want it, then gets out of the way once you pick a list or click elsewhere.
+   - While dragging, hold over the sidebar button for a moment and the sidebar slides in, so
+     to-dos can still be dropped on lists, projects and areas.
+   - Lists use less padding when the main pane is narrow. */
+const SB_FLOAT_AT = 640;
+ui.sbHidden = lsGet('sectis.sbHidden') === '1';
+ui.sbFloat = false;
+const sbNarrow = () => !isMobile() && window.innerWidth <= SB_FLOAT_AT;
+const sbOff = () => !isMobile() && (ui.sbHidden || sbNarrow());
+function applySidebarMode() {
+  const app = $('#app'); if (!app) return;
+  const off = sbOff();
+  if (!off) ui.sbFloat = false;
+  app.classList.toggle('sb-off', off);
+  app.classList.toggle('sb-float', off && ui.sbFloat);
+  const show = $('#sb-show');
+  if (show) { show.hidden = !off || ui.sbFloat; show.title = `Show Sidebar (${IS_MAC ? '⌃⌘S' : 'Ctrl+Alt+S'})`; }
+  const main = $('#main');
+  if (main && !isMobile()) app.classList.toggle('main-narrow', main.clientWidth > 0 && main.clientWidth < 600);
+  else app.classList.remove('main-narrow');
+}
+function toggleSidebar(force) {
+  if (isMobile()) return;
+  if (sbNarrow()) ui.sbFloat = force != null ? force : !ui.sbFloat;
+  else { ui.sbHidden = force != null ? !force : !ui.sbHidden; ui.sbFloat = false; lsSet('sectis.sbHidden', ui.sbHidden ? '1' : ''); }
+  applySidebarMode();
+  $$('textarea[data-autosize]').forEach(autosize); // titles rewrap at the new width
+}
+function closeSidebarFloat() { if (ui.sbFloat) { ui.sbFloat = false; applySidebarMode(); } }
+
+window.addEventListener('resize', () => { applySidebarMode(); });
+if (window.ResizeObserver) { try { new ResizeObserver(() => applySidebarMode()).observe($('#main')); } catch (e) { /* older browsers: the resize event covers it */ } }
+
+// the floating sidebar steps aside once you've picked a list, or click outside it
+document.addEventListener('click', (e) => {
+  if (!ui.sbFloat || D.suppressClick) return;
+  const nav = e.target.closest && e.target.closest('#sidebar [data-nav], #sidebar [data-action="find"], #sidebar [data-action="new-list"], #sidebar [data-action="settings"], #sidebar [data-action="quick-entry"]');
+  if (nav) setTimeout(closeSidebarFloat, 0);
+}, true); // before the click re-renders the sidebar
+document.addEventListener('pointerdown', (e) => {
+  if (!ui.sbFloat || (D.st && D.st.active)) return;
+  const t = e.target;
+  if (t.closest && (t.closest('#sidebar') || t.closest('#sb-show') || t.closest('#layer'))) return;
+  closeSidebarFloat();
+}, true);
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyS' && ((e.metaKey && e.ctrlKey) || (!IS_MAC && e.ctrlKey && e.altKey)) && !e.shiftKey && !layers.length) { e.preventDefault(); e.stopImmediatePropagation(); toggleSidebar(); return; }
+  if (e.key === 'Escape' && ui.sbFloat && !layers.length && !(D.st && D.st.active)) { e.preventDefault(); e.stopImmediatePropagation(); closeSidebarFloat(); }
+}, true);
+
+/* while dragging, rest on the sidebar button to slide the sidebar in */
+function springSidebar(el) {
+  const st = D.st; if (!st) return;
+  const over = el && el.closest && el.closest('#sb-show');
+  if (!over) { clearTimeout(st.spring); st.spring = null; return; }
+  if (st.spring || ui.sbFloat) return;
+  st.spring = setTimeout(() => { if (D.st === st && st.active) { st.sprung = true; ui.sbFloat = true; applySidebarMode(); dragTrack(); } }, 450);
+}
+function unspringSidebar(st) { if (!st) return; clearTimeout(st.spring); if (st.sprung) closeSidebarFloat(); }
+
+/* ===================== Focus =====================
+   A focus shows only some areas at a time (say Work, or Home) across Today, Upcoming, Anytime,
+   Someday, Deadlines, Waiting, the Logbook, tags, smart lists, the calendar, the Board, the
+   sidebar and its counts. The Inbox always shows everything, so nothing new gets missed, and
+   Quick Find still finds everything: a project or area opened from it shows all of itself.
+   A focus is a record { id, type: 'focus', title, areas: [area ids], loose, sched, order }:
+   loose says whether to-dos and projects outside any area show, and sched is null or
+   { days: [0–6], from: 'HH:MM', to: 'HH:MM' } (to at or before from runs past midnight).
+   Focuses sync between devices; which one is on is each device's own. Pick one at the top of
+   the sidebar, or let a schedule switch it. A pick lasts until the next scheduled change. */
+const getFocus = (id) => (S.focuses || []).find((f) => f.id === id);
+const focusTitle = (f) => (f && f.title) || 'Focus';
+function normalizeFocus(f) {
+  const out = Object.assign({ type: 'focus', title: '', areas: [], loose: true, sched: null, order: 0 }, f);
+  if (!Array.isArray(out.areas)) out.areas = [];
+  if (out.sched && !(Array.isArray(out.sched.days) && out.sched.days.length && out.sched.from && out.sched.to)) out.sched = null;
+  return out;
+}
+try { ui.focusPick = JSON.parse(lsGet('sectis.focus') || 'null'); } catch (e) { ui.focusPick = null; }
+ui.focusRec = null; ui.focusAreas = new Set();
+
+/* ---- which focus is on ---- */
+const hmMin = (s) => { const [h, m] = String(s || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+// every scheduled stretch from a week ago to tomorrow, as times
+function focusWindows(now) {
+  const out = [], base = new Date(now);
+  for (const f of S.focuses || []) {
+    const s = f.sched; if (!s) continue;
+    const from = hmMin(s.from), to = hmMin(s.to);
+    for (let i = -8; i <= 1; i++) {
+      const d = new Date(base.getFullYear(), base.getMonth(), base.getDate() + i);
+      if (!s.days.includes(d.getDay())) continue;
+      const st = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, from).getTime();
+      const en = new Date(d.getFullYear(), d.getMonth(), d.getDate() + (to <= from ? 1 : 0), 0, to).getTime();
+      out.push({ f, st, en });
+    }
+  }
+  return out;
+}
+const hasFocusSchedule = () => (S.focuses || []).some((f) => f.sched);
+function scheduledFocus(now = Date.now()) {
+  const w = focusWindows(now).filter((x) => x.st <= now && now < x.en).sort((a, b) => b.st - a.st)[0]; // the one that started last wins
+  return w ? w.f : null;
+}
+function lastFocusChange(now = Date.now()) {
+  let b = 0;
+  for (const x of focusWindows(now)) { if (x.st <= now && x.st > b) b = x.st; if (x.en <= now && x.en > b) b = x.en; }
+  return b;
+}
+function effectiveFocus(now = Date.now()) {
+  const pick = ui.focusPick;
+  if (hasFocusSchedule() && (!pick || (pick.at || 0) < lastFocusChange(now))) return scheduledFocus(now);
+  return pick && pick.id ? getFocus(pick.id) || null : null;
+}
+function refreshFocus() {
+  const f = S ? effectiveFocus() : null;
+  ui.focusRec = f; ui.focusAreas = new Set(f ? f.areas : []);
+  return f;
+}
+/* is this to-do or project shown under the current focus? */
+function inFocus(x) {
+  const f = ui.focusRec; if (!f || !x) return true;
+  if (x.type === 'todo' && isInbox(x)) return true; // the Inbox always shows everything
+  const a = areaOf(x);
+  return a ? ui.focusAreas.has(a.id) : f.loose !== false;
+}
+/* a project or area page outside the focus (opened from Quick Find, say) */
+function viewOutsideFocus(v = ui.view) {
+  if (!ui.focusRec) return false;
+  if (v.type === 'area') return !ui.focusAreas.has(v.id);
+  if (v.type === 'project') { const p = getP(v.id); return !!p && !inFocus(p); }
+  return false;
+}
+/* a new to-do made in Today, Anytime and the like would vanish if this focus hides to-dos
+   outside any area, so it goes into the focus's first area instead */
+function focusNewProps(p) {
+  const f = ui.focusRec;
+  if (!f || f.loose !== false || p.projectId || p.areaId || p.start === 'inbox') return p;
+  const a = S.areas.filter((x) => ui.focusAreas.has(x.id)).sort(byOrder)[0];
+  if (a) p.areaId = a.id;
+  return p;
+}
+function setFocus(id) {
+  ui.focusPick = { id: id || '', at: Date.now() };
+  lsSet('sectis.focus', JSON.stringify(ui.focusPick));
+  refreshFocus();
+  if (viewOutsideFocus()) navigate('today'); else render();
+}
+/* quietly back to All Areas, to show something the focus hides */
+function showAllAreas() {
+  if (!ui.focusRec) return;
+  ui.focusPick = { id: '', at: Date.now() }; lsSet('sectis.focus', JSON.stringify(ui.focusPick));
+  refreshFocus(); toast('Showing all areas');
+}
+function followFocusSchedule() {
+  ui.focusPick = null; lsSet('sectis.focus', '');
+  refreshFocus();
+  if (viewOutsideFocus()) navigate('today'); else render();
+  toast(ui.focusRec ? `${focusTitle(ui.focusRec)} focus, as scheduled` : 'Showing everything, as scheduled');
+}
+/* a schedule switching focus while Sectis is open */
+function checkFocusSchedule() {
+  if (!S || !hasFocusSchedule()) return;
+  const f = effectiveFocus();
+  if ((f && f.id) === (ui.focusRec && ui.focusRec.id)) return;
+  if (ui.editing || layers.length || (D.st && D.st.active)) return; // after you're done
+  refreshFocus();
+  if (viewOutsideFocus()) navigate('today'); else render();
+  toast(f ? `${focusTitle(f)} focus is on` : 'Focus is off. Showing everything');
+}
+setInterval(checkFocusSchedule, 20000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkFocusSchedule(); });
+
+/* ---- words ---- */
+function focusDays(days) {
+  const d = days.slice().sort((a, b) => a - b).join();
+  if (d === '0,1,2,3,4,5,6') return 'every day';
+  if (d === '1,2,3,4,5') return 'weekdays';
+  if (d === '0,6') return 'weekends';
+  const ws = S.settings.weekStart || 0;
+  return days.slice().sort((a, b) => ((a - ws + 7) % 7) - ((b - ws + 7) % 7)).map((x) => WD[x]).join(', ');
+}
+function focusSchedText(s) {
+  if (!s) return '';
+  const all = s.from === s.to && s.from === '00:00';
+  return `${focusDays(s.days)}${all ? ', all day' : `, ${fmtTime(s.from)}–${fmtTime(s.to)}`}`;
+}
+function focusSummary(f) {
+  const names = S.areas.filter((a) => f.areas.includes(a.id)).sort(byOrder).map(aTitle);
+  let s = names.length ? names.join(', ') : 'No areas';
+  if (f.loose !== false) s += names.length ? ', and to-dos outside any area' : ', only to-dos outside any area';
+  if (f.sched) s += ' · on ' + focusSchedText(f.sched);
+  return s;
+}
+
+/* ---- the switch at the top of the sidebar ---- */
+function focusBarHTML() {
+  const fs = (S.focuses || []).slice().sort(byOrder); if (!fs.length) return '';
+  const cur = ui.focusRec ? ui.focusRec.id : '';
+  const menuBtn = `<button class="ib fx-menu${cur ? ' on' : ''}" data-action="focus-menu" aria-label="Focus" title="Focus: show only some areas">${ic('focus')}</button>`;
+  const fits = fs.length <= 3 && fs.reduce((n, f) => n + Math.min(focusTitle(f).length, 30), 3) <= 22;
+  if (fits) {
+    const seg = (id, label, title) => `<button class="fx-seg${cur === id ? ' on' : ''}" data-focus="${id}" aria-pressed="${cur === id}" title="${esc(title)}">${esc(label)}</button>`;
+    return `<div class="fx-bar" role="group" aria-label="Focus">${menuBtn}<div class="fx-segs">${seg('', 'All', 'Show everything')}${fs.map((f) => seg(f.id, focusTitle(f), focusSummary(f))).join('')}</div></div>`;
+  }
+  return `<div class="fx-bar">${menuBtn}<button class="fx-pill${cur ? ' on' : ''}" data-action="focus-menu"><span>${cur ? esc(focusTitle(ui.focusRec)) : 'All Areas'}</span>${ic('chevD')}</button></div>`;
+}
+function openFocusMenu(el) {
+  const fs = (S.focuses || []).slice().sort(byOrder), cur = ui.focusRec ? ui.focusRec.id : '';
+  const items = [{ header: 'Focus' }, { label: 'All Areas', icon: cur ? 'blank' : 'check', fn: () => setFocus('') }];
+  fs.forEach((f) => items.push({ label: focusTitle(f), icon: cur === f.id ? 'check' : 'blank', hint: f.sched ? focusSchedText(f.sched) : '', fn: () => setFocus(f.id) }));
+  const sched = hasFocusSchedule() ? scheduledFocus() : undefined;
+  if (sched !== undefined && (sched ? sched.id : '') !== cur) items.push({ sep: 1 }, { label: `Follow Schedule (${sched ? focusTitle(sched) : 'All Areas'})`, icon: 'calendar', fn: followFocusSchedule });
+  items.push({ sep: 1 });
+  fs.forEach((f) => items.push({ label: `Edit “${focusTitle(f)}”…`, icon: 'sliders', fn: () => openFocusEditor(f) }));
+  items.push({ label: 'New Focus…', icon: 'plus', fn: () => openFocusEditor() });
+  openMenu(el, items);
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('#sidebar [data-focus], #content [data-focus]'); if (!b) return;
+  e.preventDefault(); setFocus(b.dataset.focus);
+});
+
+/* ---- making and editing one ---- */
+function saveFocus(f, data) {
+  let rec = f;
+  commit(f ? 'Edit Focus' : 'New Focus', () => {
+    if (!rec) { const now = Date.now(); rec = normalizeFocus({ id: uid(), order: (maxOf(S.focuses, 'order') || 0) + 1, createdAt: now, modifiedAt: now }); S.focuses.push(rec); }
+    Object.assign(rec, data); touch(rec);
+  }, { render: false });
+  if (!f) setFocus(rec.id); // try out a new one straight away
+  else { refreshFocus(); if (viewOutsideFocus()) navigate('today'); else render(); }
+  return rec;
+}
+async function deleteFocus(f) {
+  const ok = await confirmDialog({ title: `Delete the “${esc(focusTitle(f))}” focus?`, body: 'Only the focus goes. Its areas, projects and to-dos stay as they are.', ok: 'Delete', danger: true });
+  if (!ok) return;
+  commit('Delete Focus', () => { S.focuses = S.focuses.filter((x) => x.id !== f.id); });
+  toast(`Deleted “${focusTitle(f)}”`, { undo: true });
+}
+/* a first focus is probably Work, then Home: guess the name and the areas that go with it */
+function focusSuggestion() {
+  const taken = (n) => (S.focuses || []).some((f) => focusTitle(f).toLowerCase() === n);
+  const pick = (re) => S.areas.filter((a) => re.test(aTitle(a))).map((a) => a.id);
+  if (!taken('work')) return { title: 'Work', areas: pick(/\b(work|office|job|business|police|it)\b/i) };
+  if (!taken('home')) return { title: 'Home', areas: pick(/\b(home|personal|family|house|life)\b/i) };
+  return { title: '', areas: [] };
+}
+function openFocusEditor(f = null) {
+  const sug = f ? null : focusSuggestion();
+  const st = {
+    title: f ? f.title : sug.title, areas: f ? f.areas.filter(getA) : sug.areas.slice(), loose: f ? f.loose !== false : true,
+    on: !!(f && f.sched), days: f && f.sched ? f.sched.days.slice() : [1, 2, 3, 4, 5], from: f && f.sched ? f.sched.from : '08:00', to: f && f.sched ? f.sched.to : '17:00',
+  };
+  const ws = S.settings.weekStart || 0, dayOrder = [0, 1, 2, 3, 4, 5, 6].map((i) => (i + ws) % 7);
+  const body = () => {
+    const areas = S.areas.slice().sort(byOrder).map((a) => `<button type="button" class="sm-chip${st.areas.includes(a.id) ? ' on' : ''}" data-farea="${a.id}" aria-pressed="${st.areas.includes(a.id)}">${placeColor(a) ? areaIc(a) : ic('area')}<span>${esc(aTitle(a))}</span></button>`).join('') || '<span class="note">No areas yet. Make some with + New List → New Area, then choose them here.</span>';
+    const days = dayOrder.map((d) => `<button type="button" class="fx-day${st.days.includes(d) ? ' on' : ''}" data-fday="${d}" aria-pressed="${st.days.includes(d)}" aria-label="${WEEKDAYS[d]}">${WD[d].slice(0, 2)}</button>`).join('');
+    return `<div class="modal-b sm-ed fx-ed">
+      <label class="sm-row"><span class="sm-l">Name</span><input class="pk-in sm-in" id="fx-name" value="${esc(st.title)}" placeholder="Work" autocomplete="off"></label>
+      <div class="sm-row"><span class="sm-l">Show these areas</span><div class="sm-chips">${areas}</div></div>
+      <div class="sm-row fx-line"><span class="sm-l">To-dos and projects outside any area<small>${st.loose ? 'They show in this focus too.' : 'Hidden. New ones you make here go into its first area.'}</small></span><div class="seg" role="group"><button type="button" data-floose="1" class="${st.loose ? 'on' : ''}">Show</button><button type="button" data-floose="0" class="${st.loose ? '' : 'on'}">Hide</button></div></div>
+      <div class="sm-row fx-line"><span class="sm-l">Turn on automatically<small>${st.on ? 'You can still switch by hand. That lasts until the next scheduled change.' : 'On a schedule, like weekdays from 8 to 5.'}</small></span><button type="button" class="switch${st.on ? ' on' : ''}" data-fsched="1" role="switch" aria-checked="${st.on}" aria-label="Turn on automatically"></button></div>
+      ${st.on ? `<div class="sm-row"><div class="fx-days" role="group" aria-label="Days">${days}</div><div class="fx-times"><label>From <input type="time" class="pk-in" id="fx-from" value="${esc(st.from)}"></label><label>To <input type="time" class="pk-in" id="fx-to" value="${esc(st.to)}"></label></div></div>` : ''}
+      <p class="note fx-note">The Inbox always shows everything, and Quick Find still finds everything.</p>
+    </div>`;
+  };
+  const html = `<div class="modal-h"><span class="ic" style="color:var(--accent)">${I.focus}</span><h2>${f ? 'Edit Focus' : 'New Focus'}</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>`
+    + `<div id="fx-body">${body()}</div><div class="modal-f">${f ? '<button class="btn danger" data-fx="delete" style="margin-right:auto">Delete</button>' : ''}<button class="btn" data-fx="cancel">Cancel</button><button class="btn primary" data-fx="save">${f ? 'Save' : 'Create'}</button></div>`;
+  const L = openLayer({ modal: true, cls: 'sm-modal fx-modal', html, onMount: (el) => {
+    const redraw = () => { $('#fx-body', el).innerHTML = body(); };
+    el.addEventListener('input', (e) => {
+      if (e.target.id === 'fx-name') st.title = e.target.value;
+      else if (e.target.id === 'fx-from') st.from = e.target.value || st.from;
+      else if (e.target.id === 'fx-to') st.to = e.target.value || st.to;
+    });
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.farea) { const id = b.dataset.farea; st.areas = st.areas.includes(id) ? st.areas.filter((x) => x !== id) : st.areas.concat(id); redraw(); return; }
+      if (b.dataset.floose) { st.loose = b.dataset.floose === '1'; redraw(); return; }
+      if (b.dataset.fsched) { st.on = !st.on; redraw(); return; }
+      if (b.dataset.fday) { const d = +b.dataset.fday; st.days = st.days.includes(d) ? st.days.filter((x) => x !== d) : st.days.concat(d); redraw(); return; }
+      if (b.dataset.fx === 'cancel') { closeLayer(L); return; }
+      if (b.dataset.fx === 'delete') { closeLayer(L); deleteFocus(f); return; }
+      if (b.dataset.fx === 'save') {
+        if (st.on && !st.days.length) { toast('Pick at least one day, or turn off the schedule'); return; }
+        closeLayer(L);
+        const order = S.areas.slice().sort(byOrder).map((a) => a.id);
+        saveFocus(f, { title: st.title.trim() || 'Focus', areas: order.filter((id) => st.areas.includes(id)), loose: st.loose, sched: st.on ? { days: st.days.slice().sort((a, b) => a - b), from: st.from, to: st.to } : null });
+      }
+    });
+    el.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'fx-name') { e.preventDefault(); $('[data-fx="save"]', el).click(); } });
+    const n = $('#fx-name', el); if (n && !isCoarse()) { n.focus(); n.select(); }
+  } });
+  return L;
+}
+/* the Focus part of Settings */
+function focusSettingsHTML() {
+  const fs = (S.focuses || []).slice().sort(byOrder);
+  return `<p class="note" style="margin:0 0 10px">Show only some areas at a time, like Work or Home, in every list, count and Board. Switch at the top of the sidebar, or let a schedule do it. Focuses sync; which one is on is up to each device.</p>`
+    + fs.map((f) => `<div class="set-row"><span class="lbl">${esc(focusTitle(f))}${ui.focusRec && ui.focusRec.id === f.id ? ' <span class="fx-on">On</span>' : ''}<small>${esc(focusSummary(f))}</small></span><button class="btn" data-s="focus-edit" data-id="${f.id}">Edit…</button></div>`).join('')
+    + `<div class="set-btns"><button class="btn" data-s="focus-new">New Focus…</button></div>`;
+}
+
+/* ===================== Quick Entry: @ files a to-do =====================
+   Type @ and a project or area in Quick Entry ("Order toner @PaperCut fri") and the to-do goes
+   there. A few letters are enough when they point to one place: the start of its name, the
+   start of any word in it, or the name run together ("@papercuthive"). @Project/Heading puts it
+   under a heading. As you type, a list of matches appears under the title: ↑ ↓ and Return or
+   Tab pick one, Esc closes it. Places in the current focus come first. */
+function placeCands() {
+  const out = [];
+  S.projects.forEach((p) => { if (!p.trashed && !p.isTemplate && p.status === 'open' && p.title) out.push({ kind: 'project', id: p.id, title: p.title, rec: p }); });
+  S.areas.forEach((a) => { if (a.title) out.push({ kind: 'area', id: a.id, title: a.title, rec: a }); });
+  return out;
+}
+const compactName = (s) => s.toLowerCase().replace(/[^a-z0-9À-￿]+/g, '');
+const placeInFocus = (c) => (c.kind === 'area' ? !ui.focusRec || ui.focusAreas.has(c.id) : inFocus(c.rec));
+// in focus first, then projects before areas, then shorter names, then sidebar order
+function placeRank(a, b) {
+  return (placeInFocus(b) - placeInFocus(a)) || ((a.kind === 'area') - (b.kind === 'area')) || (a.title.length - b.title.length) || ((a.rec.order || 0) - (b.rec.order || 0));
+}
+const BOUNDARY = /^($|[\s/.,;:!?)])/;
+/* the longest name that `rest` starts with (whole words), or the first few words when they
+   point to one name; returns { c, len } or null */
+function matchName(rest, cands) {
+  const lower = rest.toLowerCase();
+  let best = null;
+  for (const c of cands) {
+    const t = c.title.toLowerCase();
+    if (t && lower.startsWith(t) && BOUNDARY.test(lower.slice(t.length)) && (!best || t.length > best.len || (t.length === best.len && placeRank(c, best.c) < 0))) best = { c, len: t.length };
+  }
+  if (best) return best;
+  const ends = []; const re = /[^\s/]+/g; let m; // words end at spaces and at the / before a heading
+  while ((m = re.exec(rest)) && ends.length < 5) { if (m.index === 0 || ends.length) ends.push(m.index + m[0].length); else break; }
+  for (let n = ends.length; n >= 1; n--) {
+    const q = rest.slice(0, ends[n - 1]).replace(/[.,;:!?)]+$/, ''), ql = q.toLowerCase(), qc = compactName(q);
+    if (!ql) continue;
+    let hits = cands.filter((c) => c.title.toLowerCase().startsWith(ql));
+    if (!hits.length && n === 1 && ql.length >= 2) hits = cands.filter((c) => c.title.toLowerCase().split(/[\s\-–—/&+]+/).some((w) => w.startsWith(ql)));
+    if (!hits.length && qc.length >= 3) hits = cands.filter((c) => compactName(c.title).startsWith(qc));
+    if (hits.length) return { c: hits.sort(placeRank)[0], len: q.length };
+  }
+  return null;
+}
+/* text after an @ → { type, id, headingId, len } */
+function matchPlace(rest) {
+  if (!rest || /^\s/.test(rest)) return null;
+  const hit = matchName(rest, placeCands()); if (!hit) return null;
+  const out = { type: hit.c.kind, id: hit.c.id, headingId: null, len: hit.len };
+  if (hit.c.kind === 'project' && rest[hit.len] === '/') {
+    const hs = S.headings.filter((h) => h.projectId === hit.c.id && h.title).map((h) => ({ kind: 'heading', id: h.id, title: h.title, rec: Object.assign({ order: h.order }, h) }));
+    const hh = matchName(rest.slice(hit.len + 1), hs);
+    if (hh) { out.headingId = hh.c.id; out.len = hit.len + 1 + hh.len; }
+  }
+  return out;
+}
+/* the first @place in a title: { place, start, end, text } */
+function parsePlace(raw) {
+  const re = /(^|\s)@/g; let m;
+  while ((m = re.exec(raw))) {
+    const at = m.index + m[1].length, r = matchPlace(raw.slice(at + 1));
+    if (r) return { place: r, start: at, end: at + 1 + r.len, text: raw.slice(at + 1, at + 1 + r.len) };
+  }
+  return null;
+}
+function placeLabel(pl) {
+  if (!pl) return '';
+  if (pl.type === 'area') return aTitle(getA(pl.id));
+  const h = pl.headingId && getH(pl.headingId);
+  return pTitle(getP(pl.id)) + (h ? ' › ' + (h.title || 'New Heading') : '');
+}
+function placeIcon(pl) {
+  if (pl.type === 'area') { const a = getA(pl.id); return a && placeColor(a) ? areaIc(a) : ic('area'); }
+  return projIc(getP(pl.id));
+}
+
+/* ---- the list of matches under the title ---- */
+function placeSuggestions(q) {
+  const ql = q.toLowerCase().trim(), qc = compactName(q);
+  const slash = q.indexOf('/');
+  if (slash > 0) { // headings of the project named before the /
+    const pq = q.slice(0, slash).toLowerCase();
+    const p = placeCands().filter((c) => c.kind === 'project' && c.title.toLowerCase() === pq).sort(placeRank)[0];
+    if (!p) return [];
+    const hq = q.slice(slash + 1).toLowerCase().trim();
+    return S.headings.filter((h) => h.projectId === p.id && h.title && (!hq || h.title.toLowerCase().startsWith(hq) || h.title.toLowerCase().split(/\s+/).some((w) => w.startsWith(hq))))
+      .sort((a, b) => a.order - b.order).slice(0, 8)
+      .map((h) => ({ type: 'project', id: p.id, headingId: h.id, label: h.title, sub: `Heading in ${p.title}`, insert: `${p.title}/${h.title}` }));
+  }
+  const score = (title) => {
+    const t = title.toLowerCase();
+    if (!ql) return 3;
+    if (t.startsWith(ql)) return 0;
+    if (t.split(/[\s\-–—/&+]+/).some((w) => w.startsWith(ql))) return 1;
+    if (qc.length >= 2 && compactName(title).startsWith(qc)) return 1.5;
+    if (ql.length >= 2 && t.includes(ql)) return 2;
+    return -1;
+  };
+  const rows = [];
+  placeCands().forEach((c) => { const s = score(c.title); if (s >= 0) rows.push({ c, s }); });
+  if (ql.length >= 2) S.headings.forEach((h) => {
+    const p = getP(h.projectId); if (!h.title || !p || p.trashed || p.isTemplate || p.status !== 'open' || !p.title) return;
+    const s = score(h.title); if (s >= 0 && s < 2) rows.push({ c: { kind: 'heading', id: h.id, title: h.title, rec: p, p }, s: s + 0.5 });
+  });
+  const fc = (r) => placeInFocus(r.c.kind === 'heading' ? { kind: 'project', rec: r.c.p } : r.c);
+  rows.sort((a, b) => (a.s - b.s) || (fc(b) - fc(a)) || ((a.c.kind === 'heading') - (b.c.kind === 'heading')) || ((a.c.kind === 'area') - (b.c.kind === 'area')) || ((a.c.rec.order || 0) - (b.c.rec.order || 0)));
+  return rows.slice(0, 7).map(({ c }) => {
+    if (c.kind === 'heading') return { type: 'project', id: c.p.id, headingId: c.id, label: c.title, sub: `Heading in ${c.p.title}`, insert: `${c.p.title}/${c.title}` };
+    if (c.kind === 'area') return { type: 'area', id: c.id, headingId: null, label: c.title, sub: 'Area', insert: c.title };
+    const a = c.rec.areaId && getA(c.rec.areaId);
+    return { type: 'project', id: c.id, headingId: null, label: c.title, sub: a ? aTitle(a) : 'Project', insert: c.title };
+  });
+}
+/* wires the list to a title field; key(e) returns true when it used the key */
+function placeAutocomplete(ti, box, onPick) {
+  let rows = [], k = 0, at = -1, closedAt = -1;
+  const token = () => {
+    const before = ti.value.slice(0, ti.selectionStart == null ? ti.value.length : ti.selectionStart);
+    const m = before.match(/(^|\s)@([^@#\n]{0,48})$/);
+    if (!m) return null;
+    return { at: before.length - m[2].length - 1, q: m[2] };
+  };
+  const hide = () => { rows = []; at = -1; box.hidden = true; box.innerHTML = ''; ti.removeAttribute('aria-activedescendant'); ti.setAttribute('aria-expanded', 'false'); };
+  const paint = () => {
+    box.innerHTML = rows.map((r, i) => `<button type="button" class="qe-ac-i${i === k ? ' on' : ''}" id="qe-ac-${i}" role="option" aria-selected="${i === k}" data-aci="${i}">${r.headingId ? ic('heading') : placeIcon(r)}<span class="qe-ac-t">${esc(r.label)}</span><span class="qe-ac-s">${esc(r.sub)}</span></button>`).join('');
+    box.hidden = false; ti.setAttribute('aria-expanded', 'true'); ti.setAttribute('aria-activedescendant', 'qe-ac-' + k);
+  };
+  const update = () => {
+    const t = token();
+    if (!t || t.at === closedAt) { hide(); return; }
+    // a name already typed out in full, then a space: nothing left to choose
+    if (/\s$/.test(t.q) && (matchPlace(t.q) || {}).len === t.q.trimEnd().length) { hide(); return; }
+    if (t.q.split(/\s+/).length > 5) { hide(); return; }
+    const list = placeSuggestions(t.q);
+    if (!list.length) { hide(); return; }
+    if (t.at !== at) k = 0;
+    rows = list; at = t.at; k = Math.min(k, rows.length - 1); paint();
+  };
+  const pick = (i) => {
+    const r = rows[i], t = token(); if (!r || !t) return;
+    const end = ti.selectionStart, before = ti.value.slice(0, t.at), after = ti.value.slice(end).replace(/^\S*/, '');
+    const ins = '@' + r.insert + ' ';
+    ti.value = before + ins + after.replace(/^\s+/, '');
+    const pos = before.length + ins.length; ti.setSelectionRange(pos, pos);
+    hide(); onPick();
+  };
+  ti.setAttribute('role', 'combobox'); ti.setAttribute('aria-autocomplete', 'list'); ti.setAttribute('aria-controls', box.id); ti.setAttribute('aria-expanded', 'false');
+  box.addEventListener('pointerdown', (e) => e.preventDefault()); // keep the caret in the title
+  box.addEventListener('click', (e) => { const b = e.target.closest('[data-aci]'); if (b) pick(+b.dataset.aci); });
+  ti.addEventListener('click', update);
+  ti.addEventListener('keyup', (e) => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || e.key === 'Home' || e.key === 'End') update(); });
+  ti.addEventListener('blur', () => setTimeout(hide, 120));
+  return {
+    update,
+    key(e) {
+      if (box.hidden || !rows.length || e.isComposing) return false;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); k = (k + (e.key === 'ArrowDown' ? 1 : -1) + rows.length) % rows.length; paint(); return true; }
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); pick(k); return true; }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closedAt = at; hide(); return true; }
+      return false;
+    },
+  };
 }
 
 /* ===================== Start ===================== */

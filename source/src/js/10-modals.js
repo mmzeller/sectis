@@ -63,6 +63,7 @@ function revealTodo(id) {
   else if (t.start === 'someday') key = 'someday';
   else if (t.when && t.when > T0()) key = 'upcoming';
   else key = 'anytime';
+  if (!/^(project|area):/.test(key) && !inFocus(t)) showAllAreas(); // a list the focus hides it from
   navigate(key);
   if (key === 'logbook' || key === 'trash') { ui.sel = new Set([id]); ui.anchor = id; render(); const r = $(`#content .row[data-id="${CSS.escape(id)}"]`); if (r) r.scrollIntoView({ block: 'center' }); }
   else openEditor(id);
@@ -78,7 +79,9 @@ function inlineDateOK(phrase) {
   return true;
 }
 function parseEntry(raw) {
-  const out = { title: raw, tags: [], when: null, deadline: null, whenText: '', deadlineText: '', priority: 0 };
+  const out = { title: raw, tags: [], when: null, deadline: null, whenText: '', deadlineText: '', priority: 0, place: null, placeText: '' };
+  const pl = parsePlace(raw); // @Project, @Area or @Project/Heading
+  if (pl) { out.place = pl.place; out.placeText = pl.text; raw = raw.slice(0, pl.start) + ' ' + raw.slice(pl.end); }
   let s = ' ' + raw + ' ';
   s = s.replace(/\s(!{1,3})(?=\s)/, (m, b) => { out.priority = b.length; return ' '; }); // ! low, !! medium, !!! high
   s = s.replace(/\s#([^\s#!]+)(?=\s)/g, (m, name) => { out.tags.push(name.replace(/[.,;:]+$/, '')); return ' '; });
@@ -104,17 +107,18 @@ function openQuickEntry(prefill = '') {
   if (ui.editing) closeEditor({ noRender: false });
   const draft = makeTodo({ start: 'inbox', isDraft: true });
   S.todos.push(draft); idx.todo.set(draft.id, draft);
-  const ignore = { when: false, deadline: false, tags: false, priority: false };
+  const ignore = { when: false, deadline: false, tags: false, priority: false, place: false };
   let saved = false, parsed = null;
   const L = openLayer({ modal: true, cls: 'qe-modal top',
     html: `<div class="qe"><div class="c-top"><span class="cb" aria-hidden="true"></span><textarea class="qe-title" id="qe-title" placeholder="New To-Do" autocomplete="off" aria-label="Title" enterkeyhint="done" rows="1" data-autosize data-oneline></textarea></div>
+      <div class="qe-ac" id="qe-ac" role="listbox" aria-label="Projects and areas" hidden></div>
       <div class="qe-parsed" id="qe-parsed"></div>
       <div class="c-body"><textarea class="c-notes" id="qe-notes" rows="2" placeholder="Notes" aria-label="Notes"></textarea>
       <div class="c-foot"><div class="c-chips" id="qe-chips"></div><div class="c-tools">
         <button class="ib" data-qe="tags" title="Tags" aria-label="Tags">${ic('tag')}</button><button class="ib" data-qe="deadline" title="Deadline" aria-label="Deadline">${ic('flag')}</button>
         <button class="ib" data-qe="when" title="When" aria-label="When">${ic('calendar')}</button><button class="ib" data-qe="move" title="List" aria-label="Choose list">${ic('move')}</button></div></div>
       <div class="qe-dest" id="qe-dest"></div></div></div>
-      <div class="modal-f"><span class="note" style="margin-right:auto;align-self:center">${S.settings.parseEntry ? 'Try “Call Sam tomorrow #Errand !fri !!”' : ''}</span><button class="btn" data-qe="cancel">Cancel</button><button class="btn primary" data-qe="save">Save</button></div>`,
+      <div class="modal-f"><span class="note" style="margin-right:auto;align-self:center">${S.settings.parseEntry ? 'Try “Call Sam tomorrow @Work #Errand !fri !!”' : ''}</span><button class="btn" data-qe="cancel">Cancel</button><button class="btn primary" data-qe="save">Save</button></div>`,
     onClose: () => { if (!saved) { S.todos = S.todos.filter((x) => x.id !== draft.id); reindex(); } },
     onMount: (el) => {
       const ti = $('#qe-title', el), no = $('#qe-notes', el);
@@ -123,13 +127,16 @@ function openQuickEntry(prefill = '') {
         const x = d();
         parsed = S.settings.parseEntry ? parseEntry(ti.value) : null;
         const chips = [];
+        const placeOK = parsed && parsed.place && !ignore.place && !x.projectId && !x.areaId; // not once you've chosen a list
+        if (placeOK) chips.push(`<span class="qe-p qe-place">${placeIcon(parsed.place)}${esc(placeLabel(parsed.place))}<button data-ign="place" aria-label="Don’t file it there">${ic('x')}</button></span>`);
         if (parsed && parsed.when && !ignore.when && x.start === 'inbox' && !x.when) chips.push(`<span class="qe-p">${ic('calendar')}${esc(parsed.when.date ? fmtRel(parsed.when.date) : describeParsed({ special: parsed.when }))}<button data-ign="when" aria-label="Ignore date">${ic('x')}</button></span>`);
         if (parsed && parsed.deadline && !ignore.deadline && !x.deadline) chips.push(`<span class="qe-p">${ic('flag')}Deadline ${esc(fmtRel(parsed.deadline))}<button data-ign="deadline" aria-label="Ignore deadline">${ic('x')}</button></span>`);
         if (parsed && parsed.priority && !ignore.priority && !prio(x)) chips.push(`<span class="qe-p"><b class="pri-bangs p${parsed.priority}">${'!'.repeat(parsed.priority)}</b>${PRIORITY_NAMES[parsed.priority]} Priority<button data-ign="priority" aria-label="Ignore priority">${ic('x')}</button></span>`);
         if (parsed && parsed.tags.length && !ignore.tags) chips.push(`<span class="qe-p">${ic('tag')}${parsed.tags.map(esc).join(', ')}<button data-ign="tags" aria-label="Ignore tags">${ic('x')}</button></span>`);
         $('#qe-parsed', el).innerHTML = chips.join('');
         $('#qe-chips', el).innerHTML = whenChipHTML(x).replace(/data-action="(when|clear-when)"/g, 'data-qe="$1"') + deadlineChipHTML(x).replace(/data-action="(deadline|clear-deadline)"/g, 'data-qe="$1"') + x.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="tg ${tcls(g)}">${esc(g.title)}</span>`).join('');
-        const p = x.projectId && getP(x.projectId), a = x.areaId && getA(x.areaId), h = x.headingId && getH(x.headingId);
+        const pp = placeOK ? parsed.place : null;
+        const p = pp ? (pp.type === 'project' && getP(pp.id)) : x.projectId && getP(x.projectId), a = pp ? (pp.type === 'area' && getA(pp.id)) : x.areaId && getA(x.areaId), h = pp ? pp.headingId && getH(pp.headingId) : x.headingId && getH(x.headingId);
         $('#qe-dest', el).innerHTML = `${p ? projIc(p) : a ? (placeColor(a) ? areaIc(a) : ic('area')) : ic('inbox')}<span>${esc(p ? pTitle(p) + (h ? ' › ' + (h.title || 'New Heading') : '') : a ? aTitle(a) : x.start === 'inbox' ? 'Inbox' : 'No list')}</span>`;
       };
       const save = () => {
@@ -137,12 +144,14 @@ function openQuickEntry(prefill = '') {
         if (!raw.trim() && !no.value.trim()) { closeLayer(L); return; }
         commit('Quick Entry', () => {
           const pz = S.settings.parseEntry ? parseEntry(raw) : null;
-          x.title = pz && ((pz.when && !ignore.when && x.start === 'inbox' && !x.when) || (pz.deadline && !ignore.deadline && !x.deadline) || (pz.tags.length && !ignore.tags) || (pz.priority && !ignore.priority && !prio(x))) ? rebuildTitle(raw, pz, ignore) : raw.trim();
+          const placeOK = pz && pz.place && !ignore.place && !x.projectId && !x.areaId;
+          x.title = pz && (placeOK || (pz.place && ignore.place) || (pz.when && !ignore.when && x.start === 'inbox' && !x.when) || (pz.deadline && !ignore.deadline && !x.deadline) || (pz.tags.length && !ignore.tags) || (pz.priority && !ignore.priority && !prio(x))) ? rebuildTitle(raw, pz, Object.assign({}, ignore, { place: ignore.place || !!(pz.place && !placeOK) })) : raw.trim();
           x.notes = no.value;
           if (pz && pz.when && !ignore.when && x.start === 'inbox' && !x.when) scheduleItems(x, pz.when);
           if (pz && pz.deadline && !ignore.deadline && !x.deadline) x.deadline = pz.deadline;
           if (pz && pz.priority && !ignore.priority && !prio(x)) x.priority = pz.priority;
           if (pz && pz.tags.length && !ignore.tags) pz.tags.forEach((n) => { const tg = findOrCreateTag(n); if (tg && !x.tags.includes(tg.id)) x.tags.push(tg.id); });
+          if (placeOK) moveItems([x.id], { type: pz.place.type, id: pz.place.id, headingId: pz.place.headingId }, { noCommit: true, silent: true });
           delete x.isDraft;
           x.order = topOrder(S.todos.filter((y) => y !== x && !y.trashed && containerKey(y) === containerKey(x)));
           x.todayOrder = todayTop();
@@ -152,13 +161,14 @@ function openQuickEntry(prefill = '') {
         const x2 = getT(draft.id);
         if (x2) toast(`Added to ${isTodayItem(x2) ? 'Today' : x2.projectId ? pTitle(getP(x2.projectId)) : x2.areaId ? aTitle(getA(x2.areaId)) : x2.start === 'someday' ? 'Someday' : x2.when ? 'Upcoming' : x2.start === 'inbox' ? 'Inbox' : 'Anytime'}`, { action: visibleInCurrentView(x2) ? null : 'Show', fn: () => revealTodo(draft.id) });
       };
+      const ac = placeAutocomplete(ti, $('#qe-ac', el), () => { autosize(ti); refresh(); });
       ti.value = prefill; autosize(ti); refresh();
-      ti.addEventListener('input', refresh);
-      ti.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); save(); } });
+      ti.addEventListener('input', () => { refresh(); ac.update(); });
+      ti.addEventListener('keydown', (e) => { if (ac.key(e)) return; if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); save(); } });
       no.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); } });
       no.addEventListener('input', () => autosize(no));
       el.addEventListener('click', (e) => {
-        const ig = e.target.closest('[data-ign]'); if (ig) { ignore[ig.dataset.ign] = true; refresh(); return; }
+        const ig = e.target.closest('[data-ign]'); if (ig) { ignore[ig.dataset.ign] = true; refresh(); if (!isCoarse()) ti.focus(); return; }
         const b = e.target.closest('[data-qe]'); if (!b) return;
         const act = b.dataset.qe, x = d();
         const after = (P) => { if (!P) return; const prev = P.onClose; P.onClose = () => { if (prev) prev(); if (L.el.isConnected) { refresh(); if (!isCoarse()) ti.focus(); } }; };
@@ -181,6 +191,7 @@ function rebuildTitle(raw, pz, ignore) {
   if (ignore.deadline && pz.deadlineText) t += ' !' + pz.deadlineText;
   if (ignore.priority && pz.priority) t += ' ' + '!'.repeat(pz.priority);
   if (ignore.when && pz.whenText) t += ' ' + pz.whenText;
+  if (ignore.place && pz.placeText) t += ' @' + pz.placeText;
   return t.trim() || raw.trim();
 }
 
@@ -204,7 +215,8 @@ function openSettings() {
       <div class="set-row"><span class="lbl">Tags shown in lists<small>Own Only hides the tags a to-do already gets from its project or area, so lists stay clean. Open a to-do to see all of its tags.</small></span>${seg('rowTags', [['own', 'Own Only'], ['all', 'All'], ['none', 'None']])}</div>
       <div class="set-row"><span class="lbl">Tag to-dos already in projects and areas<small>Adds each project’s and area’s tags to the to-dos inside it now. You can undo it.</small></span><button class="btn" data-s="retag-all">Tag Them Now</button></div>
       <div class="set-row"><span class="lbl">Week starts on</span>${seg('weekStart', [[0, 'Sunday'], [1, 'Monday']])}</div>
-      <div class="set-row"><span class="lbl">Quick Entry reads dates and tags<small>“Pay rent friday #Home !oct 31” sets When, tag and deadline.</small></span>${sw('parseEntry')}</div></div>
+      <div class="set-row"><span class="lbl">Quick Entry reads dates, tags and places<small>“Pay rent friday @Home #Bills !oct 31” sets When, the area, a tag and a deadline.</small></span>${sw('parseEntry')}</div></div>
+    <div class="set-sec"><h3>Focus</h3>${focusSettingsHTML()}</div>
     <div class="set-sec"><h3>Sync</h3>${syncSettingsHTML()}</div>
     <div class="set-sec"><h3>Reminders</h3>
       <div class="set-row"><span class="lbl">System notifications<small>${notifState === 'unavailable' ? 'Not available here. Reminders still show inside Sectis while it is open.' : notifState === 'denied' ? 'Blocked in your browser settings. Reminders still show inside Sectis.' : 'Reminders fire while Sectis is open, in a tab or as an installed app.'}</small></span>${notifState === 'unavailable' || notifState === 'denied' ? '' : sw('notify')}</div></div>
@@ -228,6 +240,8 @@ function openSettings() {
       const b = e.target.closest('[data-s]'); if (!b) return;
       const act = b.dataset.s;
       if (act === 'tags') { closeLayer(L); openTagManager(); }
+      if (act === 'focus-new') { closeLayer(L); openFocusEditor(); }
+      if (act === 'focus-edit') { const f = getFocus(b.dataset.id); closeLayer(L); if (f) openFocusEditor(f); }
       if (act === 'retag-all') {
         let n = 0;
         commit('Tag To-Dos', () => S.todos.forEach((t) => {
@@ -436,7 +450,7 @@ function openShortcuts() {
   const rows = [
     ['Create', [['New to-do', k('N') + ' or ' + k('Space')], ['New heading (in a project)', k('⇧', 'N')], ['Quick Entry', k('Q')], ['Quick Find', k('/') + ' or ' + k(MODK + 'F')]]],
     ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
-    ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
+    ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Show or hide the sidebar', IS_MAC ? k('⌃', '⌘', 'S') : k('Ctrl', 'Alt', 'S')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing', [['Save and close', k('Return') + ' or ' + k(MODK + '↩')], ['Complete', k(MODK + 'K')], ['When…', k(MODK + 'S')], ['Deadline…', k(MODK + '⇧', 'D')], ['Add checklist', k(MODK + '⇧', 'C')], ['Move checklist item', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Paste several lines', 'one to-do per line']]],
   ];
   openLayer({ modal: true, html: `<div class="modal-h"><h2>Keyboard Shortcuts</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b"><div class="sc-grid">${rows.map(([h, list]) => `<h4>${h}</h4>${list.map(([l, keys]) => `<div class="sc"><span>${l}</span><span>${keys}</span></div>`).join('')}`).join('')}</div></div>` });

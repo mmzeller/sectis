@@ -82,7 +82,7 @@ function collectExport(scope) {
         B.push({ item: x });
       });
     } else if (v.type === 'anytime') { title = 'Anytime'; addGrouped(B, S.todos.filter((t) => anytimeTodo(t) && f(t))); }
-    else if (v.type === 'someday') { title = 'Someday'; addGrouped(B, S.todos.filter((t) => somedayTodo(t) && f(t)), S.projects.filter((p) => liveProject(p) && p.start === 'someday' && f(p)).sort(byOrder)); }
+    else if (v.type === 'someday') { title = 'Someday'; addGrouped(B, S.todos.filter((t) => somedayTodo(t) && f(t)), S.projects.filter((p) => liveProject(p) && p.start === 'someday' && inFocus(p) && f(p)).sort(byOrder)); }
     else if (v.type === 'logbook') {
       title = 'Logbook'; forceDone = true; let cur = null;
       logbookItems().filter(f).slice(0, 500).forEach((x) => { const g = dayGroupLabel(stampDay(x.completedAt || Date.now())); if (g !== cur) { cur = g; B.push({ h: 2, text: g }); } B.push({ item: x }); });
@@ -100,7 +100,7 @@ function collectExport(scope) {
     else if (v.type === 'tag') {
       const tag = getTag(v.id); title = '#' + tag.title;
       const want = tagDescendants(tag.id); const has = (x) => { for (const t of effectiveTags(x)) if (want.has(t)) return true; return false; };
-      const todos = S.todos.filter((t) => liveTodo(t) && inLiveProject(t) && has(t));
+      const todos = S.todos.filter((t) => liveTodo(t) && inLiveProject(t) && has(t) && inFocus(t));
       [['Today', todos.filter(isTodayItem).sort(byToday)], ['Upcoming', todos.filter((t) => t.start === 'anytime' && t.when && t.when > T0()).sort((a, b) => (a.when < b.when ? -1 : 1))],
         ['Anytime', todos.filter((t) => t.start === 'anytime' && !t.when && !isTodayItem(t)).sort(byOrder)], ['Inbox', todos.filter((t) => isInbox(t) && !isTodayItem(t)).sort(byOrder)],
         ['Someday', todos.filter((t) => t.start === 'someday' && !isTodayItem(t)).sort(byOrder)]].forEach(([label, list]) => { if (list.length) { B.push({ h: 2, text: label }); list.forEach((t) => B.push({ item: t })); } });
