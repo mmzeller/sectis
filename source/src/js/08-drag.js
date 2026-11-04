@@ -316,7 +316,7 @@ function dropOnList(ids, key, kind, anchorEl) {
     case 'someday': applyWhen(ids, 'someday'); break;
     case 'logbook': completeIds(ids); break;
     case 'waiting': if (kind === 'todo') openWaiting(ids, anchorEl); break;
-    case 'deadlines': openWhen(ids, anchorEl, 'deadline'); break;
+    case 'deadlines': case 'timeline': openWhen(ids, anchorEl, 'deadline'); break;
     case 'tag': { const items = itemsFor(ids).filter((x) => !x.tags.includes(id)); if (items.length && getTag(id)) { commit('Tags', () => items.forEach((x) => { x.tags = x.tags.concat(id); touch(x); })); toast(`Tagged ${items.length > 1 ? plural(items.length, 'item') : `“${items[0].title || 'New To-Do'}”`} #${tagTitle(id)}`, { undo: true }); } break; }
     case 'trash': trashItems(ids); break;
     case 'project': if (kind === 'todo') moveItems(ids, { type: 'project', id }); break;

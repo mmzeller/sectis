@@ -93,6 +93,7 @@ function collectExport(scope) {
     } else if (v.type === 'smart') {
       const sl = getSmart(v.id); title = smartTitle(sl);
       smartGroups(sl, smartItems(sl).filter(f)).forEach((g) => { const h = g.head.replace(/<[^>]+>/g, '').trim(); if (h) B.push({ h: 2, text: h }); g.items.forEach((x) => B.push({ item: x })); });
+    } else if (v.type === 'timeline') { title = 'Timeline'; timelineExport(B, f);
     } else if (v.type === 'deadlines') {
       title = 'Deadlines'; deadlineGroups(deadlineItems().filter(f)).forEach((g) => { B.push({ h: 2, text: g.label }); g.items.forEach((x) => B.push({ item: x })); });
     } else if (v.type === 'project') return collectExport({ type: 'items', ids: [v.id] });

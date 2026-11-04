@@ -69,7 +69,7 @@ function selectedProjectRow() {
 }
 function newTodo(opts = {}) {
   if (ui.view.type === 'templates') { newTodoTemplate(); return; }
-  if (['logbook', 'trash', 'waiting'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
+  if (['logbook', 'trash', 'waiting', 'timeline'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
   if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) { toast('Reopen the project to add to-dos'); return; } }
   // A selected project row (an area's projects, an area's column on the Board, Today…) takes the new
   // to-do, wherever the row is. An expandable row opens so the new to-do shows under it.

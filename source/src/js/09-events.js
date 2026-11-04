@@ -360,6 +360,17 @@ function viewMenu(el) {
     return;
   }
   const items = [...batch];
+  if (v === 'timeline') {
+    openMenu(el, [
+      { label: 'Scheduled To-Dos Too', icon: ui.tl.when ? 'check' : 'blank', fn: () => { ui.tl.when = !ui.tl.when; saveTimeline(); render(); } },
+      { label: 'To-Dos Inside Projects', icon: ui.tl.kids ? 'check' : 'blank', fn: () => { ui.tl.kids = !ui.tl.kids; saveTimeline(); render(); } },
+      { sep: 1 },
+      { label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) },
+      { label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'all' }) },
+      { sep: 1 }, { label: 'Keyboard Shortcuts', icon: 'key', fn: openShortcuts }, { label: 'Settings', icon: 'gear', fn: openSettings },
+    ]);
+    return;
+  }
   if (v === 'project') { projectMenu(getP(ui.view.id), el, batch); return; }
   if (v === 'area') { areaMenu(getA(ui.view.id), el, batch); return; }
   if (v === 'board') {

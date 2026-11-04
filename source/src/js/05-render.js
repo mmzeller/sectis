@@ -7,6 +7,7 @@ const LISTS = {
   someday: { title: 'Someday', icon: 'box', color: 'var(--c-someday)' },
   waiting: { title: 'Waiting', icon: 'hourglass', color: 'var(--c-waiting)' },
   deadlines: { title: 'Deadlines', icon: 'flag', color: 'var(--red)' },
+  timeline: { title: 'Timeline', icon: 'timeline', color: 'var(--c-timeline)' },
   logbook: { title: 'Logbook', icon: 'logbook', color: 'var(--c-logbook)' },
   trash: { title: 'Trash', icon: 'trash', color: 'var(--c-trash)' },
   board: { title: 'Board', icon: 'columns', color: 'var(--c-board)' },
@@ -96,7 +97,7 @@ function renderSidebar() {
   const sbProjects = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && (p.areaId || null) === areaId).sort(byOrder);
   let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button>${focusBarHTML()}</div><nav class="sb-scroll" id="sb-scroll">`;
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
-  html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
+  html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('timeline')}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
   // the Board, or each Board once there are several; drop a project or area on one to add it
   html += `<div class="sb-group sb-board-g">${(ui.boards || []).map((b) => `<button class="sb-item${v.type === 'board' && b.id === ui.boardId ? ' on' : ''}" data-nav="board:${b.id}" data-drop-list="board:${b.id}" title="${esc(b.name || 'Board')}${ui.boards.length > 1 ? '' : ' (8)'}. Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">${esc(b.name || 'Board')}</span></button>`).join('')}</div>`;
@@ -322,6 +323,7 @@ function renderMain() {
     case 'tag': html = viewTag(getTag(ui.view.id)); break;
     case 'board': html = viewBoard(); break;
     case 'deadlines': html = viewDeadlines(); break;
+    case 'timeline': html = viewTimeline(); break;
     case 'smart': html = viewSmart(getSmart(ui.view.id)); break;
     case 'templates': html = viewTemplates(); break;
     case 'waiting': html = viewWaiting(); break;
@@ -333,7 +335,7 @@ function renderMain() {
   const sideways = {}, updown = {};
   $$('#content [data-hscroll]').forEach((el) => { sideways[el.dataset.hscroll] = el.scrollLeft; });
   $$('#content [data-vscroll]').forEach((el) => { updown[el.dataset.vscroll] = el.scrollTop; });
-  $('#content').classList.toggle('board-view', ui.view.type === 'board' || (ui.view.type === 'project' && projectBoardOn(getP(ui.view.id))));
+  $('#content').classList.toggle('board-view', ui.view.type === 'board' || ui.view.type === 'timeline' || (ui.view.type === 'project' && projectBoardOn(getP(ui.view.id))));
   $('#content').innerHTML = mobileBarHTML() + html;
   $$('#content [data-hscroll]').forEach((el) => { const x = sideways[el.dataset.hscroll]; if (x) el.scrollLeft = x; });
   $$('#content [data-vscroll]').forEach((el) => { const y = updown[el.dataset.vscroll]; if (y) el.scrollTop = y; });
@@ -595,6 +597,7 @@ function visibleInCurrentView(x) {
     case 'board': return boardCols().some((c) => colHas(c, x));
     case 'smart': return x.type === 'todo' && !!getSmart(v.id) && smartMatcher(getSmart(v.id))(x);
     case 'deadlines': return !!x.deadline;
+    case 'timeline': return !!(x.deadline || (ui.tl.when && x.when));
     default: return true;
   }
 }
