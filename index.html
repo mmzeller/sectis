@@ -766,6 +766,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
   .disc .ic { width: 16px; height: 16px; }
   .pchildren { margin-left: 18px; padding-left: 6px; }
   .prow .open-proj { width: 34px; height: 34px; }
+  .bcol .prow .r-right { flex-direction: column; align-items: flex-end; gap: 0; }
 }
 
 /* sidebar: hide/show an area's projects */
@@ -1113,7 +1114,7 @@ button.ucal-d:hover { border-color: var(--line-strong); }
 .tl-hd.e { right: -4px; }
 .tl-flag { position: absolute; right: 2px; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; color: var(--tlc); pointer-events: none; }
 .tl-flag svg, .tl-mk svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.tl-mk { position: absolute; top: 50%; transform: translateX(-50%); margin-top: -9px; width: 18px; height: 18px; padding: 3px; border-radius: 6px; color: var(--tlc); background: color-mix(in srgb, var(--tlc) 16%, var(--bg)); border: 1px solid color-mix(in srgb, var(--tlc) 50%, transparent); cursor: grab; touch-action: none; z-index: 1; }
+.tl-mk { position: absolute; top: 50%; transform: translateX(-50%); margin-top: -9px; width: 18px; height: 18px; padding: 3px; border-radius: 6px; color: var(--tlc); background: color-mix(in srgb, var(--tlc) 16%, var(--bg)); border: 1px solid color-mix(in srgb, var(--tlc) 50%, transparent); cursor: grab; touch-action: none; z-index: 2; }
 .tl-mk.st { width: 12px; height: 12px; margin-top: -6px; padding: 0; border-radius: 50%; background: var(--bg); border: 2px solid var(--tlc); }
 .tl-mk.late { --tlc: var(--red); }
 .tl-mk.done { opacity: .5; }
@@ -1203,6 +1204,27 @@ body.np-docked .magic { right: calc(var(--npw) + 30px); }
 @media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .np-todo { height: 30px; font-size: 13px; } }
 .np-ctx { flex: 0 1 auto; min-width: 0; }
 .np-time, .np-todo { flex: none; white-space: nowrap; }
+.lh-ic.pie-lg.can-click { cursor: pointer; border-radius: 50%; }
+.lh-ic.pie-lg.can-click:hover { box-shadow: 0 0 0 4px var(--hover); }
+.card .ck-item > span.ck-box { cursor: text; }
+
+/* the Board's Timeline band */
+.tl-band { margin: 4px 0 14px; padding: 8px 10px 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--card, var(--bg)); }
+.tl-band-h { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 0 2px 6px; font-size: 13px; }
+.tl-band-h > .ic { width: 16px; height: 16px; }
+.tl-band-h .spacer { flex: 1; }
+.tl-band-r { color: var(--muted); }
+.tl-band .tl-wrap { margin-top: 0; max-height: min(320px, 42vh); overflow: auto; }
+.tl-band .tl-wrap .tl-head { position: sticky; top: 0; }
+.tl-band .tl-lab, .tl-band .tl-head { background: var(--card, var(--bg)); }
+.tl-band .tl-row:hover .tl-lab { background: color-mix(in srgb, var(--hover) 55%, var(--card, var(--bg))); }
+.tl-band-ctl { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
+  .tl-band-x { order: 1; }
+  .tl-band-ctl { order: 2; flex-basis: 100%; justify-content: space-between; }
+}
+.tl-band-empty { margin: 4px 4px 10px; font-size: 13px; color: var(--muted); }
+.board-tl.on { color: var(--c-timeline); background: color-mix(in srgb, var(--c-timeline) 12%, transparent); }
 
 </style>
 </head>
@@ -1223,7 +1245,7 @@ body.np-docked .magic { right: calc(var(--npw) + 30px); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.39.0';
+const APP_VERSION = '1.40.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -2861,7 +2883,7 @@ function viewProject(p) {
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + priorityChipHTML(p) + inTagOrder(p.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg"${colorStyle(p)}>${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
+  let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg${p.trashed || p.isTemplate ? '' : ' can-click'}"${colorStyle(p)}${p.trashed || p.isTemplate ? '' : ` role="button" title="${p.status === 'open' ? 'Complete Project' : 'Reopen Project'}"`}>${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these headings, to-dos and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
   else if (p.isTemplate) html += `<div class="lh-banner rp-banner">${ic('repeat')}<span><b>Repeating project.</b> ${esc(ruleSummary(p.repeat))}${p.next ? `. Next copy ${esc(fmtRel(p.next))}` : p.repeat && p.repeat.mode === 'after' ? '. The next copy comes after you complete the current one' : '. This repeat has ended'}. Changes here apply to future copies.</span><button class="link-btn" data-action="repeat" data-id="${p.id}">Change</button></div>`;
@@ -2882,7 +2904,7 @@ function viewProject(p) {
   if (!p.isTemplate) html += repeatingSectionHTML(templatesIn((t) => t.projectId === p.id));
   html += loggedFooterHTML(p.id, logged);
   if (!todosAll.length && !headings.length && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and headings you add here.');
-  else if (!todosAll.length && !headings.length && !projectBoardOn(p)) html += emptyHTML('project', 'No to-dos yet', 'Press N or the + button to add the first one. Add headings from the ••• menu to split the project into stages.');
+  else if (!todosAll.length && !headings.length && !projectBoardOn(p)) html += p.trashed || p.status !== 'open' ? emptyHTML('project', 'No to-dos', p.trashed ? 'Put the project back to add to-dos to it.' : 'Reopen the project to add to-dos to it.') : emptyHTML('project', 'No to-dos yet', 'Press N or the + button to add the first one. Add headings from the ••• menu to split the project into stages.');
   return html;
 }
 function viewArea(a) {
@@ -3049,8 +3071,13 @@ function newTodo(opts = {}) {
    { qe: true } means this list takes no new to-dos (Quick Entry instead); { closed: true }
    means the project is done or in the Trash. */
 function newTodoSpot(opts = {}, n = 1) {
-  if (['logbook', 'trash', 'waiting', 'timeline', 'templates'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) return { qe: true };
-  if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) return { closed: true }; }
+  if (opts.sec) { // a place named outright (a menu's New To-Do or Paste): the list on screen doesn't matter
+    const [st, sid] = opts.sec.split(':'); const tp = st === 'project' && getP(sid);
+    if (tp && (tp.trashed || tp.status !== 'open')) return { closed: true };
+  } else {
+    if (['logbook', 'trash', 'waiting', 'timeline', 'templates'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) return { qe: true };
+    if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) return { closed: true }; }
+  }
   const one = (arr) => (n === 1 ? arr[0] : arr);
   // A selected project row (an area's projects, an area's column on the Board, Today…) takes the new
   // to-do, wherever the row is. An expandable row opens so the new to-do shows under it.
@@ -3945,6 +3972,7 @@ function handleAction(act, el, e) {
     case 'lcol-add': listColAdd(el.dataset.col); return;
     case 'board-switch': openMenu(el, boardsMenuItems()); return;
     case 'board-add': openBoardPicker(el); return;
+    case 'board-tl': toggleBoardTimeline(); return;
     case 'board-add-below': openBoardPicker(el, { below: el.dataset.col }); return;
     case 'sort-menu': openSortMenu(el); return;
     case 'waiting': openWaiting([id], el); return;
@@ -4018,6 +4046,8 @@ function todoMenu(id, el) {
   } else {
     if (t.status !== 'open') items.push(completedMenuItem([id], el), { sep: 1 });
     items.push({ label: 'When…', icon: 'calendar', hint: 'S', fn: () => openWhen([id], el) });
+    items.push({ label: t.deadline ? `Deadline: ${fmtDate(t.deadline, { weekday: false })}…` : 'Deadline…', icon: 'flag', hint: 'D', fn: () => openWhen([id], el, 'deadline') });
+    if (t.deadline) items.push({ label: 'Remove Deadline', icon: 'x', fn: () => applyDeadline([id], null) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
     items.push(priorityMenuItem([id], el));
@@ -4065,6 +4095,7 @@ function projectMenu(p, el, extra = []) {
     openMenu(el, items); return;
   }
   if (p.status === 'open') {
+    items.push({ label: 'New To-Do', icon: 'plus', hint: isColMenu(extra) ? '' : 'N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newTodo(); } }, ...pasteIntoItems(`project:${p.id}:`), { sep: 1 });
     items.push({ label: 'Complete Project', icon: 'check', fn: () => completeProjectFlow(p, 'done') });
     items.push({ label: 'When…', icon: 'calendar', fn: () => openWhen([p.id], el) });
     items.push({ label: 'Deadline…', icon: 'flag', fn: () => openWhen([p.id], el, 'deadline') });
@@ -4103,6 +4134,8 @@ function areaMenu(a, el, extra = []) {
     renameMenuItem('a', a.id),
     colorMenuItem('a', a, el),
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
+    { label: 'New To-Do in Area', icon: 'plus', fn: () => { if (!(ui.view.type === 'area' && ui.view.id === a.id)) navigate('area:' + a.id); newTodo({ sec: `area:${a.id}` }); } },
+    ...pasteIntoItems(`area:${a.id}`),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
     ...boardMenuItems('a', a.id, isColMenu(extra), el),
@@ -4129,6 +4162,7 @@ function headingMenu(h, el, extra = []) {
   openMenu(el, [
     ...moves,
     ...extra,
+    ...headingClipItems(h),
     { label: 'New To-Do Here', icon: 'plus', fn: () => { const sec = `project:${h.projectId}:${h.id}`; const first = S.todos.filter((t) => t.headingId === h.id && !t.trashed).sort(byOrder)[0]; newTodo({ sec, place: { order: first ? first.order - 1 : 0 } }); } },
     { label: 'Move to Project…', icon: 'move', fn: () => openMove([], el, { heading: true, onPick: (t) => { if (t.type === 'project') moveHeading(h, t.id); } }) },
     { label: 'Convert to Project', icon: 'project', fn: () => headingToProject(h) },
@@ -4211,6 +4245,7 @@ function viewMenu(el) {
     const n = boardCols().length;
     openMenu(el, [...batch,
       ...boardsMenuItems(), { sep: 1 },
+      { label: curBoard().tl ? 'Hide Timeline' : 'Show Timeline', icon: 'timeline', fn: toggleBoardTimeline },
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
       { label: 'Fit All Sizes Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w || c.h), fn: resetAllSizes },
       sortMenuItem(el),
@@ -6359,7 +6394,7 @@ function loadBoard() {
   loadCkClip();
   let saved = null;
   try { saved = JSON.parse(lsGet('sectis.boards') || 'null'); } catch (e) { saved = null; }
-  if (saved && Array.isArray(saved.list) && saved.list.length) ui.boards = saved.list.filter((b) => b && b.id).map((b) => ({ id: b.id, name: b.name || 'Board', area: b.area || null, cols: cleanCols(b.cols) }));
+  if (saved && Array.isArray(saved.list) && saved.list.length) ui.boards = saved.list.filter((b) => b && b.id).map((b) => ({ id: b.id, name: b.name || 'Board', area: b.area || null, tl: !!b.tl, cols: cleanCols(b.cols) }));
   if (!ui.boards || !ui.boards.length) { // the one Board from before there were several
     let cols = []; try { cols = JSON.parse(lsGet('sectis.board') || '[]'); } catch (e) { cols = []; }
     ui.boards = [{ id: 'main', name: 'Board', area: null, cols: cleanCols(cols) }];
@@ -6559,10 +6594,11 @@ function boardMenuItems(t, id, fromColumn, el) {
 /* ---- view ---- */
 function viewBoard() {
   const stacks = boardStacks();
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><textarea class="lh-title board-name" data-edit="board-name" data-fkey="board-name" placeholder="Board" aria-label="Board name" autocomplete="off" rows="1" data-autosize data-oneline>${esc(curBoard().name)}</textarea><button class="ib board-switch" data-action="board-switch" aria-label="Boards" title="Switch, add or rename Boards">${ic('chevD')}</button><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><textarea class="lh-title board-name" data-edit="board-name" data-fkey="board-name" placeholder="Board" aria-label="Board name" autocomplete="off" rows="1" data-autosize data-oneline>${esc(curBoard().name)}</textarea><button class="ib board-switch" data-action="board-switch" aria-label="Boards" title="Switch, add or rename Boards">${ic('chevD')}</button><button class="ib board-tl${curBoard().tl ? ' on' : ''}" data-action="board-tl" aria-pressed="${!!curBoard().tl}" aria-label="Timeline" title="${curBoard().tl ? 'Hide' : 'Show'} the Timeline above the columns">${ic('timeline')}</button><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
   const hidden = colsOutsideFocus();
   if (hidden) html += `<div class="lh-sub fx-hidden">${hidden === 1 ? '1 column is' : hidden + ' columns are'} outside the ${esc(focusTitle(ui.focusRec))} focus. <button class="link-btn" data-focus="">Show All Areas</button></div>`;
   if (!stacks.length && hidden) return html;
+  if (stacks.length && curBoard().tl) html += boardTimelineHTML();
   if (!stacks.length) {
     return html + emptyHTML('columns', 'See your lists side by side',
       'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');
@@ -7526,9 +7562,9 @@ function pasteChecklist(ids, titles = clipTitles()) {
   toast(into > 1 ? `Added the checklist to ${into} to-dos` : `Added ${plural(added, 'checklist item')}`, { undo: true });
 }
 /* copies of to-dos (or plain titles) after the selected to-do, or into this list */
-function pasteTodos(src) {
+function pasteTodos(src, opts = {}) {
   if (!src || !src.length) return;
-  const spot = newTodoSpot({}, src.length);
+  const spot = newTodoSpot(opts, src.length);
   if (spot.closed) { toast('Reopen the project to add to-dos'); return; }
   if (spot.qe) { toast('Open a list or project to paste into'); return; }
   const at = (v, i) => (Array.isArray(v) ? v[i] : v);
@@ -7551,10 +7587,16 @@ function pasteTodos(src) {
   toast(`Pasted ${plural(made.length, 'to-do')}`, { undo: true });
 }
 /* ⌘V or Paste: whatever's on the clipboard, into the list (to-dos) */
-function pasteClipHere() {
+function pasteClipHere(opts = {}) {
   if (!ui.clip) return;
-  if (ui.clip.kind === 'todos') pasteTodos(ui.clip.items);
-  else pasteTodos(ui.clip.items.slice());
+  if (ui.clip.kind === 'todos') pasteTodos(ui.clip.items, opts);
+  else pasteTodos(ui.clip.items.slice(), opts);
+}
+/* Paste into a named place (a project, area, heading or day), for its menus */
+function pasteIntoItems(sec) {
+  if (!ui.clip) return [];
+  const n = ui.clip.items.length;
+  return [{ label: ui.clip.kind === 'todos' ? (n > 1 ? `Paste ${n} To-Dos Here` : 'Paste To-Do Here') : `Paste Checklist Here as ${n > 1 ? n + ' To-Dos' : 'a To-Do'}`, icon: 'paste', fn: () => pasteClipHere({ sec }) }];
 }
 
 /* menu items for one to-do or several selected */
@@ -7919,7 +7961,7 @@ function viewDeadlines() {
   let html = '';
   deadlineGroups(items).forEach((g) => {
     const n = g.items.filter((x) => x.status === 'open').length;
-    html += `<div class="sec-h dl-h${g.key === 'overdue' ? ' overdue' : ''}"><span>${esc(g.label)}</span>${n ? `<span class="sec-n">${n}</span>` : ''}</div>` + secHTML('deadlines', g.items, { parent: true, when: true });
+    html += `<div class="sec-h dl-h${g.key === 'overdue' ? ' overdue' : ''}" data-dlg="${esc(g.key)}"><span>${esc(g.label)}</span>${n ? `<span class="sec-n">${n}</span>` : ''}</div>` + secHTML('deadlines', g.items, { parent: true, when: true });
   });
   return headerHTML('deadlines', sub) + tagBarHTML(all) + `<div class="list">${html}</div>` +
     (all.length ? '' : emptyHTML('flag', 'No deadlines', 'Give a to-do or a project a deadline (press D) and it shows up here, soonest first.'));
@@ -8947,20 +8989,20 @@ function tlDateText(e) {
   if (e.dl) return e.late ? deadlineInfo(e.dl).text : fmtRel(e.dl);
   return 'Starts ' + fmtRel(e.st);
 }
-function tlTrackHTML(e, r) {
+function tlTrackHTML(e, r, opts = {}) {
   const idx = (d) => diffDays(r.from, d), last = r.days - 1;
   const x = e.x, col = tlColor(x), style = col ? `;--tlc:${col}` : '';
   const tip = esc(`${x.title || (x.type === 'project' ? 'New Project' : 'New To-Do')}: ${e.dl ? `deadline ${fmtDate(e.dl)}` : ''}${e.st && (!e.dl || e.st < e.dl) ? `${e.dl ? ', ' : ''}starts ${fmtDate(e.st)}` : ''}${e.implicit ? `, made ${fmtDate(e.a)}` : ''}`);
-  if (e.overdue) return `<button class="tl-od" data-tl-item style="left:2px" title="${tip}">${ic('chevL')}<span>${esc(fmtDate(e.dl, { weekday: false }))}</span></button>`;
-  const label = (n, cls = '') => (ui.tl.zoom === 'quarter' ? '' : n > last - 3 ? `<span class="tl-dt left ${cls}" style="right:calc(100% - ${tlAt(n)} + 2px)">${esc(tlDateText(e))}</span>` : `<span class="tl-dt ${cls}" style="left:${tlAt(n + 1)}">${esc(tlDateText(e))}</span>`);
+  if (e.overdue) return `<button class="tl-od" data-tl-item data-tlid="${x.id}" style="left:2px" title="${tip}">${ic('chevL')}<span>${esc(fmtDate(e.dl, { weekday: false }))}</span></button>`;
+  const label = (n, cls = '') => (ui.tl.zoom === 'quarter' || opts.nolabel ? '' : n > last - 3 ? `<span class="tl-dt left ${cls}" style="right:calc(100% - ${tlAt(n)} + 2px)">${esc(tlDateText(e))}</span>` : `<span class="tl-dt ${cls}" style="left:${tlAt(n + 1)}">${esc(tlDateText(e))}</span>`);
   const bi = idx(e.b);
   if (e.a < e.b) {
     const ai = idx(e.a), L = Math.max(0, ai), R = Math.min(last, bi), done = x.type === 'project' ? projectProgress(x).frac : x.status !== 'open' ? 1 : 0;
     const handles = (ai >= 0 && !e.implicit ? '<i class="tl-hd s" data-tl-drag="start" title="Drag to change the start date"></i>' : '') + (bi <= last ? '<i class="tl-hd e" data-tl-drag="end" title="Drag to change the deadline"></i>' : '');
-    return `<div class="tl-bar${e.implicit ? ' soft' : ''}${ai < 0 ? ' cut-l' : ''}${bi > last ? ' cut-r' : ''}${e.late ? ' late' : ''}" data-tl-item data-tl-drag="${e.implicit ? 'end' : 'move'}" data-l="${L}" data-w="${R - L + 1}" style="left:${tlAt(L)};width:${tlAt(R - L + 1)}${style}" title="${tip}"><i class="tl-fill" style="width:${Math.round(done * 100)}%"></i>${handles}${bi <= last && e.dl ? `<span class="tl-flag">${I.flag}</span>` : ''}</div>${bi <= last ? label(bi, 'b') : ''}`;
+    return `<div data-tlid="${x.id}" class="tl-bar${e.implicit ? ' soft' : ''}${ai < 0 ? ' cut-l' : ''}${bi > last ? ' cut-r' : ''}${e.late ? ' late' : ''}" data-tl-item data-tl-drag="${e.implicit ? 'end' : 'move'}" data-l="${L}" data-w="${R - L + 1}" style="left:${tlAt(L)};width:${tlAt(R - L + 1)}${style}" title="${tip}"><i class="tl-fill" style="width:${Math.round(done * 100)}%"></i>${handles}${bi <= last && e.dl ? `<span class="tl-flag">${I.flag}</span>` : ''}</div>${bi <= last ? label(bi, 'b') : ''}`;
   }
   const kind = e.dl ? 'dl' : 'st';
-  return `<button class="tl-mk ${kind}${e.late ? ' late' : ''}${x.status !== 'open' ? ' done' : ''}" data-tl-item data-tl-drag="${e.dl ? 'end' : 'start'}" data-l="${bi}" style="left:${tlAt(bi + 0.5)}${style}" title="${tip}">${e.dl ? I.flag : ''}</button>${label(bi)}`;
+  return `<button data-tlid="${x.id}" class="tl-mk ${kind}${e.late ? ' late' : ''}${x.status !== 'open' ? ' done' : ''}" data-tl-item data-tl-drag="${e.dl ? 'end' : 'start'}" data-l="${bi}" style="left:${tlAt(bi + 0.5)}${style}" title="${tip}">${e.dl ? I.flag : ''}</button>${label(bi)}`;
 }
 function tlRowHTML(e, kind, depth) {
   const x = e.x, done = x.status !== 'open';
@@ -9022,8 +9064,9 @@ function viewTimeline() {
 }
 
 /* ---- clicks: zoom, paging, names, checkboxes ---- */
+const tlHere = () => ui.view.type === 'timeline' || (ui.view.type === 'board' && !!(curBoard() || {}).tl);
 document.addEventListener('click', (e) => {
-  if (ui.view.type !== 'timeline' || !e.target.closest) return;
+  if (!tlHere() || !e.target.closest) return;
   const z = e.target.closest('#content [data-tlzoom]');
   if (z) { ui.tl.zoom = z.dataset.tlzoom; ui.tl.off = 0; saveTimeline(); render(); return; }
   const n = e.target.closest('#content [data-tlnav]');
@@ -9035,10 +9078,10 @@ document.addEventListener('click', (e) => {
   // a flag or bar clicked without dragging: its dates. (On the click, not the pointer coming up,
   // so a phone's tap doesn't land on the menu that just opened under the finger.)
   const it = e.target.closest('#content [data-tl-item]');
-  if (it && !tlNoClick) tlItemMenu(it.closest('[data-tlid]').dataset.tlid, it);
+  if (it && !tlNoClick) tlItemMenu(it.dataset.tlid || it.closest('[data-tlid]').dataset.tlid, it);
 });
 document.addEventListener('contextmenu', (e) => {
-  const row = ui.view.type === 'timeline' && e.target.closest && e.target.closest('#content .tl-row[data-tlid]');
+  const row = tlHere() && e.target.closest && (e.target.closest('#content .tl [data-tl-item][data-tlid]') || e.target.closest('#content .tl-row[data-tlid]'));
   if (!row || layers.length) return;
   e.preventDefault(); tlItemMenu(row.dataset.tlid, { x: e.clientX, y: e.clientY });
 });
@@ -9056,7 +9099,7 @@ function tlItemMenu(id, anchor) {
 /* ---- dragging dates ---- */
 let tlDrag = null, tlNoClick = false;
 document.addEventListener('pointerdown', (e) => {
-  if (ui.view.type !== 'timeline' || (e.pointerType === 'mouse' && e.button !== 0) || layers.length) return;
+  if (!tlHere() || (e.pointerType === 'mouse' && e.button !== 0) || layers.length) return;
   const h = e.target.closest && e.target.closest('#content [data-tl-drag]'); if (!h) return;
   const row = h.closest('[data-tlid]'), x = row && itemById(row.dataset.tlid); if (!x) return;
   const el = h.closest('[data-tl-item]') || h, tl = h.closest('.tl');
@@ -9113,7 +9156,7 @@ if (window.ResizeObserver) {
   try {
     new ResizeObserver(debounce(() => {
       const w = $('#main').clientWidth;
-      if (ui.view.type === 'timeline' && Math.abs(w - tlW) > 2 && !tlDrag && !layers.length) { tlW = w; render(); } else tlW = w;
+      if (tlHere() && Math.abs(w - tlW) > 2 && !tlDrag && !layers.length) { tlW = w; render(); } else tlW = w;
     }, 80)).observe($('#main'));
   } catch (e) { /* the window's resize event still redraws */ }
 }
@@ -9126,6 +9169,60 @@ function timelineExport(B, f) {
     if (wk !== cur) { cur = wk; B.push({ h: 2, text: wk }); }
     B.push({ item: e.x });
   });
+}
+
+/* ---- the Board's Timeline: a band across the top of a Board, for what's on that Board ----
+   One row per project on it (a project column, or a project in an area column), with its
+   deadline bar and its to-dos' deadlines as flags on the same row; an area's own to-dos; and a
+   list, tag or smart-list column's to-dos with deadlines. Same span, paging, dragging and
+   menus as the Timeline. Each Board remembers whether it shows one (the Timeline button). */
+function toggleBoardTimeline() { const b = curBoard(); b.tl = !b.tl; saveBoard(); render(); }
+function boardTimelineRows(r) {
+  const rows = [], seen = new Set();
+  const live = (t) => liveTodo(t) && inLiveProject(t) && inFocus(t) && matchesTagFilter(t);
+  const entries = (list) => list.map((t) => tlEntry(t, r)).filter(Boolean).sort(tlSort);
+  const addProject = (p) => {
+    if (!p || seen.has(p.id) || !liveProject(p)) return; seen.add(p.id);
+    const pe = tlEntry(p, r), kids = entries(S.todos.filter((t) => t.projectId === p.id && live(t)));
+    if (pe || kids.length) rows.push({ x: p, label: pTitle(p), icon: projIc(p, 'tl-ic'), open: `data-tl-open="${p.id}"`, main: pe, kids, key: pe ? pe.b : kids[0].b });
+  };
+  boardCols().forEach((c) => {
+    if (c.t === 'p') addProject(getP(c.id));
+    else if (c.t === 'a') {
+      const a = getA(c.id); if (!a) return;
+      const own = entries(S.todos.filter((t) => t.areaId === a.id && !t.projectId && live(t)));
+      if (own.length) rows.push({ x: null, label: aTitle(a), icon: placeColor(a) ? areaIc(a, 'tl-ic') : ic('area', 'tl-ic'), open: `data-nav="area:${a.id}"`, main: null, kids: own, key: own[0].b });
+      S.projects.filter((p) => p.areaId === a.id && liveProject(p)).sort(byOrder).forEach(addProject);
+    } else {
+      const items = entries(S.todos.filter((t) => live(t) && t.deadline && colHas(c, t)));
+      if (items.length) rows.push({ x: null, label: colName(c.t, c.id), icon: c.t === 'l' ? `<span class="ic tl-ic" style="color:${LISTS[c.id].color}">${I[LISTS[c.id].icon]}</span>` : c.t === 't' ? ic('tag', 'tl-ic tc-ic ' + tcls(getTag(c.id))) : `<span class="ic tl-ic" style="color:var(--c-smart)">${I.funnel}</span>`, open: `data-nav="${c.t === 'l' ? c.id : (c.t === 't' ? 'tag:' : 'smart:') + c.id}"`, main: null, kids: items, key: items[0].b });
+    }
+  });
+  return rows;
+}
+function boardTimelineHTML() {
+  const r = tlRange(), L = tlLayout(r), rows = boardTimelineRows(r);
+  const T = T0(), ws = (S && S.settings.weekStart) || 0, days = Array.from({ length: r.days }, (_, i) => addDays(r.from, i)), cy = pd(T).getFullYear();
+  let months = '', i0 = 0, scale = '', bg = '';
+  days.forEach((d, i) => {
+    if (i === r.days - 1 || days[i + 1].slice(0, 7) !== d.slice(0, 7)) { const dd = pd(d), n = i - i0 + 1; months += `<div class="tl-mon" style="left:${tlAt(i0)};width:${tlAt(n)}"><span>${n * L.dw >= 70 ? MONTHS[dd.getMonth()] : MON[dd.getMonth()]}${dd.getFullYear() !== cy && n * L.dw >= 90 ? ' ' + dd.getFullYear() : ''}</span></div>`; i0 = i + 1; }
+    const w = dow(d), we = w === 0 || w === 6, today = d === T;
+    if (ui.tl.zoom === 'quarter') { if (w === ws) scale += `<div class="tl-wk${d <= T && T < addDays(d, 7) ? ' now' : ''}" style="left:${tlAt(i)};width:${tlAt(7)}"><span>${pd(d).getDate()}</span></div>`; }
+    else scale += `<div class="tl-day${we ? ' we' : ''}${today ? ' today' : ''}" style="left:${tlAt(i)}">${L.dw >= 26 ? `<b>${L.dw >= 44 ? WD[w] : WD[w].slice(0, 2)}</b>` : L.dw >= 18 ? `<b>${WD[w][0]}</b>` : ''}${L.dw >= 18 || w === ws || today ? `<span>${pd(d).getDate()}</span>` : ''}</div>`;
+    if (we && ui.tl.zoom !== 'quarter') bg += `<i class="tl-we" style="left:${tlAt(i)}"></i>`;
+    if (i && (w === ws || d.slice(8) === '01')) bg += `<i class="tl-wl${d.slice(8) === '01' ? ' m' : ''}" style="left:${tlAt(i)}"></i>`;
+  });
+  const ti = diffDays(r.from, T); if (ti >= 0 && ti < r.days) bg += `<i class="tl-now" style="left:${tlAt(ti)}"></i>`;
+  const body = rows.map((row) => {
+    const track = (row.main ? tlTrackHTML(row.main, r) : '') + row.kids.map((e) => tlTrackHTML(e, r, { nolabel: true })).join('');
+    return `<div class="tl-row tl-proj"${row.x ? ` data-tlid="${row.x.id}"` : ''}><div class="tl-lab">${row.icon}<button class="tl-name" ${row.open} title="${esc(row.label)}">${esc(row.label)}</button></div><div class="tl-track">${track}</div></div>`;
+  }).join('');
+  const zoomSeg = `<div class="seg tl-zoom" role="group" aria-label="Time span">${Object.entries(TL_ZOOM).map(([k, z]) => `<button data-tlzoom="${k}" class="${ui.tl.zoom === k ? 'on' : ''}" aria-pressed="${ui.tl.zoom === k}">${z.label}</button>`).join('')}</div>`;
+  const nav = `<div class="tl-nav"><button class="ib" data-tlnav="-1" aria-label="Earlier" title="Earlier">${ic('chevL')}</button><button class="btn tl-today${ui.tl.off ? '' : ' at'}" data-tlnav="0">Today</button><button class="ib" data-tlnav="1" aria-label="Later" title="Later">${ic('chevR')}</button></div>`;
+  return `<section class="tl-band" aria-label="Timeline for this Board"><div class="tl-band-h"><span class="ic" style="color:var(--c-timeline)">${I.timeline}</span><b>Timeline</b><span class="tl-band-r">${esc(fmtDate(r.from, { weekday: false }))} – ${esc(fmtDate(r.to, { weekday: false }))}</span><span class="spacer"></span><div class="tl-band-ctl">${zoomSeg}${nav}</div><button class="ib tl-band-x" data-action="board-tl" aria-label="Hide the Timeline" title="Hide the Timeline">${ic('chevU')}</button></div>`
+    + (body ? `<div class="tl-wrap" data-hscroll="board-tl" data-vscroll="board-tl"><div class="tl z-${ui.tl.zoom}${L.stack ? ' stack' : ''}" style="--dw:${L.dw}px;--lw:${L.lw}px;--days:${r.days};--vw:${Math.round(L.vw)}px"><div class="tl-head"><div class="tl-lab tl-corner"></div><div class="tl-scale"><div class="tl-months">${months}</div><div class="tl-days">${scale}</div></div></div><div class="tl-body"><div class="tl-bg" aria-hidden="true">${bg}</div>${body}</div></div></div>`
+      : `<p class="tl-band-empty">Nothing on this Board has a deadline between ${esc(fmtDate(r.from, { weekday: false }))} and ${esc(fmtDate(r.to, { weekday: false }))}.</p>`)
+    + `</section>`;
 }
 
 /* ===================== Notepad =====================
@@ -9302,6 +9399,166 @@ function noteToTodo(id) {
   toast(`Added “${title.length > 40 ? title.slice(0, 39) + '…' : title}” to the Inbox`, { action: 'Show', fn: () => { if (!$('#app').classList.contains('np-dock')) closeNotepad(); revealTodo(t.id); } });
 }
 window.addEventListener('resize', debounce(applyNotepadMode, 60));
+
+/* ===================== Menus wherever you'd look for one =====================
+   Right-click (or Control-click) gives the menu that belongs to what's under the pointer:
+   - a list's, project's or area's header → that list's, project's or area's menu
+   - a heading (in a list, or on the Board) → the heading's menu
+   - a project or area named anywhere (Anytime's groups, the Timeline, a note's chip) → its menu
+   - a repeating to-do's preview in Upcoming → its repeat menu
+   - a day in Upcoming, or This Evening → New To-Do there, or Paste
+   - the sidebar's lists, smart lists and Board → their menus
+   - an open to-do (away from its text fields) → the to-do's menu; a checklist item → the item's
+   - a note in the Notepad → the note's menu; a tag in the tag bar → the tag's menu
+   A text field that's being edited, or has text selected, keeps the system's menu (Copy, Paste,
+   Spelling). Also: the circle by a project's name completes it, double-clicking a project, area
+   or smart list in the sidebar renames or edits it, and a heading can copy its to-dos. */
+const LIST_SECS = { inbox: 'inbox', today: 'today', anytime: 'anytime:loose', someday: 'someday:loose' };
+/* the heading's open to-dos to copy, and Paste into it */
+function headingClipItems(h) {
+  const ids = S.todos.filter((t) => t.headingId === h.id && !t.trashed && !t.isTemplate && t.status === 'open').sort(byOrder).map((t) => t.id);
+  return [
+    ...(ids.length ? [{ label: ids.length > 1 ? `Copy ${ids.length} To-Dos` : 'Copy To-Do', icon: 'copy', fn: () => copyTodos(ids) }] : []),
+    ...pasteIntoItems(`project:${h.projectId}:${h.id}`),
+  ];
+}
+/* a built-in list in the sidebar */
+function listMenu(key, at) {
+  const L = LISTS[key]; if (!L) return;
+  const go = () => { if (ui.view.type !== key) navigate(key); };
+  const items = [{ header: L.title }];
+  if (LIST_SECS[key]) items.push({ label: 'New To-Do', icon: 'plus', fn: () => { go(); newTodo(); } }, ...pasteIntoItems(LIST_SECS[key]));
+  if (key === 'upcoming') items.push({ label: 'New To-Do', icon: 'plus', fn: () => { go(); newTodo(); } });
+  if (key === 'board') { items.push(...boardsMenuItems()); openMenu(at, items); return; }
+  if (key === 'logbook') items.push({ label: 'Log Completed Now', icon: 'logbook', fn: logCompletedNow });
+  if (key === 'trash') items.push({ label: 'Empty Trash…', icon: 'trash', danger: true, fn: () => { go(); emptyTrash(); } });
+  if (BOARD_LISTS.includes(key)) items.push(...boardMenuItems('l', key, false, at));
+  if (key !== 'trash') items.push({ label: 'Share List…', icon: 'share', fn: () => { go(); openShare({ type: 'view' }); } });
+  if (!['trash', 'logbook'].includes(key)) items.push({ label: 'Status Report…', icon: 'report', fn: () => { go(); openReport({ type: 'all' }); } });
+  openMenu(at, items);
+}
+/* a tag in the tag bar */
+function tagChipMenu(tag, at) {
+  const on = ui.tagFilter === tag.id;
+  openMenu(at, [
+    { header: tag.title },
+    on ? { label: 'Show All Tags', icon: 'x', fn: () => { ui.tagFilter = null; render(); } } : { label: 'Show Only This Tag', icon: 'tag', fn: () => { ui.tagFilter = tag.id; ui.sel.clear(); render(); } },
+    { label: 'Color…', icon: 'palette', fn: () => openTagColor(tag, at, (c) => { commit('Tag Color', () => { if (c) tag.color = c; else delete tag.color; }); render(); }) },
+    ...(!tagParent(tag) ? [{ label: 'Make It a Group', icon: 'layers', fn: () => setTagGroup(tag, true) }] : []),
+    { label: 'Manage Tags…', icon: 'edit', fn: openTagManager },
+  ]);
+}
+function dayMenu(sec, label, at) {
+  openMenu(at, [{ header: label }, { label: `New To-Do ${sec === 'evening' ? 'This Evening' : 'on ' + label}`, icon: 'plus', fn: () => newTodo({ sec }) }, ...pasteIntoItems(sec)]);
+}
+// a group in Deadlines (Overdue, Tomorrow, This Week…): move all its deadlines at once, or select them
+function deadlineGroupMenu(key, at) {
+  const g = deadlineGroups(deadlineItems().filter(matchesTagFilter)).find((x) => x.key === key);
+  if (!g) return;
+  const ids = g.items.filter((x) => x.status === 'open').map((x) => x.id);
+  if (!ids.length) return;
+  openMenu(at, [{ header: g.label },
+    { label: ids.length === 1 ? 'Change Deadline…' : `Change ${ids.length} Deadlines…`, icon: 'flag', fn: () => openWhen(ids, at, 'deadline') },
+    { label: ids.length === 1 ? 'Select It' : `Select All ${ids.length}`, icon: 'check', fn: () => { if (ui.editing) closeEditor({ noRender: true }); ui.sel = new Set(ids); ui.anchor = ids[0]; render(); } }]);
+}
+/* a text field keeps the system menu while you're working in it */
+const editingText = (el) => {
+  const f = el && el.closest && el.closest('textarea, input');
+  if (!f) return false;
+  return document.activeElement === f || f.selectionStart !== f.selectionEnd;
+};
+// a right-click focuses the field it lands on before the menu event, so note what was true just before
+let rcWasEditing = null;
+document.addEventListener('pointerdown', (e) => { rcWasEditing = e.button === 2 ? editingText(e.target) : null; }, true);
+document.addEventListener('contextmenu', (e) => {
+  if (isCoarse() || layers.length || (D.st && D.st.active) || !e.target.closest) return;
+  const t = e.target, at = { x: e.clientX, y: e.clientY };
+  const wasEditing = rcWasEditing != null ? rcWasEditing : editingText(t); rcWasEditing = null;
+  if (wasEditing || t.closest('a, .notes-view, .rename-in')) return;
+  const f = t.closest('textarea, input'); if (f && document.activeElement === f) f.blur(); // the menu, not typing
+  const take = (fn) => { e.preventDefault(); e.stopImmediatePropagation(); fn(); };
+  // the open to-do: a checklist item, or the to-do itself
+  const card = t.closest('#content .card[data-id]');
+  if (card) {
+    const ck = t.closest('.ck-item[data-ck]');
+    if (ck && getT(card.dataset.id)) return take(() => checklistMenu(card.dataset.id, ck.dataset.ck, at));
+    return take(() => todoMenu(card.dataset.id, at));
+  }
+  const note = t.closest('#notepad .np-card[data-note]');
+  if (note) return take(() => noteMenu(getNote(note.dataset.note), at));
+  const tchip = t.closest('#content .tagbar .tchip[data-tag]');
+  if (tchip && getTag(tchip.dataset.tag)) return take(() => tagChipMenu(getTag(tchip.dataset.tag), at));
+  const hr = t.closest('#content .hrow[data-heading]');
+  if (hr && getH(hr.dataset.heading)) return take(() => headingMenu(getH(hr.dataset.heading), at));
+  const sh = t.closest('#content .sub-h[data-zone^="project:"]');
+  if (sh) { const h = getH(sh.dataset.zone.split(':')[2]); if (h) return take(() => headingMenu(h, at)); }
+  const ghost = t.closest('#content [data-tpl]');
+  if (ghost && getT(ghost.dataset.tpl)) return take(() => todoMenu(ghost.dataset.tpl, at));
+  const day = t.closest('#content .day-h[data-zone^="upcoming:"]:not(.month)');
+  if (day) { const d = day.dataset.zone.slice(9); return take(() => dayMenu('upcoming:' + d, fmtDate(d), at)); }
+  const dlg = t.closest('#content .dl-h[data-dlg]');
+  if (dlg) return take(() => deadlineGroupMenu(dlg.dataset.dlg, at));
+  const eve = t.closest('#content [data-zone="evening"]');
+  if (eve && !t.closest('.row')) return take(() => dayMenu('evening', 'This Evening', at));
+  const named = t.closest('#content [data-nav^="project:"], #content [data-nav^="area:"], #notepad [data-nav^="project:"], #notepad [data-nav^="area:"]');
+  if (named && !t.closest('.row')) {
+    const [k, id] = named.dataset.nav.split(':');
+    if (k === 'project' && getP(id)) return take(() => projectMenu(getP(id), at));
+    if (k === 'area' && getA(id)) return take(() => areaMenu(getA(id), at));
+  }
+  if (t.closest('#content .lh')) {
+    const v = ui.view;
+    if (v.type === 'project' && getP(v.id)) return take(() => projectMenu(getP(v.id), at, batchMenuItems(at).length ? batchMenuItems(at) : (() => { const p = listPasteMenuItems(); return p.length ? [...p, { sep: 1 }] : []; })()));
+    if (v.type === 'area' && getA(v.id)) return take(() => areaMenu(getA(v.id), at, batchMenuItems(at)));
+    if (v.type === 'board') return take(() => openMenu(at, boardsMenuItems()));
+    return take(() => viewMenu(at));
+  }
+  const sb = t.closest('#sidebar .sb-item[data-nav]');
+  if (sb && !sb.dataset.kind) {
+    const key = sb.dataset.nav.split(':')[0]; // Board items are board:<id>
+    if (LISTS[key]) return take(() => listMenu(key, at));
+  }
+  const sm = t.closest('#sidebar .sb-item[data-kind="smart"]');
+  if (sm) { const sl = getSmart(sm.dataset.nav.split(':')[1]); if (sl) return take(() => openMenu(at, smartMenuItems(sl, at))); }
+  if (t.closest('#sidebar .fx-bar')) return take(() => openFocusMenu(at));
+}, true);
+
+/* clicks */
+document.addEventListener('click', (e) => {
+  if (!e.target.closest) return;
+  // the circle by a project's name: complete it (or reopen it), like a to-do's checkbox
+  const pie = e.target.closest('#content .lh .pie-lg');
+  if (pie && ui.view.type === 'project') {
+    const p = getP(ui.view.id);
+    if (p && !p.trashed && !p.isTemplate && !p.blueprint) { e.preventDefault(); if (p.status === 'open') completeProjectFlow(p, 'done'); else reopenProject(p); }
+    return;
+  }
+  // the faint box by "New checklist item" puts the cursor there
+  const nb = e.target.closest('#content .card .ck-item > span.ck-box');
+  if (nb) { const ta = nb.parentElement.querySelector('textarea'); if (ta) ta.focus(); }
+});
+// Double-click a sidebar project or area to rename it, a smart list to edit it. The first click
+// re-draws the sidebar, so the browser never sends a dblclick: two quick clicks on the same item count.
+let sbLastClick = null;
+function sbDouble(sb) {
+  const k = sb.dataset.kind, id = (sb.dataset.id || (sb.dataset.nav || '').split(':')[1]);
+  if (k === 'project' && getP(id)) { startRename('p', id); return true; }
+  if (k === 'area' && getA(id)) { startRename('a', id); return true; }
+  if (k === 'smart' && getSmart(id)) { openSmartEditor(getSmart(id)); return true; }
+  return false;
+}
+document.addEventListener('click', (e) => {
+  if (isCoarse() || !e.target.closest || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) { sbLastClick = null; return; }
+  const sb = e.target.closest('#sidebar .sb-item[data-kind]');
+  if (!sb) { sbLastClick = null; return; }
+  const key = sb.dataset.kind + ':' + (sb.dataset.id || sb.dataset.nav || ''), now = Date.now();
+  if (sbLastClick && sbLastClick.key === key && now - sbLastClick.t < 450) {
+    sbLastClick = null;
+    if (sbDouble(sb)) { e.preventDefault(); e.stopPropagation(); }
+    return;
+  }
+  sbLastClick = { key, t: now };
+}, true);
 
 /* ===================== Start ===================== */
 init();

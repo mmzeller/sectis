@@ -34,7 +34,7 @@ function viewDeadlines() {
   let html = '';
   deadlineGroups(items).forEach((g) => {
     const n = g.items.filter((x) => x.status === 'open').length;
-    html += `<div class="sec-h dl-h${g.key === 'overdue' ? ' overdue' : ''}"><span>${esc(g.label)}</span>${n ? `<span class="sec-n">${n}</span>` : ''}</div>` + secHTML('deadlines', g.items, { parent: true, when: true });
+    html += `<div class="sec-h dl-h${g.key === 'overdue' ? ' overdue' : ''}" data-dlg="${esc(g.key)}"><span>${esc(g.label)}</span>${n ? `<span class="sec-n">${n}</span>` : ''}</div>` + secHTML('deadlines', g.items, { parent: true, when: true });
   });
   return headerHTML('deadlines', sub) + tagBarHTML(all) + `<div class="list">${html}</div>` +
     (all.length ? '' : emptyHTML('flag', 'No deadlines', 'Give a to-do or a project a deadline (press D) and it shows up here, soonest first.'));

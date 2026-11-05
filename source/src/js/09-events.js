@@ -114,6 +114,7 @@ function handleAction(act, el, e) {
     case 'lcol-add': listColAdd(el.dataset.col); return;
     case 'board-switch': openMenu(el, boardsMenuItems()); return;
     case 'board-add': openBoardPicker(el); return;
+    case 'board-tl': toggleBoardTimeline(); return;
     case 'board-add-below': openBoardPicker(el, { below: el.dataset.col }); return;
     case 'sort-menu': openSortMenu(el); return;
     case 'waiting': openWaiting([id], el); return;
@@ -187,6 +188,8 @@ function todoMenu(id, el) {
   } else {
     if (t.status !== 'open') items.push(completedMenuItem([id], el), { sep: 1 });
     items.push({ label: 'When…', icon: 'calendar', hint: 'S', fn: () => openWhen([id], el) });
+    items.push({ label: t.deadline ? `Deadline: ${fmtDate(t.deadline, { weekday: false })}…` : 'Deadline…', icon: 'flag', hint: 'D', fn: () => openWhen([id], el, 'deadline') });
+    if (t.deadline) items.push({ label: 'Remove Deadline', icon: 'x', fn: () => applyDeadline([id], null) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
     items.push(priorityMenuItem([id], el));
@@ -234,6 +237,7 @@ function projectMenu(p, el, extra = []) {
     openMenu(el, items); return;
   }
   if (p.status === 'open') {
+    items.push({ label: 'New To-Do', icon: 'plus', hint: isColMenu(extra) ? '' : 'N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newTodo(); } }, ...pasteIntoItems(`project:${p.id}:`), { sep: 1 });
     items.push({ label: 'Complete Project', icon: 'check', fn: () => completeProjectFlow(p, 'done') });
     items.push({ label: 'When…', icon: 'calendar', fn: () => openWhen([p.id], el) });
     items.push({ label: 'Deadline…', icon: 'flag', fn: () => openWhen([p.id], el, 'deadline') });
@@ -272,6 +276,8 @@ function areaMenu(a, el, extra = []) {
     renameMenuItem('a', a.id),
     colorMenuItem('a', a, el),
     ...(isMobile() ? [selectModeItem(), { sep: 1 }] : []),
+    { label: 'New To-Do in Area', icon: 'plus', fn: () => { if (!(ui.view.type === 'area' && ui.view.id === a.id)) navigate('area:' + a.id); newTodo({ sec: `area:${a.id}` }); } },
+    ...pasteIntoItems(`area:${a.id}`),
     { label: 'New Project in Area', icon: 'project', fn: () => newProject(a.id) },
     ...(isMobile() ? [] : [{ label: 'Open as Board', icon: 'columns', fn: () => areaAsBoard(a) }]),
     ...boardMenuItems('a', a.id, isColMenu(extra), el),
@@ -298,6 +304,7 @@ function headingMenu(h, el, extra = []) {
   openMenu(el, [
     ...moves,
     ...extra,
+    ...headingClipItems(h),
     { label: 'New To-Do Here', icon: 'plus', fn: () => { const sec = `project:${h.projectId}:${h.id}`; const first = S.todos.filter((t) => t.headingId === h.id && !t.trashed).sort(byOrder)[0]; newTodo({ sec, place: { order: first ? first.order - 1 : 0 } }); } },
     { label: 'Move to Project…', icon: 'move', fn: () => openMove([], el, { heading: true, onPick: (t) => { if (t.type === 'project') moveHeading(h, t.id); } }) },
     { label: 'Convert to Project', icon: 'project', fn: () => headingToProject(h) },
@@ -380,6 +387,7 @@ function viewMenu(el) {
     const n = boardCols().length;
     openMenu(el, [...batch,
       ...boardsMenuItems(), { sep: 1 },
+      { label: curBoard().tl ? 'Hide Timeline' : 'Show Timeline', icon: 'timeline', fn: toggleBoardTimeline },
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
       { label: 'Fit All Sizes Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w || c.h), fn: resetAllSizes },
       sortMenuItem(el),

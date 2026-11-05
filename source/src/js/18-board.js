@@ -16,7 +16,7 @@ function loadBoard() {
   loadCkClip();
   let saved = null;
   try { saved = JSON.parse(lsGet('sectis.boards') || 'null'); } catch (e) { saved = null; }
-  if (saved && Array.isArray(saved.list) && saved.list.length) ui.boards = saved.list.filter((b) => b && b.id).map((b) => ({ id: b.id, name: b.name || 'Board', area: b.area || null, cols: cleanCols(b.cols) }));
+  if (saved && Array.isArray(saved.list) && saved.list.length) ui.boards = saved.list.filter((b) => b && b.id).map((b) => ({ id: b.id, name: b.name || 'Board', area: b.area || null, tl: !!b.tl, cols: cleanCols(b.cols) }));
   if (!ui.boards || !ui.boards.length) { // the one Board from before there were several
     let cols = []; try { cols = JSON.parse(lsGet('sectis.board') || '[]'); } catch (e) { cols = []; }
     ui.boards = [{ id: 'main', name: 'Board', area: null, cols: cleanCols(cols) }];
@@ -216,10 +216,11 @@ function boardMenuItems(t, id, fromColumn, el) {
 /* ---- view ---- */
 function viewBoard() {
   const stacks = boardStacks();
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><textarea class="lh-title board-name" data-edit="board-name" data-fkey="board-name" placeholder="Board" aria-label="Board name" autocomplete="off" rows="1" data-autosize data-oneline>${esc(curBoard().name)}</textarea><button class="ib board-switch" data-action="board-switch" aria-label="Boards" title="Switch, add or rename Boards">${ic('chevD')}</button><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-board)">${I.columns}</span><textarea class="lh-title board-name" data-edit="board-name" data-fkey="board-name" placeholder="Board" aria-label="Board name" autocomplete="off" rows="1" data-autosize data-oneline>${esc(curBoard().name)}</textarea><button class="ib board-switch" data-action="board-switch" aria-label="Boards" title="Switch, add or rename Boards">${ic('chevD')}</button><button class="ib board-tl${curBoard().tl ? ' on' : ''}" data-action="board-tl" aria-pressed="${!!curBoard().tl}" aria-label="Timeline" title="${curBoard().tl ? 'Hide' : 'Show'} the Timeline above the columns">${ic('timeline')}</button><button class="btn board-add" data-action="board-add">${ic('plus')}<span>Add Column</span></button><button class="ib" data-action="view-menu" aria-label="Board options" title="Board options">${ic('more')}</button></div>`;
   const hidden = colsOutsideFocus();
   if (hidden) html += `<div class="lh-sub fx-hidden">${hidden === 1 ? '1 column is' : hidden + ' columns are'} outside the ${esc(focusTitle(ui.focusRec))} focus. <button class="link-btn" data-focus="">Show All Areas</button></div>`;
   if (!stacks.length && hidden) return html;
+  if (stacks.length && curBoard().tl) html += boardTimelineHTML();
   if (!stacks.length) {
     return html + emptyHTML('columns', 'See your lists side by side',
       'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');

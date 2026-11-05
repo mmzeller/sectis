@@ -56,9 +56,9 @@ function pasteChecklist(ids, titles = clipTitles()) {
   toast(into > 1 ? `Added the checklist to ${into} to-dos` : `Added ${plural(added, 'checklist item')}`, { undo: true });
 }
 /* copies of to-dos (or plain titles) after the selected to-do, or into this list */
-function pasteTodos(src) {
+function pasteTodos(src, opts = {}) {
   if (!src || !src.length) return;
-  const spot = newTodoSpot({}, src.length);
+  const spot = newTodoSpot(opts, src.length);
   if (spot.closed) { toast('Reopen the project to add to-dos'); return; }
   if (spot.qe) { toast('Open a list or project to paste into'); return; }
   const at = (v, i) => (Array.isArray(v) ? v[i] : v);
@@ -81,10 +81,16 @@ function pasteTodos(src) {
   toast(`Pasted ${plural(made.length, 'to-do')}`, { undo: true });
 }
 /* ⌘V or Paste: whatever's on the clipboard, into the list (to-dos) */
-function pasteClipHere() {
+function pasteClipHere(opts = {}) {
   if (!ui.clip) return;
-  if (ui.clip.kind === 'todos') pasteTodos(ui.clip.items);
-  else pasteTodos(ui.clip.items.slice());
+  if (ui.clip.kind === 'todos') pasteTodos(ui.clip.items, opts);
+  else pasteTodos(ui.clip.items.slice(), opts);
+}
+/* Paste into a named place (a project, area, heading or day), for its menus */
+function pasteIntoItems(sec) {
+  if (!ui.clip) return [];
+  const n = ui.clip.items.length;
+  return [{ label: ui.clip.kind === 'todos' ? (n > 1 ? `Paste ${n} To-Dos Here` : 'Paste To-Do Here') : `Paste Checklist Here as ${n > 1 ? n + ' To-Dos' : 'a To-Do'}`, icon: 'paste', fn: () => pasteClipHere({ sec }) }];
 }
 
 /* menu items for one to-do or several selected */

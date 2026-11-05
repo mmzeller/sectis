@@ -95,20 +95,20 @@ function tlDateText(e) {
   if (e.dl) return e.late ? deadlineInfo(e.dl).text : fmtRel(e.dl);
   return 'Starts ' + fmtRel(e.st);
 }
-function tlTrackHTML(e, r) {
+function tlTrackHTML(e, r, opts = {}) {
   const idx = (d) => diffDays(r.from, d), last = r.days - 1;
   const x = e.x, col = tlColor(x), style = col ? `;--tlc:${col}` : '';
   const tip = esc(`${x.title || (x.type === 'project' ? 'New Project' : 'New To-Do')}: ${e.dl ? `deadline ${fmtDate(e.dl)}` : ''}${e.st && (!e.dl || e.st < e.dl) ? `${e.dl ? ', ' : ''}starts ${fmtDate(e.st)}` : ''}${e.implicit ? `, made ${fmtDate(e.a)}` : ''}`);
-  if (e.overdue) return `<button class="tl-od" data-tl-item style="left:2px" title="${tip}">${ic('chevL')}<span>${esc(fmtDate(e.dl, { weekday: false }))}</span></button>`;
-  const label = (n, cls = '') => (ui.tl.zoom === 'quarter' ? '' : n > last - 3 ? `<span class="tl-dt left ${cls}" style="right:calc(100% - ${tlAt(n)} + 2px)">${esc(tlDateText(e))}</span>` : `<span class="tl-dt ${cls}" style="left:${tlAt(n + 1)}">${esc(tlDateText(e))}</span>`);
+  if (e.overdue) return `<button class="tl-od" data-tl-item data-tlid="${x.id}" style="left:2px" title="${tip}">${ic('chevL')}<span>${esc(fmtDate(e.dl, { weekday: false }))}</span></button>`;
+  const label = (n, cls = '') => (ui.tl.zoom === 'quarter' || opts.nolabel ? '' : n > last - 3 ? `<span class="tl-dt left ${cls}" style="right:calc(100% - ${tlAt(n)} + 2px)">${esc(tlDateText(e))}</span>` : `<span class="tl-dt ${cls}" style="left:${tlAt(n + 1)}">${esc(tlDateText(e))}</span>`);
   const bi = idx(e.b);
   if (e.a < e.b) {
     const ai = idx(e.a), L = Math.max(0, ai), R = Math.min(last, bi), done = x.type === 'project' ? projectProgress(x).frac : x.status !== 'open' ? 1 : 0;
     const handles = (ai >= 0 && !e.implicit ? '<i class="tl-hd s" data-tl-drag="start" title="Drag to change the start date"></i>' : '') + (bi <= last ? '<i class="tl-hd e" data-tl-drag="end" title="Drag to change the deadline"></i>' : '');
-    return `<div class="tl-bar${e.implicit ? ' soft' : ''}${ai < 0 ? ' cut-l' : ''}${bi > last ? ' cut-r' : ''}${e.late ? ' late' : ''}" data-tl-item data-tl-drag="${e.implicit ? 'end' : 'move'}" data-l="${L}" data-w="${R - L + 1}" style="left:${tlAt(L)};width:${tlAt(R - L + 1)}${style}" title="${tip}"><i class="tl-fill" style="width:${Math.round(done * 100)}%"></i>${handles}${bi <= last && e.dl ? `<span class="tl-flag">${I.flag}</span>` : ''}</div>${bi <= last ? label(bi, 'b') : ''}`;
+    return `<div data-tlid="${x.id}" class="tl-bar${e.implicit ? ' soft' : ''}${ai < 0 ? ' cut-l' : ''}${bi > last ? ' cut-r' : ''}${e.late ? ' late' : ''}" data-tl-item data-tl-drag="${e.implicit ? 'end' : 'move'}" data-l="${L}" data-w="${R - L + 1}" style="left:${tlAt(L)};width:${tlAt(R - L + 1)}${style}" title="${tip}"><i class="tl-fill" style="width:${Math.round(done * 100)}%"></i>${handles}${bi <= last && e.dl ? `<span class="tl-flag">${I.flag}</span>` : ''}</div>${bi <= last ? label(bi, 'b') : ''}`;
   }
   const kind = e.dl ? 'dl' : 'st';
-  return `<button class="tl-mk ${kind}${e.late ? ' late' : ''}${x.status !== 'open' ? ' done' : ''}" data-tl-item data-tl-drag="${e.dl ? 'end' : 'start'}" data-l="${bi}" style="left:${tlAt(bi + 0.5)}${style}" title="${tip}">${e.dl ? I.flag : ''}</button>${label(bi)}`;
+  return `<button data-tlid="${x.id}" class="tl-mk ${kind}${e.late ? ' late' : ''}${x.status !== 'open' ? ' done' : ''}" data-tl-item data-tl-drag="${e.dl ? 'end' : 'start'}" data-l="${bi}" style="left:${tlAt(bi + 0.5)}${style}" title="${tip}">${e.dl ? I.flag : ''}</button>${label(bi)}`;
 }
 function tlRowHTML(e, kind, depth) {
   const x = e.x, done = x.status !== 'open';
@@ -170,8 +170,9 @@ function viewTimeline() {
 }
 
 /* ---- clicks: zoom, paging, names, checkboxes ---- */
+const tlHere = () => ui.view.type === 'timeline' || (ui.view.type === 'board' && !!(curBoard() || {}).tl);
 document.addEventListener('click', (e) => {
-  if (ui.view.type !== 'timeline' || !e.target.closest) return;
+  if (!tlHere() || !e.target.closest) return;
   const z = e.target.closest('#content [data-tlzoom]');
   if (z) { ui.tl.zoom = z.dataset.tlzoom; ui.tl.off = 0; saveTimeline(); render(); return; }
   const n = e.target.closest('#content [data-tlnav]');
@@ -183,10 +184,10 @@ document.addEventListener('click', (e) => {
   // a flag or bar clicked without dragging: its dates. (On the click, not the pointer coming up,
   // so a phone's tap doesn't land on the menu that just opened under the finger.)
   const it = e.target.closest('#content [data-tl-item]');
-  if (it && !tlNoClick) tlItemMenu(it.closest('[data-tlid]').dataset.tlid, it);
+  if (it && !tlNoClick) tlItemMenu(it.dataset.tlid || it.closest('[data-tlid]').dataset.tlid, it);
 });
 document.addEventListener('contextmenu', (e) => {
-  const row = ui.view.type === 'timeline' && e.target.closest && e.target.closest('#content .tl-row[data-tlid]');
+  const row = tlHere() && e.target.closest && (e.target.closest('#content .tl [data-tl-item][data-tlid]') || e.target.closest('#content .tl-row[data-tlid]'));
   if (!row || layers.length) return;
   e.preventDefault(); tlItemMenu(row.dataset.tlid, { x: e.clientX, y: e.clientY });
 });
@@ -204,7 +205,7 @@ function tlItemMenu(id, anchor) {
 /* ---- dragging dates ---- */
 let tlDrag = null, tlNoClick = false;
 document.addEventListener('pointerdown', (e) => {
-  if (ui.view.type !== 'timeline' || (e.pointerType === 'mouse' && e.button !== 0) || layers.length) return;
+  if (!tlHere() || (e.pointerType === 'mouse' && e.button !== 0) || layers.length) return;
   const h = e.target.closest && e.target.closest('#content [data-tl-drag]'); if (!h) return;
   const row = h.closest('[data-tlid]'), x = row && itemById(row.dataset.tlid); if (!x) return;
   const el = h.closest('[data-tl-item]') || h, tl = h.closest('.tl');
@@ -261,7 +262,7 @@ if (window.ResizeObserver) {
   try {
     new ResizeObserver(debounce(() => {
       const w = $('#main').clientWidth;
-      if (ui.view.type === 'timeline' && Math.abs(w - tlW) > 2 && !tlDrag && !layers.length) { tlW = w; render(); } else tlW = w;
+      if (tlHere() && Math.abs(w - tlW) > 2 && !tlDrag && !layers.length) { tlW = w; render(); } else tlW = w;
     }, 80)).observe($('#main'));
   } catch (e) { /* the window's resize event still redraws */ }
 }
@@ -274,4 +275,58 @@ function timelineExport(B, f) {
     if (wk !== cur) { cur = wk; B.push({ h: 2, text: wk }); }
     B.push({ item: e.x });
   });
+}
+
+/* ---- the Board's Timeline: a band across the top of a Board, for what's on that Board ----
+   One row per project on it (a project column, or a project in an area column), with its
+   deadline bar and its to-dos' deadlines as flags on the same row; an area's own to-dos; and a
+   list, tag or smart-list column's to-dos with deadlines. Same span, paging, dragging and
+   menus as the Timeline. Each Board remembers whether it shows one (the Timeline button). */
+function toggleBoardTimeline() { const b = curBoard(); b.tl = !b.tl; saveBoard(); render(); }
+function boardTimelineRows(r) {
+  const rows = [], seen = new Set();
+  const live = (t) => liveTodo(t) && inLiveProject(t) && inFocus(t) && matchesTagFilter(t);
+  const entries = (list) => list.map((t) => tlEntry(t, r)).filter(Boolean).sort(tlSort);
+  const addProject = (p) => {
+    if (!p || seen.has(p.id) || !liveProject(p)) return; seen.add(p.id);
+    const pe = tlEntry(p, r), kids = entries(S.todos.filter((t) => t.projectId === p.id && live(t)));
+    if (pe || kids.length) rows.push({ x: p, label: pTitle(p), icon: projIc(p, 'tl-ic'), open: `data-tl-open="${p.id}"`, main: pe, kids, key: pe ? pe.b : kids[0].b });
+  };
+  boardCols().forEach((c) => {
+    if (c.t === 'p') addProject(getP(c.id));
+    else if (c.t === 'a') {
+      const a = getA(c.id); if (!a) return;
+      const own = entries(S.todos.filter((t) => t.areaId === a.id && !t.projectId && live(t)));
+      if (own.length) rows.push({ x: null, label: aTitle(a), icon: placeColor(a) ? areaIc(a, 'tl-ic') : ic('area', 'tl-ic'), open: `data-nav="area:${a.id}"`, main: null, kids: own, key: own[0].b });
+      S.projects.filter((p) => p.areaId === a.id && liveProject(p)).sort(byOrder).forEach(addProject);
+    } else {
+      const items = entries(S.todos.filter((t) => live(t) && t.deadline && colHas(c, t)));
+      if (items.length) rows.push({ x: null, label: colName(c.t, c.id), icon: c.t === 'l' ? `<span class="ic tl-ic" style="color:${LISTS[c.id].color}">${I[LISTS[c.id].icon]}</span>` : c.t === 't' ? ic('tag', 'tl-ic tc-ic ' + tcls(getTag(c.id))) : `<span class="ic tl-ic" style="color:var(--c-smart)">${I.funnel}</span>`, open: `data-nav="${c.t === 'l' ? c.id : (c.t === 't' ? 'tag:' : 'smart:') + c.id}"`, main: null, kids: items, key: items[0].b });
+    }
+  });
+  return rows;
+}
+function boardTimelineHTML() {
+  const r = tlRange(), L = tlLayout(r), rows = boardTimelineRows(r);
+  const T = T0(), ws = (S && S.settings.weekStart) || 0, days = Array.from({ length: r.days }, (_, i) => addDays(r.from, i)), cy = pd(T).getFullYear();
+  let months = '', i0 = 0, scale = '', bg = '';
+  days.forEach((d, i) => {
+    if (i === r.days - 1 || days[i + 1].slice(0, 7) !== d.slice(0, 7)) { const dd = pd(d), n = i - i0 + 1; months += `<div class="tl-mon" style="left:${tlAt(i0)};width:${tlAt(n)}"><span>${n * L.dw >= 70 ? MONTHS[dd.getMonth()] : MON[dd.getMonth()]}${dd.getFullYear() !== cy && n * L.dw >= 90 ? ' ' + dd.getFullYear() : ''}</span></div>`; i0 = i + 1; }
+    const w = dow(d), we = w === 0 || w === 6, today = d === T;
+    if (ui.tl.zoom === 'quarter') { if (w === ws) scale += `<div class="tl-wk${d <= T && T < addDays(d, 7) ? ' now' : ''}" style="left:${tlAt(i)};width:${tlAt(7)}"><span>${pd(d).getDate()}</span></div>`; }
+    else scale += `<div class="tl-day${we ? ' we' : ''}${today ? ' today' : ''}" style="left:${tlAt(i)}">${L.dw >= 26 ? `<b>${L.dw >= 44 ? WD[w] : WD[w].slice(0, 2)}</b>` : L.dw >= 18 ? `<b>${WD[w][0]}</b>` : ''}${L.dw >= 18 || w === ws || today ? `<span>${pd(d).getDate()}</span>` : ''}</div>`;
+    if (we && ui.tl.zoom !== 'quarter') bg += `<i class="tl-we" style="left:${tlAt(i)}"></i>`;
+    if (i && (w === ws || d.slice(8) === '01')) bg += `<i class="tl-wl${d.slice(8) === '01' ? ' m' : ''}" style="left:${tlAt(i)}"></i>`;
+  });
+  const ti = diffDays(r.from, T); if (ti >= 0 && ti < r.days) bg += `<i class="tl-now" style="left:${tlAt(ti)}"></i>`;
+  const body = rows.map((row) => {
+    const track = (row.main ? tlTrackHTML(row.main, r) : '') + row.kids.map((e) => tlTrackHTML(e, r, { nolabel: true })).join('');
+    return `<div class="tl-row tl-proj"${row.x ? ` data-tlid="${row.x.id}"` : ''}><div class="tl-lab">${row.icon}<button class="tl-name" ${row.open} title="${esc(row.label)}">${esc(row.label)}</button></div><div class="tl-track">${track}</div></div>`;
+  }).join('');
+  const zoomSeg = `<div class="seg tl-zoom" role="group" aria-label="Time span">${Object.entries(TL_ZOOM).map(([k, z]) => `<button data-tlzoom="${k}" class="${ui.tl.zoom === k ? 'on' : ''}" aria-pressed="${ui.tl.zoom === k}">${z.label}</button>`).join('')}</div>`;
+  const nav = `<div class="tl-nav"><button class="ib" data-tlnav="-1" aria-label="Earlier" title="Earlier">${ic('chevL')}</button><button class="btn tl-today${ui.tl.off ? '' : ' at'}" data-tlnav="0">Today</button><button class="ib" data-tlnav="1" aria-label="Later" title="Later">${ic('chevR')}</button></div>`;
+  return `<section class="tl-band" aria-label="Timeline for this Board"><div class="tl-band-h"><span class="ic" style="color:var(--c-timeline)">${I.timeline}</span><b>Timeline</b><span class="tl-band-r">${esc(fmtDate(r.from, { weekday: false }))} – ${esc(fmtDate(r.to, { weekday: false }))}</span><span class="spacer"></span><div class="tl-band-ctl">${zoomSeg}${nav}</div><button class="ib tl-band-x" data-action="board-tl" aria-label="Hide the Timeline" title="Hide the Timeline">${ic('chevU')}</button></div>`
+    + (body ? `<div class="tl-wrap" data-hscroll="board-tl" data-vscroll="board-tl"><div class="tl z-${ui.tl.zoom}${L.stack ? ' stack' : ''}" style="--dw:${L.dw}px;--lw:${L.lw}px;--days:${r.days};--vw:${Math.round(L.vw)}px"><div class="tl-head"><div class="tl-lab tl-corner"></div><div class="tl-scale"><div class="tl-months">${months}</div><div class="tl-days">${scale}</div></div></div><div class="tl-body"><div class="tl-bg" aria-hidden="true">${bg}</div>${body}</div></div></div>`
+      : `<p class="tl-band-empty">Nothing on this Board has a deadline between ${esc(fmtDate(r.from, { weekday: false }))} and ${esc(fmtDate(r.to, { weekday: false }))}.</p>`)
+    + `</section>`;
 }

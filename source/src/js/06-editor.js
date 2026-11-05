@@ -85,8 +85,13 @@ function newTodo(opts = {}) {
    { qe: true } means this list takes no new to-dos (Quick Entry instead); { closed: true }
    means the project is done or in the Trash. */
 function newTodoSpot(opts = {}, n = 1) {
-  if (['logbook', 'trash', 'waiting', 'timeline', 'templates'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) return { qe: true };
-  if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) return { closed: true }; }
+  if (opts.sec) { // a place named outright (a menu's New To-Do or Paste): the list on screen doesn't matter
+    const [st, sid] = opts.sec.split(':'); const tp = st === 'project' && getP(sid);
+    if (tp && (tp.trashed || tp.status !== 'open')) return { closed: true };
+  } else {
+    if (['logbook', 'trash', 'waiting', 'timeline', 'templates'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) return { qe: true };
+    if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) return { closed: true }; }
+  }
   const one = (arr) => (n === 1 ? arr[0] : arr);
   // A selected project row (an area's projects, an area's column on the Board, Today…) takes the new
   // to-do, wherever the row is. An expandable row opens so the new to-do shows under it.
