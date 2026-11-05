@@ -356,6 +356,8 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .btn:disabled { opacity: .45; cursor: default; }
 
 .pk-h { font-weight: 650; text-align: center; padding: 4px 0 8px; }
+.pick-grp { padding: 9px 10px 3px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.pick-grp:first-child { padding-top: 3px; }
 .pk-in, .field { width: 100%; padding: 7px 10px; border-radius: 8px; background: var(--hover); }
 .pk-hint { min-height: 18px; font-size: 12px; color: var(--accent); padding: 4px 10px 2px; }
 .pk-hint.bad { color: var(--muted); }
@@ -466,7 +468,7 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 /* Tag manager */
 .tm-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .tm-row input.field { flex: 1; min-width: 0; padding: 5px 8px; }
-.tm-row select { padding: 5px 6px; border-radius: 8px; background: var(--hover); border: 0; max-width: 40%; }
+.tm-row select { padding: 5px 6px; border-radius: 8px; background: var(--hover); border: 0; max-width: 34%; font-size: 12.5px; }
 .tm-row .ib.del-armed { color: #fff; background: var(--red); width: auto; padding: 0 8px; font-size: 12px; font-weight: 600; }
 .tm-modal .modal-h .btn { flex: none; }
 .modal.narrow.tm-modal { width: min(440px, calc(100vw - 32px)); }
@@ -482,6 +484,10 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .sw-auto-i .check { margin-left: auto; }
 .sw-auto-i .check .ic { color: var(--accent); }
 .tm-kids { margin-left: 18px; }
+.tm-row.tm-grow { margin-top: 6px; }
+.tm-row input.field.tm-gname { font-weight: 700; }
+.tm-badge { flex: none; padding: 2px 8px; border-radius: 999px; background: var(--hover); color: var(--muted); font-size: 11.5px; font-weight: 650; letter-spacing: .02em; }
+.tm-row .ib[data-tm-more] { flex: none; }
 .tm-grp.tm-dragging { position: relative; z-index: 2; background: var(--pop); border-radius: 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, .14); }
 .tm-grip { flex: none; width: 18px; height: 28px; margin-right: -4px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); opacity: .45; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity .12s; }
 .tm-grip .ic { width: 14px; height: 14px; }

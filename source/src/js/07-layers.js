@@ -167,11 +167,18 @@ function openTagPicker(ids, anchor, kind = 'item') {
   const targets = () => kind === 'area' ? ids.map(getA).filter(Boolean) : itemsFor(ids);
   const build = (q = '') => {
     const ql = q.trim().toLowerCase();
-    const rows = tagTree().filter((n) => !ql || n.tag.title.toLowerCase().includes(ql)).map((n) => {
+    // groups are headings: shown when one of their tags is, and typing a group's name shows all of its tags
+    const tree = tagTree(), groupOf = (tag) => { let p = tag, g = 0; while (p && !p.group && p.parentId && g++ < 8) p = getTag(p.parentId); return p && p.group ? p : null; };
+    const hit = (n) => !ql || n.tag.title.toLowerCase().includes(ql) || (groupOf(n.tag) && groupOf(n.tag).title.toLowerCase().includes(ql));
+    const shown = tree.filter((n) => !n.tag.group && hit(n)), withGroups = new Set(shown.map((n) => groupOf(n.tag)).filter(Boolean).map((g) => g.id));
+    // tags outside any group first, then each group under its heading, so a heading's tags are clearly its own
+    const order = tree.filter((n) => !groupOf(n.tag)).concat(tree.filter((n) => groupOf(n.tag)));
+    const rows = order.filter((n) => (n.tag.group ? withGroups.has(n.tag.id) : shown.includes(n))).map((n) => {
+      if (n.tag.group) return `<div class="pick-grp" role="presentation">${esc(n.tag.title)}</div>`;
       const ts = targets(); const count = ts.filter((x) => x.tags.includes(n.tag.id)).length;
       return `<button class="pick-i" data-tag="${n.tag.id}" style="padding-left:${10 + n.depth * 16}px">${ic('tag', 'tc-ic ' + tcls(n.tag))}<span>${esc(n.tag.title)}</span>${count === ts.length && count ? `<span class="check">${ic('check')}</span>` : count ? '<span class="partial">–</span>' : ''}</button>`;
     }).join('');
-    const exact = S.tags.some((t) => t.title.toLowerCase() === ql);
+    const exact = S.tags.some((t) => t.title.toLowerCase() === ql); // a group's name too: no tag of the same name
     return rows + (ql && !exact ? `<button class="pick-i" data-new="1">${ic('plus')}<span>Create tag “${esc(q.trim())}”</span></button>` : '') + (!rows && !ql ? '<p class="note" style="padding:6px 10px">No tags yet. Type a name to create one.</p>' : '');
   };
   const L = openLayer({ anchor, cls: 'tags-pop', html: `<div class="pk-h">Tags</div><input class="pk-in" id="tg-in" placeholder="Find or create a tag" autocomplete="off" aria-label="Tag name"><div class="pick-list" id="tg-list">${build()}</div><div class="pk-sep"></div><button class="menu-i" data-manage="1">${ic('edit')}<span>Manage Tags…</span></button>`,
@@ -189,7 +196,8 @@ function openTagPicker(ids, anchor, kind = 'item') {
         if (e.key !== 'Enter' || $('.pick-i.kbd', el)) return; e.preventDefault();
         const q = inp.value.trim(); if (!q) { closeLayer(L); return; }
         const exact = S.tags.find((t) => t.title.toLowerCase() === q.toLowerCase());
-        if (exact) toggle(exact.id); else { let t; commit('New Tag', () => { t = findOrCreateTag(q); }, { render: false }); toggle(t.id); }
+        if (exact && exact.group) { toast(`“${exact.title}” is a group. Pick one of its tags.`); return; }
+        if (exact) toggle(exact.id); else { let t; commit('New Tag', () => { t = findOrCreateTag(q); }, { render: false }); if (t) toggle(t.id); }
         inp.value = ''; refresh();
       });
       el.addEventListener('click', (e) => {

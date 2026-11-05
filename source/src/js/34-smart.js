@@ -126,7 +126,7 @@ async function deleteSmart(sl) {
 function openSmartEditor(sl = null) {
   const st = { title: sl ? sl.title || '' : '', f: JSON.parse(JSON.stringify(smartFilter(sl))), group: (sl && sl.group) || 'place', q: '' };
   const seg = (key, opts, val) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button type="button" data-k="${key}" data-v="${v}" class="${String(val) === String(v) ? 'on' : ''}" aria-pressed="${String(val) === String(v)}">${l}</button>`).join('')}</div>`;
-  const tagChips = () => tagTree().map(({ tag, depth }) => `<button type="button" class="sm-chip tagc ${tcls(tag)}${st.f.tags.includes(tag.id) ? ' on' : ''}" data-tag="${tag.id}" aria-pressed="${st.f.tags.includes(tag.id)}">${depth ? '<span class="sm-nest">›</span>' : ''}<span class="sm-dot"></span>${esc(tag.title)}</button>`).join('') || '<span class="note">No tags yet.</span>';
+  const tagChips = () => tagTree().map(({ tag, depth }) => `<button type="button" class="sm-chip tagc ${tcls(tag)}${st.f.tags.includes(tag.id) ? ' on' : ''}" data-tag="${tag.id}" aria-pressed="${st.f.tags.includes(tag.id)}">${depth ? '<span class="sm-nest">›</span>' : ''}<span class="sm-dot"></span>${tag.group ? `Any in ${esc(tag.title)}` : esc(tag.title)}</button>`).join('') || '<span class="note">No tags yet.</span>';
   const placeChips = () => {
     const ql = st.q.trim().toLowerCase(), m = (s) => !ql || s.toLowerCase().includes(ql);
     const chip = (k, label, icon) => `<button type="button" class="sm-chip${st.f.places.includes(k) ? ' on' : ''}" data-place="${k}" aria-pressed="${st.f.places.includes(k)}">${icon}<span>${esc(label)}</span></button>`;

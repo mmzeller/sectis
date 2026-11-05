@@ -11,7 +11,7 @@ function findResults(q, includeLog) {
     if (!words.length ? p.status === 'open' && p.start !== 'someday' && !p.isTemplate : m(pTitle(p), p.notes)) out.push({ g: 'Projects', kind: 'project', key: 'project:' + p.id, title: pTitle(p), pie: projectProgress(p).frac, sub: [areaOf(p) ? aTitle(areaOf(p)) : '', p.blueprint ? 'Template' : p.isTemplate ? 'Repeating' : '', p.status !== 'open' ? 'Completed' : ''].filter(Boolean).join(' · ') });
   });
   if (words.length) {
-    tagTree().forEach(({ tag }) => { if (m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: `var(--t-${tagColor(tag)})` }); });
+    tagTree().forEach(({ tag }) => { if (!tag.group && m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: `var(--t-${tagColor(tag)})` }); });
     let n = 0;
     S.todos.filter((t) => !t.trashed && !t.isDraft && (t.isTemplate || t.status === 'open' || !t.logged || includeLog))
       .sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.modifiedAt - a.modifiedAt)
@@ -293,6 +293,19 @@ function removeSample() {
   toast('Sample to-dos removed', { undo: true });
 }
 
+/* a tag becomes a group (a heading for tags, never on anything), or a group a tag again */
+function setTagGroup(t, on) {
+  const users = on ? S.todos.concat(S.projects, S.areas).filter((x) => (x.tags || []).includes(t.id)) : [];
+  commit(on ? 'Make Tag a Group' : 'Make Group a Tag', () => {
+    if (on) {
+      if (tagParent(t)) t.order = endOrder(tagKids(null)); // to the top level, at the end
+      t.group = true; t.parentId = null;
+      users.forEach((x) => { x.tags = x.tags.filter((id) => id !== t.id); touch(x); });
+    } else delete t.group;
+  });
+  if (ui.tagFilter === t.id) { ui.tagFilter = null; render(); }
+  toast(on ? `“${t.title}” is a group now${users.length ? `, and it's off the ${plural(users.length, 'item')} it was on` : ''}` : `“${t.title}” is a tag again`, { undo: true });
+}
 /* ---- Tag manager ----
    Drag a tag's grip (or ⌘↑ / ⌘↓ in its name) to reorder it among the tags beside it; a tag's
    children move with it. Sort A to Z puts every level in alphabetical order, with Undo. */
@@ -304,7 +317,7 @@ function openTagManager() {
       const desc = tagDescendants(tag.id);
       const opts = tree.filter((n) => !desc.has(n.tag.id)).map((n) => `<option value="${n.tag.id}" ${tagParent(tag) === n.tag.id ? 'selected' : ''}>${'  '.repeat(n.depth)}${esc(n.tag.title)}</option>`).join('');
       const used = S.todos.filter((t) => t.tags.includes(tag.id) && !t.trashed).length;
-      return `<div class="tm-row"><span class="tm-grip" data-tmgrip="${tag.id}" title="Drag to reorder" aria-hidden="true">${ic('grip')}</span><button class="tm-sw ${tcls(tag)}" data-tm-color="${tag.id}" aria-label="Color: ${TAG_COLOR_NAMES[tagColor(tag)]}${TAG_COLOR_NAMES[tag.color] ? '' : ' (same as parent)'}" title="Color"></button><input class="field" data-tm-title="${tag.id}" value="${esc(tag.title)}" aria-label="Tag name"><select data-tm-parent="${tag.id}" aria-label="Parent tag"><option value="">No parent</option>${opts}</select><button class="ib${armed === tag.id ? ' del-armed' : ''}" data-tm-del="${tag.id}" aria-label="Delete tag" title="${plural(used, 'to-do')}">${armed === tag.id ? 'Delete' : ic('trash')}</button></div>`;
+      return `<div class="tm-row${tag.group ? ' tm-grow' : ''}"><span class="tm-grip" data-tmgrip="${tag.id}" title="Drag to reorder" aria-hidden="true">${ic('grip')}</span><button class="tm-sw ${tcls(tag)}" data-tm-color="${tag.id}" aria-label="Color: ${TAG_COLOR_NAMES[tagColor(tag)]}${TAG_COLOR_NAMES[tag.color] ? '' : ' (same as parent)'}" title="Color"></button><input class="field${tag.group ? ' tm-gname' : ''}" data-tm-title="${tag.id}" value="${esc(tag.title)}" aria-label="${tag.group ? 'Group name' : 'Tag name'}">${tag.group ? '<span class="tm-badge" title="A group only organizes tags. It can\'t be put on to-dos.">Group</span>' : `<select data-tm-parent="${tag.id}" aria-label="Group or parent tag"><option value="">No group</option>${opts}</select>`}<button class="ib" data-tm-more="${tag.id}" aria-label="More for ${esc(tag.title)}" title="More">${ic('more')}</button><button class="ib${armed === tag.id ? ' del-armed' : ''}" data-tm-del="${tag.id}" aria-label="Delete tag" title="${plural(used, 'to-do')}">${armed === tag.id ? 'Delete' : ic('trash')}</button></div>`;
     };
     const group = (tag, depth) => {
       seen.add(tag.id);
@@ -315,7 +328,7 @@ function openTagManager() {
     S.tags.forEach((t) => { if (!seen.has(t.id)) rows += group(t, 0); });
     const az = undoAZ ? `<button class="btn" data-tm-az="undo">Undo Sort</button>`
       : `<button class="btn" data-tm-az="1"${S.tags.length > 1 ? '' : ' disabled'} title="Sort every tag, and the tags under each one, A to Z">Sort A to Z</button>`;
-    return `<div class="modal-h"><h2>Tags</h2>${az}<button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${rows ? `<div class="tm-list">${rows}</div>` : '<p class="note">No tags yet.</p>'}<div class="tm-row" style="margin-top:8px"><input class="field" id="tm-new" placeholder="New tag name" aria-label="New tag name"><button class="btn" data-tm-add="1">Add</button></div><p class="note">Drag the grip to reorder tags; this is the order they appear in everywhere. Click a tag’s dot to change its color. Nest a tag under a parent to filter by the whole group. Filtering by “Home” also shows to-dos tagged with its children.</p></div>`;
+    return `<div class="modal-h"><h2>Tags</h2>${az}<button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${rows ? `<div class="tm-list">${rows}</div>` : '<p class="note">No tags yet.</p>'}<div class="tm-row" style="margin-top:8px"><input class="field" id="tm-new" placeholder="New tag name" aria-label="New tag name"><button class="btn" data-tm-add="1">Add</button><button class="btn" data-tm-addgrp="1" title="A heading to keep tags under. It isn't a tag itself.">New Group</button></div><p class="note">Drag the grip to reorder tags; this is the order they appear in everywhere. Click a tag’s dot to change its color. Put tags in a <b>group</b> (choose it beside the tag) to keep them together, like Departments: a group is only a heading, so it never goes on a to-do or shows in the tag bar. Use ••• to make a tag a group or back, or to sort a group’s tags A to Z. A tag can also go under another tag; filtering by that tag then shows its children too.</p></div>`;
   };
   const L = openLayer({ modal: true, cls: 'narrow tm-modal', html: build(), onMount: (el) => {
     const redraw = (focusId) => {
@@ -323,7 +336,19 @@ function openTagManager() {
       if (focusId) { const f = el.querySelector(`[data-tm-title="${CSS.escape(focusId)}"]`); if (f) f.focus({ preventScroll: false }); }
     };
     const changed = () => { undoAZ = null; };
-    const add = () => { const i = $('#tm-new', el); const v = i.value.trim(); if (!v) return; changed(); commit('New Tag', () => findOrCreateTag(v)); redraw(); $('#tm-new', el).focus(); };
+    const add = () => { const i = $('#tm-new', el); const v = i.value.trim(); if (!v) return; changed(); let t; commit('New Tag', () => { t = findOrCreateTag(v); }); if (!t) toast(`“${v}” is a group’s name`); redraw(); $('#tm-new', el).focus(); };
+    const addGroup = () => {
+      const i = $('#tm-new', el), v = i.value.trim() || 'New Group'; let g;
+      changed();
+      commit('New Tag Group', () => { g = { id: uid(), title: v, parentId: null, group: true, order: endOrder(tagKids(null)), color: nextTagColor() }; S.tags.push(g); idx.tag.set(g.id, g); });
+      i.value = ''; redraw(g.id); const f = el.querySelector(`[data-tm-title="${CSS.escape(g.id)}"]`); if (f) f.select();
+    };
+    const newTagIn = (g) => {
+      let t; changed();
+      commit('New Tag', () => { t = { id: uid(), title: 'New Tag', parentId: g.id, order: endOrder(tagKids(g.id)) }; S.tags.push(t); idx.tag.set(t.id, t); });
+      redraw(t.id); const f = el.querySelector(`[data-tm-title="${CSS.escape(t.id)}"]`); if (f) f.select();
+    };
+    const sortInside = (t) => { changed(); setOrder('Sort Tags A to Z', tagKids(t.id).sort(byTitle).map((x) => x.id)); redraw(); };
     const setOrder = (label, ids) => commit(label, () => ids.forEach((id, i) => { const t = getTag(id); if (t) t.order = i; }));
     const rename = (field) => { const t = getTag(field.dataset.tmTitle), v = field.value.trim(); if (t && v && v !== t.title) commit('Rename Tag', () => { t.title = v; }); };
     el.addEventListener('change', (e) => {
@@ -351,6 +376,19 @@ function openTagManager() {
     });
     el.addEventListener('click', (e) => {
       if (e.target.closest('[data-tm-add]')) { add(); return; }
+      if (e.target.closest('[data-tm-addgrp]')) { addGroup(); return; }
+      const mb = e.target.closest('[data-tm-more]');
+      if (mb) {
+        const t = getTag(mb.dataset.tmMore); if (!t) return;
+        const kids = tagKids(t.id).length;
+        openMenu(mb, [
+          t.group ? { label: 'Make It a Tag', icon: 'tag', fn: () => { changed(); setTagGroup(t, false); redraw(); } }
+            : { label: 'Make It a Group', icon: 'layers', fn: () => { changed(); setTagGroup(t, true); redraw(); } },
+          ...(t.group ? [{ label: 'New Tag in This Group', icon: 'plus', fn: () => newTagIn(t) }] : []),
+          { label: 'Sort Tags Inside A to Z', icon: 'sort', disabled: kids < 2, fn: () => sortInside(t) },
+        ]);
+        return;
+      }
       const cb = e.target.closest('[data-tm-color]');
       if (cb) {
         const t = getTag(cb.dataset.tmColor); if (!t) return;

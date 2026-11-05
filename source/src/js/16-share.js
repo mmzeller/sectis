@@ -135,7 +135,7 @@ function shareDates(x, o) {
   if (x.deadline && x.status === 'open') bits.push('due ' + fmtDate(x.deadline));
   return bits;
 }
-function shareTags(x, o) { return o.tags ? x.tags.map(tagTitle).filter(Boolean).map((t) => '#' + t.replace(/\s+/g, '')) : []; }
+function shareTags(x, o) { return o.tags ? x.tags.filter(notGroupId).map(tagTitle).filter(Boolean).map((t) => '#' + t.replace(/\s+/g, '')) : []; }
 function itemLabel(x, o, sep = ' — ') {
   const d = shareDates(x, o), t = shareTags(x, o);
   return (d.length ? sep + d.join(', ') : '') + (t.length ? '  ' + t.join(' ') : '');
@@ -206,7 +206,7 @@ function buildCSV(doc, o) {
     cols.push(['When', (x) => (x.start === 'someday' ? 'Someday' : x.when ? fmtDate(x.when, { year: true }) : '')]);
     cols.push(['Deadline', (x) => (x.deadline ? fmtDate(x.deadline, { year: true }) : '')]);
   }
-  if (o.tags) cols.push(['Tags', (x) => x.tags.map(tagTitle).filter(Boolean).join(', ')]);
+  if (o.tags) cols.push(['Tags', (x) => x.tags.filter(notGroupId).map(tagTitle).filter(Boolean).join(', ')]);
   if (o.notes) cols.push(['Notes', (x) => x.notes]);
   if (o.checklist) cols.push(['Checklist', (x) => (x.type === 'todo' ? x.checklist.map((c) => `${c.done ? '✓' : '–'} ${c.title}`).join('\n') : '')]);
   const rows = [cols.map((c) => c[0]), ...items.map((x) => cols.map((c) => c[1](x)))];

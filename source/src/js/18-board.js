@@ -416,7 +416,7 @@ function openBoardPicker(anchor, opts = {}) {
     if (lists.length) out += grp('Lists') + lists.map((k) => `<button class="pick-i l" data-col="l:${k}"><span class="ic" style="color:${LISTS[k].color}">${I[LISTS[k].icon]}</span><span>${LISTS[k].title}</span>${chk('l', k)}</button>`).join('');
     const smarts = (S.smart || []).slice().sort(byOrder).filter((sl) => m(smartTitle(sl)));
     if (smarts.length) out += grp('Smart Lists') + smarts.map((sl) => `<button class="pick-i s" data-col="s:${sl.id}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span>${esc(smartTitle(sl))}</span>${chk('s', sl.id)}</button>`).join('');
-    const tags = tagTree().filter(({ tag }) => m(tag.title));
+    const tags = tagTree().filter(({ tag }) => !tag.group && m(tag.title));
     if (tags.length) out += grp('Tags') + tags.map(({ tag, depth }) => `<button class="pick-i t${depth ? ' in-area' : ''}" data-col="t:${tag.id}"><span class="ic ${tcls(tag)}" style="color:var(--tc)">${I.tag}</span><span>${esc(tag.title)}</span>${chk('t', tag.id)}</button>`).join('');
     const pa = S.projects.some((p) => !p.trashed && !p.isTemplate && p.status === 'open' && m(pTitle(p))) || S.areas.some((a) => m(aTitle(a)));
     if (pa) out += grp('Projects & Areas');

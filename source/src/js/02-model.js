@@ -188,8 +188,14 @@ function projectProgress(p) {
 /* Tags keep the order set in Manage Tags (drag, or Sort A to Z), and every list of tags follows it. */
 const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' });
 const byTagOrder = (a, b) => (a.order || 0) - (b.order || 0) || byTitle(a, b);
+/* Tag groups (tag.group) only organize: "Departments" can hold Parks and Rec, DPW and the rest
+   without being a tag itself. A group sits at the top level, can't be put on anything, never
+   shows in tag bars, and is ignored if another device or Sintr puts it on something anyway.
+   Its tags pick up its color unless they have their own. */
+const isTagGroup = (t) => !!(t && t.group);
+const notGroupId = (id) => !isTagGroup(getTag(id));
 /* a tag's parent, or null when it has none or its parent is gone */
-function tagParent(t) { return t.parentId && t.parentId !== t.id && getTag(t.parentId) ? t.parentId : null; }
+function tagParent(t) { return !t.group && t.parentId && t.parentId !== t.id && getTag(t.parentId) ? t.parentId : null; }
 function tagKids(pid) { return S.tags.filter((t) => tagParent(t) === pid).sort(byTagOrder); }
 function tagTree() {
   const out = [], seen = new Set();
@@ -229,13 +235,14 @@ const tcls = (t) => 'tc-' + tagColor(t);
 function inTagOrder(ids) {
   if (!tagRankCache) { tagRankCache = new Map(); tagTree().forEach((n, i) => tagRankCache.set(n.tag.id, i)); }
   const r = (id) => (tagRankCache.has(id) ? tagRankCache.get(id) : 1e9);
-  return ids.slice().sort((a, b) => r(a) - r(b));
+  return ids.filter(notGroupId).sort((a, b) => r(a) - r(b));
 }
 function tagDescendants(id) { const set = new Set([id]); let grew = true; while (grew) { grew = false; for (const t of S.tags) if (t.parentId && set.has(t.parentId) && !set.has(t.id)) { set.add(t.id); grew = true; } } return set; }
 function effectiveTags(x) {
   const set = new Set(x.tags || []);
   if (x.type === 'todo') { const p = projectOf(x); if (p) p.tags.forEach((t) => set.add(t)); }
   const a = areaOf(x); if (a) a.tags.forEach((t) => set.add(t));
+  for (const id of set) if (!notGroupId(id)) set.delete(id); // a group isn't a tag
   return set;
 }
 function matchesTagFilter(x) {
@@ -263,7 +270,8 @@ function retag(t, before) {
 function tagTitle(id) { const t = getTag(id); return t ? t.title : ''; }
 function findOrCreateTag(title) {
   const name = title.trim(); if (!name) return null;
-  let t = S.tags.find((x) => x.title.toLowerCase() === name.toLowerCase());
+  let t = S.tags.find((x) => !x.group && x.title.toLowerCase() === name.toLowerCase());
+  if (!t && S.tags.some((x) => x.group && x.title.toLowerCase() === name.toLowerCase())) return null; // that's a group's name, not a tag's
   if (!t) { t = { id: uid(), title: name, parentId: null, order: endOrder(S.tags), color: nextTagColor() }; S.tags.push(t); idx.tag.set(t.id, t); }
   return t;
 }

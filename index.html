@@ -377,6 +377,8 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .btn:disabled { opacity: .45; cursor: default; }
 
 .pk-h { font-weight: 650; text-align: center; padding: 4px 0 8px; }
+.pick-grp { padding: 9px 10px 3px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.pick-grp:first-child { padding-top: 3px; }
 .pk-in, .field { width: 100%; padding: 7px 10px; border-radius: 8px; background: var(--hover); }
 .pk-hint { min-height: 18px; font-size: 12px; color: var(--accent); padding: 4px 10px 2px; }
 .pk-hint.bad { color: var(--muted); }
@@ -487,7 +489,7 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 /* Tag manager */
 .tm-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
 .tm-row input.field { flex: 1; min-width: 0; padding: 5px 8px; }
-.tm-row select { padding: 5px 6px; border-radius: 8px; background: var(--hover); border: 0; max-width: 40%; }
+.tm-row select { padding: 5px 6px; border-radius: 8px; background: var(--hover); border: 0; max-width: 34%; font-size: 12.5px; }
 .tm-row .ib.del-armed { color: #fff; background: var(--red); width: auto; padding: 0 8px; font-size: 12px; font-weight: 600; }
 .tm-modal .modal-h .btn { flex: none; }
 .modal.narrow.tm-modal { width: min(440px, calc(100vw - 32px)); }
@@ -503,6 +505,10 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .sw-auto-i .check { margin-left: auto; }
 .sw-auto-i .check .ic { color: var(--accent); }
 .tm-kids { margin-left: 18px; }
+.tm-row.tm-grow { margin-top: 6px; }
+.tm-row input.field.tm-gname { font-weight: 700; }
+.tm-badge { flex: none; padding: 2px 8px; border-radius: 999px; background: var(--hover); color: var(--muted); font-size: 11.5px; font-weight: 650; letter-spacing: .02em; }
+.tm-row .ib[data-tm-more] { flex: none; }
 .tm-grp.tm-dragging { position: relative; z-index: 2; background: var(--pop); border-radius: 8px; box-shadow: 0 2px 12px rgba(0, 0, 0, .14); }
 .tm-grip { flex: none; width: 18px; height: 28px; margin-right: -4px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); opacity: .45; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; transition: opacity .12s; }
 .tm-grip .ic { width: 14px; height: 14px; }
@@ -1161,7 +1167,7 @@ body.tl-dragging, body.tl-dragging * { cursor: grabbing !important; user-select:
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.37.0';
+const APP_VERSION = '1.38.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1564,8 +1570,14 @@ function projectProgress(p) {
 /* Tags keep the order set in Manage Tags (drag, or Sort A to Z), and every list of tags follows it. */
 const byTitle = (a, b) => a.title.localeCompare(b.title, undefined, { numeric: true, sensitivity: 'base' });
 const byTagOrder = (a, b) => (a.order || 0) - (b.order || 0) || byTitle(a, b);
+/* Tag groups (tag.group) only organize: "Departments" can hold Parks and Rec, DPW and the rest
+   without being a tag itself. A group sits at the top level, can't be put on anything, never
+   shows in tag bars, and is ignored if another device or Sintr puts it on something anyway.
+   Its tags pick up its color unless they have their own. */
+const isTagGroup = (t) => !!(t && t.group);
+const notGroupId = (id) => !isTagGroup(getTag(id));
 /* a tag's parent, or null when it has none or its parent is gone */
-function tagParent(t) { return t.parentId && t.parentId !== t.id && getTag(t.parentId) ? t.parentId : null; }
+function tagParent(t) { return !t.group && t.parentId && t.parentId !== t.id && getTag(t.parentId) ? t.parentId : null; }
 function tagKids(pid) { return S.tags.filter((t) => tagParent(t) === pid).sort(byTagOrder); }
 function tagTree() {
   const out = [], seen = new Set();
@@ -1605,13 +1617,14 @@ const tcls = (t) => 'tc-' + tagColor(t);
 function inTagOrder(ids) {
   if (!tagRankCache) { tagRankCache = new Map(); tagTree().forEach((n, i) => tagRankCache.set(n.tag.id, i)); }
   const r = (id) => (tagRankCache.has(id) ? tagRankCache.get(id) : 1e9);
-  return ids.slice().sort((a, b) => r(a) - r(b));
+  return ids.filter(notGroupId).sort((a, b) => r(a) - r(b));
 }
 function tagDescendants(id) { const set = new Set([id]); let grew = true; while (grew) { grew = false; for (const t of S.tags) if (t.parentId && set.has(t.parentId) && !set.has(t.id)) { set.add(t.id); grew = true; } } return set; }
 function effectiveTags(x) {
   const set = new Set(x.tags || []);
   if (x.type === 'todo') { const p = projectOf(x); if (p) p.tags.forEach((t) => set.add(t)); }
   const a = areaOf(x); if (a) a.tags.forEach((t) => set.add(t));
+  for (const id of set) if (!notGroupId(id)) set.delete(id); // a group isn't a tag
   return set;
 }
 function matchesTagFilter(x) {
@@ -1639,7 +1652,8 @@ function retag(t, before) {
 function tagTitle(id) { const t = getTag(id); return t ? t.title : ''; }
 function findOrCreateTag(title) {
   const name = title.trim(); if (!name) return null;
-  let t = S.tags.find((x) => x.title.toLowerCase() === name.toLowerCase());
+  let t = S.tags.find((x) => !x.group && x.title.toLowerCase() === name.toLowerCase());
+  if (!t && S.tags.some((x) => x.group && x.title.toLowerCase() === name.toLowerCase())) return null; // that's a group's name, not a tag's
   if (!t) { t = { id: uid(), title: name, parentId: null, order: endOrder(S.tags), color: nextTagColor() }; S.tags.push(t); idx.tag.set(t.id, t); }
   return t;
 }
@@ -1818,6 +1832,7 @@ async function emptyTrash() {
 }
 
 function toggleTagOn(ids, tagId) {
+  if (isTagGroup(getTag(tagId))) return; // groups only organize tags
   const items = itemsFor(ids);
   const all = items.every((x) => x.tags.includes(tagId));
   commit('Tags', () => items.forEach((x) => { x.tags = all ? x.tags.filter((t) => t !== tagId) : x.tags.includes(tagId) ? x.tags : x.tags.concat(tagId); touch(x); }));
@@ -2578,7 +2593,7 @@ function tagBarHTML(items) {
   items.forEach((x) => effectiveTags(x).forEach((t) => { present.add(t); let p = getTag(t); let guard = 0; while (p && p.parentId && guard++ < 8) { present.add(p.parentId); p = getTag(p.parentId); } }));
   if (ui.tagFilter && ui.tagFilter !== '__none') present.add(ui.tagFilter);
   if (!present.size) return '';
-  const chips = tagTree().filter((n) => present.has(n.tag.id)).map((n) => `<button class="tchip ${tcls(n.tag)}${ui.tagFilter === n.tag.id ? ' on' : ''}" data-action="tag-filter" data-tag="${n.tag.id}"><span class="tdot" aria-hidden="true"></span>${esc(n.tag.title)}</button>`).join('');
+  const chips = tagTree().filter((n) => present.has(n.tag.id) && !n.tag.group).map((n) => `<button class="tchip ${tcls(n.tag)}${ui.tagFilter === n.tag.id ? ' on' : ''}" data-action="tag-filter" data-tag="${n.tag.id}"><span class="tdot" aria-hidden="true"></span>${esc(n.tag.title)}</button>`).join('');
   return `<div class="tagbar"><button class="tchip${!ui.tagFilter ? ' on' : ''}" data-action="tag-filter" data-tag="">All</button>${chips}<button class="tchip${ui.tagFilter === '__none' ? ' on' : ''}" data-action="tag-filter" data-tag="__none">No Tag</button></div>`;
 }
 function emptyHTML(icon, title, text) {
@@ -2784,7 +2799,7 @@ function viewProject(p) {
   const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
-  const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + priorityChipHTML(p) + p.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
+  const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + priorityChipHTML(p) + inTagOrder(p.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
   let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg"${colorStyle(p)}>${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these headings, to-dos and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
@@ -2815,7 +2830,7 @@ function viewArea(a) {
   const items = todosAll.filter(matchesTagFilter).sort(byOrder);
   const active = projAll.filter((p) => p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const later = projAll.filter((p) => p.status === 'open' && (p.start === 'someday' || (p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
-  const meta = a.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="area-tags" data-id="${a.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${a.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
+  const meta = inTagOrder(a.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="area-tags" data-id="${a.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${a.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
   let html = `<div class="lh">${areaIc(a, 'lh-ic')}<textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
   html += tagBarHTML(todosAll.concat(projAll));
@@ -3255,11 +3270,18 @@ function openTagPicker(ids, anchor, kind = 'item') {
   const targets = () => kind === 'area' ? ids.map(getA).filter(Boolean) : itemsFor(ids);
   const build = (q = '') => {
     const ql = q.trim().toLowerCase();
-    const rows = tagTree().filter((n) => !ql || n.tag.title.toLowerCase().includes(ql)).map((n) => {
+    // groups are headings: shown when one of their tags is, and typing a group's name shows all of its tags
+    const tree = tagTree(), groupOf = (tag) => { let p = tag, g = 0; while (p && !p.group && p.parentId && g++ < 8) p = getTag(p.parentId); return p && p.group ? p : null; };
+    const hit = (n) => !ql || n.tag.title.toLowerCase().includes(ql) || (groupOf(n.tag) && groupOf(n.tag).title.toLowerCase().includes(ql));
+    const shown = tree.filter((n) => !n.tag.group && hit(n)), withGroups = new Set(shown.map((n) => groupOf(n.tag)).filter(Boolean).map((g) => g.id));
+    // tags outside any group first, then each group under its heading, so a heading's tags are clearly its own
+    const order = tree.filter((n) => !groupOf(n.tag)).concat(tree.filter((n) => groupOf(n.tag)));
+    const rows = order.filter((n) => (n.tag.group ? withGroups.has(n.tag.id) : shown.includes(n))).map((n) => {
+      if (n.tag.group) return `<div class="pick-grp" role="presentation">${esc(n.tag.title)}</div>`;
       const ts = targets(); const count = ts.filter((x) => x.tags.includes(n.tag.id)).length;
       return `<button class="pick-i" data-tag="${n.tag.id}" style="padding-left:${10 + n.depth * 16}px">${ic('tag', 'tc-ic ' + tcls(n.tag))}<span>${esc(n.tag.title)}</span>${count === ts.length && count ? `<span class="check">${ic('check')}</span>` : count ? '<span class="partial">–</span>' : ''}</button>`;
     }).join('');
-    const exact = S.tags.some((t) => t.title.toLowerCase() === ql);
+    const exact = S.tags.some((t) => t.title.toLowerCase() === ql); // a group's name too: no tag of the same name
     return rows + (ql && !exact ? `<button class="pick-i" data-new="1">${ic('plus')}<span>Create tag “${esc(q.trim())}”</span></button>` : '') + (!rows && !ql ? '<p class="note" style="padding:6px 10px">No tags yet. Type a name to create one.</p>' : '');
   };
   const L = openLayer({ anchor, cls: 'tags-pop', html: `<div class="pk-h">Tags</div><input class="pk-in" id="tg-in" placeholder="Find or create a tag" autocomplete="off" aria-label="Tag name"><div class="pick-list" id="tg-list">${build()}</div><div class="pk-sep"></div><button class="menu-i" data-manage="1">${ic('edit')}<span>Manage Tags…</span></button>`,
@@ -3277,7 +3299,8 @@ function openTagPicker(ids, anchor, kind = 'item') {
         if (e.key !== 'Enter' || $('.pick-i.kbd', el)) return; e.preventDefault();
         const q = inp.value.trim(); if (!q) { closeLayer(L); return; }
         const exact = S.tags.find((t) => t.title.toLowerCase() === q.toLowerCase());
-        if (exact) toggle(exact.id); else { let t; commit('New Tag', () => { t = findOrCreateTag(q); }, { render: false }); toggle(t.id); }
+        if (exact && exact.group) { toast(`“${exact.title}” is a group. Pick one of its tags.`); return; }
+        if (exact) toggle(exact.id); else { let t; commit('New Tag', () => { t = findOrCreateTag(q); }, { render: false }); if (t) toggle(t.id); }
         inp.value = ''; refresh();
       });
       el.addEventListener('click', (e) => {
@@ -4345,7 +4368,7 @@ function findResults(q, includeLog) {
     if (!words.length ? p.status === 'open' && p.start !== 'someday' && !p.isTemplate : m(pTitle(p), p.notes)) out.push({ g: 'Projects', kind: 'project', key: 'project:' + p.id, title: pTitle(p), pie: projectProgress(p).frac, sub: [areaOf(p) ? aTitle(areaOf(p)) : '', p.blueprint ? 'Template' : p.isTemplate ? 'Repeating' : '', p.status !== 'open' ? 'Completed' : ''].filter(Boolean).join(' · ') });
   });
   if (words.length) {
-    tagTree().forEach(({ tag }) => { if (m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: `var(--t-${tagColor(tag)})` }); });
+    tagTree().forEach(({ tag }) => { if (!tag.group && m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: `var(--t-${tagColor(tag)})` }); });
     let n = 0;
     S.todos.filter((t) => !t.trashed && !t.isDraft && (t.isTemplate || t.status === 'open' || !t.logged || includeLog))
       .sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.modifiedAt - a.modifiedAt)
@@ -4627,6 +4650,19 @@ function removeSample() {
   toast('Sample to-dos removed', { undo: true });
 }
 
+/* a tag becomes a group (a heading for tags, never on anything), or a group a tag again */
+function setTagGroup(t, on) {
+  const users = on ? S.todos.concat(S.projects, S.areas).filter((x) => (x.tags || []).includes(t.id)) : [];
+  commit(on ? 'Make Tag a Group' : 'Make Group a Tag', () => {
+    if (on) {
+      if (tagParent(t)) t.order = endOrder(tagKids(null)); // to the top level, at the end
+      t.group = true; t.parentId = null;
+      users.forEach((x) => { x.tags = x.tags.filter((id) => id !== t.id); touch(x); });
+    } else delete t.group;
+  });
+  if (ui.tagFilter === t.id) { ui.tagFilter = null; render(); }
+  toast(on ? `“${t.title}” is a group now${users.length ? `, and it's off the ${plural(users.length, 'item')} it was on` : ''}` : `“${t.title}” is a tag again`, { undo: true });
+}
 /* ---- Tag manager ----
    Drag a tag's grip (or ⌘↑ / ⌘↓ in its name) to reorder it among the tags beside it; a tag's
    children move with it. Sort A to Z puts every level in alphabetical order, with Undo. */
@@ -4638,7 +4674,7 @@ function openTagManager() {
       const desc = tagDescendants(tag.id);
       const opts = tree.filter((n) => !desc.has(n.tag.id)).map((n) => `<option value="${n.tag.id}" ${tagParent(tag) === n.tag.id ? 'selected' : ''}>${'  '.repeat(n.depth)}${esc(n.tag.title)}</option>`).join('');
       const used = S.todos.filter((t) => t.tags.includes(tag.id) && !t.trashed).length;
-      return `<div class="tm-row"><span class="tm-grip" data-tmgrip="${tag.id}" title="Drag to reorder" aria-hidden="true">${ic('grip')}</span><button class="tm-sw ${tcls(tag)}" data-tm-color="${tag.id}" aria-label="Color: ${TAG_COLOR_NAMES[tagColor(tag)]}${TAG_COLOR_NAMES[tag.color] ? '' : ' (same as parent)'}" title="Color"></button><input class="field" data-tm-title="${tag.id}" value="${esc(tag.title)}" aria-label="Tag name"><select data-tm-parent="${tag.id}" aria-label="Parent tag"><option value="">No parent</option>${opts}</select><button class="ib${armed === tag.id ? ' del-armed' : ''}" data-tm-del="${tag.id}" aria-label="Delete tag" title="${plural(used, 'to-do')}">${armed === tag.id ? 'Delete' : ic('trash')}</button></div>`;
+      return `<div class="tm-row${tag.group ? ' tm-grow' : ''}"><span class="tm-grip" data-tmgrip="${tag.id}" title="Drag to reorder" aria-hidden="true">${ic('grip')}</span><button class="tm-sw ${tcls(tag)}" data-tm-color="${tag.id}" aria-label="Color: ${TAG_COLOR_NAMES[tagColor(tag)]}${TAG_COLOR_NAMES[tag.color] ? '' : ' (same as parent)'}" title="Color"></button><input class="field${tag.group ? ' tm-gname' : ''}" data-tm-title="${tag.id}" value="${esc(tag.title)}" aria-label="${tag.group ? 'Group name' : 'Tag name'}">${tag.group ? '<span class="tm-badge" title="A group only organizes tags. It can\'t be put on to-dos.">Group</span>' : `<select data-tm-parent="${tag.id}" aria-label="Group or parent tag"><option value="">No group</option>${opts}</select>`}<button class="ib" data-tm-more="${tag.id}" aria-label="More for ${esc(tag.title)}" title="More">${ic('more')}</button><button class="ib${armed === tag.id ? ' del-armed' : ''}" data-tm-del="${tag.id}" aria-label="Delete tag" title="${plural(used, 'to-do')}">${armed === tag.id ? 'Delete' : ic('trash')}</button></div>`;
     };
     const group = (tag, depth) => {
       seen.add(tag.id);
@@ -4649,7 +4685,7 @@ function openTagManager() {
     S.tags.forEach((t) => { if (!seen.has(t.id)) rows += group(t, 0); });
     const az = undoAZ ? `<button class="btn" data-tm-az="undo">Undo Sort</button>`
       : `<button class="btn" data-tm-az="1"${S.tags.length > 1 ? '' : ' disabled'} title="Sort every tag, and the tags under each one, A to Z">Sort A to Z</button>`;
-    return `<div class="modal-h"><h2>Tags</h2>${az}<button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${rows ? `<div class="tm-list">${rows}</div>` : '<p class="note">No tags yet.</p>'}<div class="tm-row" style="margin-top:8px"><input class="field" id="tm-new" placeholder="New tag name" aria-label="New tag name"><button class="btn" data-tm-add="1">Add</button></div><p class="note">Drag the grip to reorder tags; this is the order they appear in everywhere. Click a tag’s dot to change its color. Nest a tag under a parent to filter by the whole group. Filtering by “Home” also shows to-dos tagged with its children.</p></div>`;
+    return `<div class="modal-h"><h2>Tags</h2>${az}<button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">${rows ? `<div class="tm-list">${rows}</div>` : '<p class="note">No tags yet.</p>'}<div class="tm-row" style="margin-top:8px"><input class="field" id="tm-new" placeholder="New tag name" aria-label="New tag name"><button class="btn" data-tm-add="1">Add</button><button class="btn" data-tm-addgrp="1" title="A heading to keep tags under. It isn't a tag itself.">New Group</button></div><p class="note">Drag the grip to reorder tags; this is the order they appear in everywhere. Click a tag’s dot to change its color. Put tags in a <b>group</b> (choose it beside the tag) to keep them together, like Departments: a group is only a heading, so it never goes on a to-do or shows in the tag bar. Use ••• to make a tag a group or back, or to sort a group’s tags A to Z. A tag can also go under another tag; filtering by that tag then shows its children too.</p></div>`;
   };
   const L = openLayer({ modal: true, cls: 'narrow tm-modal', html: build(), onMount: (el) => {
     const redraw = (focusId) => {
@@ -4657,7 +4693,19 @@ function openTagManager() {
       if (focusId) { const f = el.querySelector(`[data-tm-title="${CSS.escape(focusId)}"]`); if (f) f.focus({ preventScroll: false }); }
     };
     const changed = () => { undoAZ = null; };
-    const add = () => { const i = $('#tm-new', el); const v = i.value.trim(); if (!v) return; changed(); commit('New Tag', () => findOrCreateTag(v)); redraw(); $('#tm-new', el).focus(); };
+    const add = () => { const i = $('#tm-new', el); const v = i.value.trim(); if (!v) return; changed(); let t; commit('New Tag', () => { t = findOrCreateTag(v); }); if (!t) toast(`“${v}” is a group’s name`); redraw(); $('#tm-new', el).focus(); };
+    const addGroup = () => {
+      const i = $('#tm-new', el), v = i.value.trim() || 'New Group'; let g;
+      changed();
+      commit('New Tag Group', () => { g = { id: uid(), title: v, parentId: null, group: true, order: endOrder(tagKids(null)), color: nextTagColor() }; S.tags.push(g); idx.tag.set(g.id, g); });
+      i.value = ''; redraw(g.id); const f = el.querySelector(`[data-tm-title="${CSS.escape(g.id)}"]`); if (f) f.select();
+    };
+    const newTagIn = (g) => {
+      let t; changed();
+      commit('New Tag', () => { t = { id: uid(), title: 'New Tag', parentId: g.id, order: endOrder(tagKids(g.id)) }; S.tags.push(t); idx.tag.set(t.id, t); });
+      redraw(t.id); const f = el.querySelector(`[data-tm-title="${CSS.escape(t.id)}"]`); if (f) f.select();
+    };
+    const sortInside = (t) => { changed(); setOrder('Sort Tags A to Z', tagKids(t.id).sort(byTitle).map((x) => x.id)); redraw(); };
     const setOrder = (label, ids) => commit(label, () => ids.forEach((id, i) => { const t = getTag(id); if (t) t.order = i; }));
     const rename = (field) => { const t = getTag(field.dataset.tmTitle), v = field.value.trim(); if (t && v && v !== t.title) commit('Rename Tag', () => { t.title = v; }); };
     el.addEventListener('change', (e) => {
@@ -4685,6 +4733,19 @@ function openTagManager() {
     });
     el.addEventListener('click', (e) => {
       if (e.target.closest('[data-tm-add]')) { add(); return; }
+      if (e.target.closest('[data-tm-addgrp]')) { addGroup(); return; }
+      const mb = e.target.closest('[data-tm-more]');
+      if (mb) {
+        const t = getTag(mb.dataset.tmMore); if (!t) return;
+        const kids = tagKids(t.id).length;
+        openMenu(mb, [
+          t.group ? { label: 'Make It a Tag', icon: 'tag', fn: () => { changed(); setTagGroup(t, false); redraw(); } }
+            : { label: 'Make It a Group', icon: 'layers', fn: () => { changed(); setTagGroup(t, true); redraw(); } },
+          ...(t.group ? [{ label: 'New Tag in This Group', icon: 'plus', fn: () => newTagIn(t) }] : []),
+          { label: 'Sort Tags Inside A to Z', icon: 'sort', disabled: kids < 2, fn: () => sortInside(t) },
+        ]);
+        return;
+      }
       const cb = e.target.closest('[data-tm-color]');
       if (cb) {
         const t = getTag(cb.dataset.tmColor); if (!t) return;
@@ -5912,7 +5973,7 @@ function shareDates(x, o) {
   if (x.deadline && x.status === 'open') bits.push('due ' + fmtDate(x.deadline));
   return bits;
 }
-function shareTags(x, o) { return o.tags ? x.tags.map(tagTitle).filter(Boolean).map((t) => '#' + t.replace(/\s+/g, '')) : []; }
+function shareTags(x, o) { return o.tags ? x.tags.filter(notGroupId).map(tagTitle).filter(Boolean).map((t) => '#' + t.replace(/\s+/g, '')) : []; }
 function itemLabel(x, o, sep = ' — ') {
   const d = shareDates(x, o), t = shareTags(x, o);
   return (d.length ? sep + d.join(', ') : '') + (t.length ? '  ' + t.join(' ') : '');
@@ -5983,7 +6044,7 @@ function buildCSV(doc, o) {
     cols.push(['When', (x) => (x.start === 'someday' ? 'Someday' : x.when ? fmtDate(x.when, { year: true }) : '')]);
     cols.push(['Deadline', (x) => (x.deadline ? fmtDate(x.deadline, { year: true }) : '')]);
   }
-  if (o.tags) cols.push(['Tags', (x) => x.tags.map(tagTitle).filter(Boolean).join(', ')]);
+  if (o.tags) cols.push(['Tags', (x) => x.tags.filter(notGroupId).map(tagTitle).filter(Boolean).join(', ')]);
   if (o.notes) cols.push(['Notes', (x) => x.notes]);
   if (o.checklist) cols.push(['Checklist', (x) => (x.type === 'todo' ? x.checklist.map((c) => `${c.done ? '✓' : '–'} ${c.title}`).join('\n') : '')]);
   const rows = [cols.map((c) => c[0]), ...items.map((x) => cols.map((c) => c[1](x)))];
@@ -6632,7 +6693,7 @@ function openBoardPicker(anchor, opts = {}) {
     if (lists.length) out += grp('Lists') + lists.map((k) => `<button class="pick-i l" data-col="l:${k}"><span class="ic" style="color:${LISTS[k].color}">${I[LISTS[k].icon]}</span><span>${LISTS[k].title}</span>${chk('l', k)}</button>`).join('');
     const smarts = (S.smart || []).slice().sort(byOrder).filter((sl) => m(smartTitle(sl)));
     if (smarts.length) out += grp('Smart Lists') + smarts.map((sl) => `<button class="pick-i s" data-col="s:${sl.id}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span>${esc(smartTitle(sl))}</span>${chk('s', sl.id)}</button>`).join('');
-    const tags = tagTree().filter(({ tag }) => m(tag.title));
+    const tags = tagTree().filter(({ tag }) => !tag.group && m(tag.title));
     if (tags.length) out += grp('Tags') + tags.map(({ tag, depth }) => `<button class="pick-i t${depth ? ' in-area' : ''}" data-col="t:${tag.id}"><span class="ic ${tcls(tag)}" style="color:var(--tc)">${I.tag}</span><span>${esc(tag.title)}</span>${chk('t', tag.id)}</button>`).join('');
     const pa = S.projects.some((p) => !p.trashed && !p.isTemplate && p.status === 'open' && m(pTitle(p))) || S.areas.some((a) => m(aTitle(a)));
     if (pa) out += grp('Projects & Areas');
@@ -8032,7 +8093,7 @@ async function deleteSmart(sl) {
 function openSmartEditor(sl = null) {
   const st = { title: sl ? sl.title || '' : '', f: JSON.parse(JSON.stringify(smartFilter(sl))), group: (sl && sl.group) || 'place', q: '' };
   const seg = (key, opts, val) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button type="button" data-k="${key}" data-v="${v}" class="${String(val) === String(v) ? 'on' : ''}" aria-pressed="${String(val) === String(v)}">${l}</button>`).join('')}</div>`;
-  const tagChips = () => tagTree().map(({ tag, depth }) => `<button type="button" class="sm-chip tagc ${tcls(tag)}${st.f.tags.includes(tag.id) ? ' on' : ''}" data-tag="${tag.id}" aria-pressed="${st.f.tags.includes(tag.id)}">${depth ? '<span class="sm-nest">›</span>' : ''}<span class="sm-dot"></span>${esc(tag.title)}</button>`).join('') || '<span class="note">No tags yet.</span>';
+  const tagChips = () => tagTree().map(({ tag, depth }) => `<button type="button" class="sm-chip tagc ${tcls(tag)}${st.f.tags.includes(tag.id) ? ' on' : ''}" data-tag="${tag.id}" aria-pressed="${st.f.tags.includes(tag.id)}">${depth ? '<span class="sm-nest">›</span>' : ''}<span class="sm-dot"></span>${tag.group ? `Any in ${esc(tag.title)}` : esc(tag.title)}</button>`).join('') || '<span class="note">No tags yet.</span>';
   const placeChips = () => {
     const ql = st.q.trim().toLowerCase(), m = (s) => !ql || s.toLowerCase().includes(ql);
     const chip = (k, label, icon) => `<button type="button" class="sm-chip${st.f.places.includes(k) ? ' on' : ''}" data-place="${k}" aria-pressed="${st.f.places.includes(k)}">${icon}<span>${esc(label)}</span></button>`;

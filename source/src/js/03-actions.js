@@ -156,6 +156,7 @@ async function emptyTrash() {
 }
 
 function toggleTagOn(ids, tagId) {
+  if (isTagGroup(getTag(tagId))) return; // groups only organize tags
   const items = itemsFor(ids);
   const all = items.every((x) => x.tags.includes(tagId));
   commit('Tags', () => items.forEach((x) => { x.tags = all ? x.tags.filter((t) => t !== tagId) : x.tags.includes(tagId) ? x.tags : x.tags.concat(tagId); touch(x); }));
