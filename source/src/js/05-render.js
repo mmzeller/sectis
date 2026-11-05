@@ -31,6 +31,7 @@ function render() {
   renderMain();
   renderBatch();
   renderShell();
+  if (ui.np.open) renderNotepad(); else applyNotepadMode();
   if (ui.tplModal) renderTplModal();
   restoreFocus(f);
   afterRender();
@@ -109,7 +110,7 @@ function renderSidebar() {
   S.areas.slice().sort(byOrder).filter((a) => !ui.focusRec || ui.focusAreas.has(a.id)).forEach((a) => {
     html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${placeColor(a) ? areaIc(a) : ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
   });
-  html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button><button class="ib sb-hide" data-action="sb-toggle" aria-label="Hide Sidebar" title="Hide Sidebar (${IS_MAC ? '⌃⌘S' : 'Ctrl+Alt+S'})">${ic('sidebar')}</button></div>`;
+  html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="notepad" aria-label="Notepad" title="Notepad (J)">${ic('notepad')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button><button class="ib sb-hide" data-action="sb-toggle" aria-label="Hide Sidebar" title="Hide Sidebar (${IS_MAC ? '⌃⌘S' : 'Ctrl+Alt+S'})">${ic('sidebar')}</button></div>`;
   const sb = $('#sidebar');
   const scroll = $('#sb-scroll'); const st = scroll ? scroll.scrollTop : 0;
   sb.innerHTML = html;
@@ -302,7 +303,7 @@ function emptyHTML(icon, title, text) {
 }
 function mobileBarHTML() {
   if (ui.selectMode) return `<div class="m-bar"><button class="m-back" data-action="select-all">Select All</button><span class="sel-count">${ui.sel.size ? ui.sel.size + ' Selected' : ''}</span><button class="m-back" data-action="select-done">Done</button></div>`;
-  return `<div class="m-bar"><button class="m-back" data-action="m-back">${ic('chevL')}Lists</button><span class="spacer"></span><button class="ib" data-action="find" aria-label="Quick Find">${ic('search')}</button>${ui.view.type !== 'trash' ? `<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button>` : ''}<button class="ib" data-action="view-menu" aria-label="List options">${ic('more')}</button></div>`;
+  return `<div class="m-bar"><button class="m-back" data-action="m-back">${ic('chevL')}Lists</button><span class="spacer"></span><button class="ib" data-action="notepad" aria-label="Notepad">${ic('notepad')}</button><button class="ib" data-action="find" aria-label="Quick Find">${ic('search')}</button>${ui.view.type !== 'trash' ? `<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button>` : ''}<button class="ib" data-action="view-menu" aria-label="List options">${ic('more')}</button></div>`;
 }
 
 /* ---------- main views ---------- */

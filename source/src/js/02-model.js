@@ -11,14 +11,15 @@ function defaultSettings() {
   return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true, loggedPlace: 'bottom' };
 }
 function emptyState() {
-  return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], smart: [], focuses: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
+  return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], smart: [], focuses: [], notes: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
 }
 function normalizeState(s) {
   const base = emptyState();
   const out = Object.assign(base, s || {});
   out.settings = Object.assign(defaultSettings(), (s && s.settings) || {});
   out.meta = Object.assign({ fired: {} }, (s && s.meta) || {});
-  for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart', 'focuses']) if (!Array.isArray(out[k])) out[k] = [];
+  for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart', 'focuses', 'notes']) if (!Array.isArray(out[k])) out[k] = [];
+  out.notes = out.notes.filter((x) => x && x.id).map(normalizeNote);
   out.focuses = out.focuses.filter((x) => x && x.id).map(normalizeFocus);
   out.smart = out.smart.filter((x) => x && x.id).map((x) => Object.assign({ type: 'smart', title: '', f: {}, group: 'place', order: 0 }, x));
   out.todos = out.todos.filter((t) => t && t.id && !t.isDraft).map((t) => Object.assign(newTodoShape(), t, { tags: t.tags || [], checklist: t.checklist || [] }));

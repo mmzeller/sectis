@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.38.0';
+const APP_VERSION = '1.39.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -194,6 +194,9 @@ const I = {
   grip: svg('<circle class="fill" cx="9" cy="6.5" r="1.5"/><circle class="fill" cx="15" cy="6.5" r="1.5"/><circle class="fill" cx="9" cy="12" r="1.5"/><circle class="fill" cx="15" cy="12" r="1.5"/><circle class="fill" cx="9" cy="17.5" r="1.5"/><circle class="fill" cx="15" cy="17.5" r="1.5"/>'),
   share: svg('<path d="M12 3.5v11M8 7.2 12 3.5l4 3.7"/><path d="M8.5 10H7a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2h-1.5"/>'),
   link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1.1 1.1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1"/>'),
+  notepad: svg('<path d="M6.5 3.5h8.2l3.3 3.3v13.7H6.5z"/><path d="M14.5 3.5v3.5H18M9.2 11h5.8M9.2 14.4h5.8M9.2 17.8h3.6"/>'),
+  pin: svg('<path d="M9 3.8h6M10 3.8v5.4l-3.2 3.6v1.6h10.4v-1.6L14 9.2V3.8M12 14.4v5.8"/>'),
+  circle: svg('<circle cx="12" cy="12" r="7.6"/>'),
   timeline: svg('<rect x="3.5" y="4.5" width="9" height="4" rx="2"/><rect x="7.5" y="10" width="13" height="4" rx="2"/><rect x="5.5" y="15.5" width="7" height="4" rx="2"/>'),
   sidebar: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M5.8 8.2h1.6M5.8 11.2h1.6"/>'),
   focus: svg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><circle class="fill" cx="12" cy="12" r="1.4"/>'),

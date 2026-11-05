@@ -5,7 +5,7 @@
    recent edit of an item wins. Deletions leave a small marker. */
 const SYNC_KEY = 'sectis.sync.v1';
 const FB_VERSION = '10.14.1';
-const SYNC_KINDS = { todo: 'todos', project: 'projects', heading: 'headings', area: 'areas', tag: 'tags', smart: 'smart', focus: 'focuses' };
+const SYNC_KINDS = { todo: 'todos', project: 'projects', heading: 'headings', area: 'areas', tag: 'tags', smart: 'smart', focus: 'focuses', note: 'notes' };
 const Y = {
   enabled: false, cfg: null, key: null, space: null, base: {}, pending: {}, cursor: [0, 0], lastSync: 0,
   status: 'off', error: '', db: null, col: null, aes: null, unsub: null, pushing: false, again: false,
@@ -200,6 +200,7 @@ function normalizeRecord(kind, rec) {
   if (kind === 'project') return Object.assign(newProjectShape(), rec, { tags: rec.tags || [] });
   if (kind === 'area') return Object.assign({ title: '', tags: [], order: 0 }, rec, { tags: rec.tags || [] });
   if (kind === 'focus') return normalizeFocus(rec);
+  if (kind === 'note') return normalizeNote(rec);
   return rec;
 }
 function tsAfter(t, cur) { return t.seconds > cur[0] || (t.seconds === cur[0] && t.nanoseconds > cur[1]); }

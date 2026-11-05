@@ -139,6 +139,7 @@ function handleAction(act, el, e) {
     case 'tag-filter': ui.tagFilter = el.dataset.tag || null; ui.sel.clear(); render(); return;
     case 'find': openFind(); return;
     case 'sb-toggle': toggleSidebar(); return;
+    case 'notepad': toggleNotepad(); return;
     case 'focus-menu': openFocusMenu(el); return;
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
@@ -527,6 +528,7 @@ document.addEventListener('keydown', (e) => {
   switch (key) {
     case 'Escape': if (ui.editing) closeEditor(); else if (ui.selectMode) { ui.selectMode = false; ui.sel.clear(); render(); } else if (ui.sel.size) { ui.sel.clear(); paintSelection(); } else if (ui.tagFilter) { ui.tagFilter = null; render(); } return;
     case '/': e.preventDefault(); openFind(); return;
+    case 'j': e.preventDefault(); toggleNotepad(); return;
     case 'q': e.preventDefault(); openQuickEntry(); return;
     case '?': e.preventDefault(); openShortcuts(); return;
     case ' ': case 'n':

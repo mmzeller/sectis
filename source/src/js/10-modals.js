@@ -16,13 +16,15 @@ function findResults(q, includeLog) {
     S.todos.filter((t) => !t.trashed && !t.isDraft && (t.isTemplate || t.status === 'open' || !t.logged || includeLog))
       .sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.modifiedAt - a.modifiedAt)
       .forEach((t) => { if (n < 60 && m(t.title, t.notes, t.checklist.map((c) => c.title).join(' '))) { n++; out.push({ g: t.blueprint ? 'Templates' : t.isTemplate ? 'Repeating' : 'To-Dos', kind: t.isTemplate ? 'template' : 'todo', id: t.id, title: t.title || 'New To-Do', icon: t.blueprint ? 'template' : t.isTemplate ? 'repeat' : t.status === 'open' ? 'select' : 'logbook', color: t.status === 'open' ? 'var(--faint)' : 'var(--c-logbook)', sub: [parentLabel(t), t.when && t.start === 'anytime' ? fmtRel(t.when) : t.start === 'someday' ? 'Someday' : ''].filter(Boolean).join(' · ') }); } });
+    (S.notes || []).filter((x) => x.text.trim() && m(x.text)).sort((a, b) => b.modifiedAt - a.modifiedAt).slice(0, 20)
+      .forEach((x) => { const c = noteCtx(x.ctx); out.push({ g: 'Notepad', kind: 'note', id: x.id, title: noteTitle(x), icon: 'notepad', color: 'var(--c-note)', sub: c ? c.label : '' }); });
   }
   return out;
 }
 function openFind(initial = '') {
   if (ui.editing) closeEditor({ noRender: false });
   let includeLog = false, results = [], k = 0;
-  const L = openLayer({ modal: true, cls: 'find top', html: `<div class="qf-in">${ic('search')}<input id="qf" placeholder="Find lists, projects, tags and to-dos" autocomplete="off" aria-label="Quick Find" enterkeyhint="go"></div><div class="qf-res" id="qf-res" role="listbox"></div><div class="qf-foot"><span>↑ ↓ to move · Return to open</span><label><input type="checkbox" id="qf-log"> Include Logbook</label></div>`,
+  const L = openLayer({ modal: true, cls: 'find top', html: `<div class="qf-in">${ic('search')}<input id="qf" placeholder="Find lists, projects, tags, to-dos and notes" autocomplete="off" aria-label="Quick Find" enterkeyhint="go"></div><div class="qf-res" id="qf-res" role="listbox"></div><div class="qf-foot"><span>↑ ↓ to move · Return to open</span><label><input type="checkbox" id="qf-log"> Include Logbook</label></div>`,
     onMount: (el) => {
       const inp = $('#qf', el), box = $('#qf-res', el);
       const draw = () => {
@@ -37,7 +39,7 @@ function openFind(initial = '') {
       };
       const go = (r) => {
         if (!r) return; closeLayer(L);
-        if (r.kind === 'todo') revealTodo(r.id); else if (r.kind === 'template') openTplModal(r.id); else navigate(r.key);
+        if (r.kind === 'todo') revealTodo(r.id); else if (r.kind === 'template') openTplModal(r.id); else if (r.kind === 'note') openNotepad({ focus: r.id }); else navigate(r.key);
       };
       inp.value = initial; draw();
       inp.addEventListener('input', () => { k = 0; draw(); });
@@ -488,7 +490,7 @@ function openShortcuts() {
   const rows = [
     ['Create', [['New to-do', k('N') + ' or ' + k('Space')], ['New heading (in a project)', k('⇧', 'N')], ['Quick Entry', k('Q')], ['Quick Find', k('/') + ' or ' + k(MODK + 'F')]]],
     ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Copy', k(MODK + 'C')], ['Paste after it', k(MODK + 'V')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
-    ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Show or hide the sidebar', IS_MAC ? k('⌃', '⌘', 'S') : k('Ctrl', 'Alt', 'S')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
+    ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Show or hide the sidebar', IS_MAC ? k('⌃', '⌘', 'S') : k('Ctrl', 'Alt', 'S')], ['Notepad', k('J')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing', [['Save and close', k('Return') + ' or ' + k(MODK + '↩')], ['Complete', k(MODK + 'K')], ['When…', k(MODK + 'S')], ['Deadline…', k(MODK + '⇧', 'D')], ['Add checklist', k(MODK + '⇧', 'C')], ['Move checklist item', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Paste several lines', 'one to-do per line']]],
   ];
   openLayer({ modal: true, html: `<div class="modal-h"><h2>Keyboard Shortcuts</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b"><div class="sc-grid">${rows.map(([h, list]) => `<h4>${h}</h4>${list.map(([l, keys]) => `<div class="sc"><span>${l}</span><span>${keys}</span></div>`).join('')}`).join('')}</div></div>` });
