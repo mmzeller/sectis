@@ -1230,6 +1230,63 @@ body.np-docked .magic { right: calc(var(--npw) + 30px); }
 body.np-sizing, body.np-sizing * { cursor: var(--np-cur) !important; user-select: none !important; -webkit-user-select: none !important; }
 .np-snap { position: fixed; z-index: 35; top: 8px; bottom: 8px; right: 8px; width: min(var(--npw), calc(100% - 60px)); border-radius: 12px; border: 2px solid color-mix(in srgb, var(--accent) 45%, transparent); background: color-mix(in srgb, var(--accent) 10%, transparent); pointer-events: none; opacity: 0; transform: translateX(12px); transition: opacity .12s, transform .12s; }
 .np-snap.on { opacity: 1; transform: none; }
+/* notes read formatted; values copy in one click */
+.np-view { font-size: 14px; line-height: 1.45; color: var(--fg); cursor: text; overflow-wrap: anywhere; min-height: 20px; }
+.np-view > :first-child { margin-top: 0; }
+.np-view > :last-child { margin-bottom: 0; }
+.np-view[hidden], .np-text[hidden], .np-more[hidden] { display: none !important; }
+.np-card.folded .np-view { max-height: 150px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent); mask-image: linear-gradient(to bottom, #000 70%, transparent); }
+.np-more { display: block; margin: 3px 0 0; padding: 0; font-size: 12px; font-weight: 600; color: var(--accent); background: none; }
+.np-more:hover { text-decoration: underline; }
+.np-val { display: inline; padding: 0 3px 0 4px; margin: 0 1px; border-radius: 5px; background: color-mix(in srgb, var(--c-note) 15%, transparent); color: var(--fg); font: .92em/1.5 var(--mono); cursor: copy; overflow-wrap: anywhere; text-align: left; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.np-val code { background: none; padding: 0; font: inherit; }
+.np-val:hover { background: color-mix(in srgb, var(--c-note) 30%, transparent); }
+.np-cp, .np-cpb { display: inline-flex; align-items: center; justify-content: center; color: var(--faint); vertical-align: -1px; }
+.np-cp { width: 11px; height: 11px; margin-left: 3px; }
+.np-cpb { width: 18px; height: 18px; margin-left: 2px; border-radius: 4px; vertical-align: -3px; }
+.np-cp svg, .np-cpb svg { width: 11px; height: 11px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.np-cpb svg { width: 12px; height: 12px; }
+.np-val:hover .np-cp, .np-cpb:hover { color: var(--fg); }
+.np-cpb:hover { background: var(--hover); }
+.np-val.copied { background: color-mix(in srgb, var(--c-logbook) 25%, transparent); }
+.np-val.copied .np-cp, .np-cpb.copied { color: var(--c-logbook); }
+.np-tel { white-space: nowrap; }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .np-view { font-size: 16px; } .np-cpb { width: 26px; height: 26px; } }
+/* archived notes, and notes grouped by page */
+.np-card.archived { background: transparent; }
+.np-card.archived .np-view { color: var(--muted); }
+.np-arch .ic { width: 12px; height: 12px; color: var(--faint); }
+.np-group { display: flex; flex-direction: column; gap: 8px; }
+.np-group + .np-group { margin-top: 6px; }
+.np-gh { display: flex; align-items: center; gap: 6px; padding: 4px 2px 0; min-height: 24px; }
+.np-gl { display: inline-flex; align-items: center; gap: 5px; min-width: 0; font-size: 12px; font-weight: 650; color: var(--muted); }
+.np-gl .ic, .np-gl svg { width: 13px; height: 13px; flex: none; }
+.np-gl span:not(.ic) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.np-gl:hover { color: var(--fg); }
+.np-gn { font-size: 11px; color: var(--faint); }
+.np-arch-h { margin-top: 8px; }
+.np-h .np-back { margin-left: -6px; }
+/* a page's notes badge, in its header */
+.lh-np { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 26px; margin-top: 4px; padding: 0 9px 0 7px; border-radius: 999px; background: color-mix(in srgb, var(--c-note) 14%, transparent); color: color-mix(in srgb, var(--c-note) 75%, var(--fg)); font-size: 12.5px; font-weight: 650; }
+.lh-np .ic { width: 15px; height: 15px; }
+.lh-np:hover { background: color-mix(in srgb, var(--c-note) 24%, transparent); }
+.lh-np.on { background: var(--c-note); color: #fff; }
+/* stickies: a note on its own card, on every page */
+.np-stickies { position: fixed; inset: 0; z-index: 37; pointer-events: none; }
+.np-sticky { position: absolute; display: flex; flex-direction: column; pointer-events: auto; border-radius: 10px; background: color-mix(in srgb, var(--c-note) 20%, var(--pop)); border: 1px solid color-mix(in srgb, var(--c-note) 45%, var(--line)); box-shadow: 0 2px 6px rgba(20, 28, 48, .1), 0 10px 28px rgba(20, 28, 48, .18); animation: npPop .14s ease-out; }
+.np-sticky.flash { animation: npPop .14s ease-out, npFlash 1.2s ease-out; }
+.np-st-h { display: flex; align-items: center; gap: 0; height: 22px; padding: 0 3px 0 10px; border-radius: 10px 10px 0 0; background: color-mix(in srgb, var(--c-note) 14%, transparent); cursor: grab; user-select: none; -webkit-user-select: none; }
+.np-st-t { flex: 1; }
+.np-st-h .ib { width: 20px; height: 20px; color: var(--muted); opacity: 0; transition: opacity .12s; }
+.np-sticky:hover .np-st-h .ib, .np-sticky:focus-within .np-st-h .ib { opacity: .75; }
+@media (pointer: coarse) { .np-st-h .ib { opacity: .75; } }
+.np-st-h .ib:hover { opacity: 1; color: var(--fg); }
+.np-st-h .ib .ic { width: 13px; height: 13px; }
+.np-st-b { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 8px 12px 10px; overflow: auto; }
+.np-sticky .np-view { flex: 1; font-size: 13.5px; }
+.np-sticky .np-text { flex: 1; min-height: 0; height: 100%; overflow: auto; font-size: 13.5px; }
+.np-sticky .np-rs { display: block; }
+.np-sticky.moving { box-shadow: var(--shadow-pop); }
 .lh-ic.pie-lg.can-click { cursor: pointer; border-radius: 50%; }
 .lh-ic.pie-lg.can-click:hover { box-shadow: 0 0 0 4px var(--hover); }
 .card .ck-item > span.ck-box { cursor: text; }
@@ -1271,7 +1328,7 @@ body.np-sizing, body.np-sizing * { cursor: var(--np-cur) !important; user-select
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.41.0';
+const APP_VERSION = '1.42.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -2458,6 +2515,7 @@ function restoreFocus(f) {
 }
 function afterRender() {
   fitBoardName($('#content .board-name'));
+  noteBadge(); // how many notes were written on this page
   $$('textarea[data-autosize]').forEach(autosize);
   if (ui.scrollToEditor) {
     ui.scrollToEditor = false;
@@ -4027,6 +4085,7 @@ function handleAction(act, el, e) {
     case 'find': openFind(); return;
     case 'sb-toggle': toggleSidebar(); return;
     case 'notepad': toggleNotepad(); return;
+    case 'np-page': openNotepadHere(); return;
     case 'focus-menu': openFocusMenu(el); return;
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
@@ -4500,7 +4559,7 @@ function findResults(q, includeLog) {
       .sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.modifiedAt - a.modifiedAt)
       .forEach((t) => { if (n < 60 && m(t.title, t.notes, t.checklist.map((c) => c.title).join(' '))) { n++; out.push({ g: t.blueprint ? 'Templates' : t.isTemplate ? 'Repeating' : 'To-Dos', kind: t.isTemplate ? 'template' : 'todo', id: t.id, title: t.title || 'New To-Do', icon: t.blueprint ? 'template' : t.isTemplate ? 'repeat' : t.status === 'open' ? 'select' : 'logbook', color: t.status === 'open' ? 'var(--faint)' : 'var(--c-logbook)', sub: [parentLabel(t), t.when && t.start === 'anytime' ? fmtRel(t.when) : t.start === 'someday' ? 'Someday' : ''].filter(Boolean).join(' · ') }); } });
     (S.notes || []).filter((x) => x.text.trim() && m(x.text)).sort((a, b) => b.modifiedAt - a.modifiedAt).slice(0, 20)
-      .forEach((x) => { const c = noteCtx(x.ctx); out.push({ g: 'Notepad', kind: 'note', id: x.id, title: noteTitle(x), icon: 'notepad', color: 'var(--c-note)', sub: c ? c.label : '' }); });
+      .forEach((x) => { const c = noteCtx(x.ctx); out.push({ g: 'Notepad', kind: 'note', id: x.id, title: noteTitle(x), icon: 'notepad', color: 'var(--c-note)', sub: [x.archived ? 'Archived' : '', c ? c.label : ''].filter(Boolean).join(' · ') }); });
   }
   return out;
 }
@@ -5739,14 +5798,44 @@ function safeHref(url) {
   if (/^www\./i.test(u) || /^[\w-]+(\.[\w-]+)+(\/|$)/.test(u)) return 'https://' + u;
   return null;
 }
-function mdInline(raw) {
+/* In the Notepad (opts.values), the things you keep notes for become one-click copy chips:
+   serial numbers and other labelled values (Serial: …, S/N …, Ticket #…, Key: …), MAC and IP
+   addresses, GUIDs, license keys, code-like tokens (C02XK1JHJG5J) and long numbers; `code`
+   spans too. Phone numbers become call links with a copy button. */
+const VAL_LABELS = /(^|[^\w])((?:serial|model|part|account|acct|order|invoice|tracking|confirmation|reference|ref)(?:\s*(?:no\.?|number|num|#))?|s\/n|sn|p\/n|service\s*tag|asset(?:\s*tag)?|license(?:\s*key)?|product\s*key|activation\s*key|key|ticket|case|po|imei|uuid|vin|rma|claim|policy|warranty|pin|passcode|code|ext(?:ension)?|id)(\s*(?:#|:|=|-|–)?\s*)([A-Za-z0-9][A-Za-z0-9._\/-]*)/gi;
+function copyChip(v, shown) { return `<button type="button" class="np-val" data-copy="${esc(v)}" title="Click to copy">${shown == null ? esc(v) : shown}<span class="np-cp" aria-hidden="true">${I.copy}</span></button>`; }
+function noteValues(s, keep) {
+  const chip = (v) => keep(copyChip(v));
+  s = s.replace(VAL_LABELS, (m, pre, label, sep, v) => {
+    const val = v.replace(/[._\/-]+$/, ''), tail = v.slice(val.length);
+    if (val.length < 3 || !/\d/.test(val)) return m;
+    return pre + label + sep + chip(val) + tail;
+  });
+  s = s.replace(/\b[0-9A-Fa-f]{2}([:-])(?:[0-9A-Fa-f]{2}\1){4}[0-9A-Fa-f]{2}\b|\b[0-9A-Fa-f]{4}\.[0-9A-Fa-f]{4}\.[0-9A-Fa-f]{4}\b/g, (m) => chip(m)); // MAC
+  s = s.replace(/\b[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}\b/g, (m) => chip(m)); // GUID
+  s = s.replace(/(^|[^\w.])((?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}(?:\/\d{1,2}|:\d{1,5})?)(?![\w.]*\d)/g, (m, pre, ip) => pre + chip(ip)); // IPv4
+  s = s.replace(/(^|[^\w:])((?:[0-9A-Fa-f]{1,4}:){1,7}(?::?[0-9A-Fa-f]{1,4}){1,7})(?![\w:])/g, (m, pre, ip) => {
+    const full = ip.split(':').length >= 6 && !ip.includes('::'), short = ip.includes('::') && /[a-f]/i.test(ip);
+    return full || short ? pre + chip(ip) : m;
+  }); // IPv6
+  s = s.replace(/(^|[^\w+\/.-])((?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]\d{4}(?:\s*(?:x|ext\.?|extension)\s*\d{1,6})?|\+\d{1,3}[\s.-]?\(?\d{1,4}\)?(?:[\s.-]?\d{2,4}){2,4})(?![\w-])/g, (m, pre, ph) => {
+    const digits = ph.replace(/\s*(?:x|ext\.?|extension)\s*(\d+)$/i, ',$1').replace(/[^\d+,]/g, '');
+    if (digits.replace(/\D/g, '').length < 10) return m;
+    return pre + keep(`<a href="tel:${esc(digits)}" class="np-tel">${esc(ph)}</a><button type="button" class="np-cpb" data-copy="${esc(ph)}" title="Copy" aria-label="Copy ${esc(ph)}">${I.copy}</button>`);
+  }); // phone
+  s = s.replace(/\b[A-Z0-9]{4,8}(?:-[A-Z0-9]{4,8}){2,}\b/g, (m) => (/\d/.test(m) && /[A-Z]/.test(m) ? chip(m) : m)); // license keys
+  s = s.replace(/\b(?=[A-Z0-9]*\d)(?=[A-Z0-9]*[A-Z])[A-Z0-9]{6,}\b|\b\d{8,}\b/g, (m) => chip(m)); // serial-like tokens, long numbers
+  return s;
+}
+function mdInline(raw, opts) {
   const tokens = [];
   const keep = (html) => `\u0001${tokens.push(html) - 1}\u0002`;
   const link = (href, text) => keep(/^(https?|mailto):/i.test(href)
     ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${text}</a>`
     : `<a href="${esc(appLinkHref(href))}" class="app-link">${text}</a>`);
+  const values = opts && opts.values;
   let s = String(raw).replace(/[\u0001\u0002]/g, '');
-  s = s.replace(/`([^`\n]+)`/g, (m, c) => keep(`<code>${esc(c)}</code>`));
+  s = s.replace(/`([^`\n]+)`/g, (m, c) => keep(values ? copyChip(c, `<code>${esc(c)}</code>`) : `<code>${esc(c)}</code>`));
   s = s.replace(/\[([^\]\n]+)\]\(([^)\s]+)\)/g, (m, text, url) => { const h = safeHref(url); return h ? link(h, esc(text)) : m; });
   s = s.replace(/\b((?:https?:\/\/|www\.|sintr:\/\/)[^\s<>"'\u0001\u0002]+)/gi, (m, url) => {
     let trail = '';
@@ -5758,6 +5847,7 @@ function mdInline(raw) {
     return (h ? link(h, esc(url)) : esc(url)) + trail;
   });
   s = s.replace(/\b([\w.+-]+@[\w-]+(?:\.[\w-]+)+)\b/g, (m, e) => keep(`<a href="mailto:${esc(e)}">${esc(e)}</a>`));
+  if (values) s = noteValues(s, keep);
   s = esc(s);
   s = s.replace(/\*\*(?=\S)(.+?)\*\*/g, (m, x) => (/\s$/.test(x) ? m : `<strong>${x}</strong>`));
   s = s.replace(/(^|[^\w])__(?=\S)(.+?)__(?!\w)/g, (m, pre, x) => (/\s$/.test(x) ? m : `${pre}<strong>${x}</strong>`));
@@ -5766,20 +5856,20 @@ function mdInline(raw) {
   s = s.replace(/~~(?=\S)(.+?)~~/g, (m, x) => `<del>${x}</del>`);
   return s.replace(/\u0001(\d+)\u0002/g, (m, i) => tokens[+i]);
 }
-function renderMarkdown(text) {
+function renderMarkdown(text, opts) {
   const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
   let html = '', list = null, para = [];
-  const flush = () => { if (para.length) { html += `<p>${para.map(mdInline).join('<br>')}</p>`; para = []; } };
+  const flush = () => { if (para.length) { html += `<p>${para.map((l) => mdInline(l, opts)).join('<br>')}</p>`; para = []; } };
   const close = () => { if (list) { html += `</${list}>`; list = null; } };
   const open = (tag, start) => { if (list !== tag) { close(); html += tag === 'ol' && start && start !== '1' ? `<ol start="${+start}">` : `<${tag}>`; list = tag; } };
   for (const line of lines) {
     let m;
     if (!line.trim()) { flush(); close(); continue; }
-    if ((m = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/))) { flush(); close(); html += `<p class="md-h${m[1].length}">${mdInline(m[2])}</p>`; continue; }
-    if ((m = line.match(/^\s*[-*•+]\s+\[( |x|X)\]\s+(.*)$/))) { flush(); open('ul'); html += `<li class="md-task${m[1] === ' ' ? '' : ' done'}">${mdInline(m[2])}</li>`; continue; }
-    if ((m = line.match(/^\s*[-*•+]\s+(.*)$/))) { flush(); open('ul'); html += `<li>${mdInline(m[1])}</li>`; continue; }
-    if ((m = line.match(/^\s*(\d{1,4})[.)]\s+(.*)$/))) { flush(); open('ol', m[1]); html += `<li>${mdInline(m[2])}</li>`; continue; }
-    if ((m = line.match(/^\s*>\s?(.*)$/))) { flush(); close(); html += `<blockquote>${mdInline(m[1])}</blockquote>`; continue; }
+    if ((m = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/))) { flush(); close(); html += `<p class="md-h${m[1].length}">${mdInline(m[2], opts)}</p>`; continue; }
+    if ((m = line.match(/^\s*[-*•+]\s+\[( |x|X)\]\s+(.*)$/))) { flush(); open('ul'); html += `<li class="md-task${m[1] === ' ' ? '' : ' done'}">${mdInline(m[2], opts)}</li>`; continue; }
+    if ((m = line.match(/^\s*[-*•+]\s+(.*)$/))) { flush(); open('ul'); html += `<li>${mdInline(m[1], opts)}</li>`; continue; }
+    if ((m = line.match(/^\s*(\d{1,4})[.)]\s+(.*)$/))) { flush(); open('ol', m[1]); html += `<li>${mdInline(m[2], opts)}</li>`; continue; }
+    if ((m = line.match(/^\s*>\s?(.*)$/))) { flush(); close(); html += `<blockquote>${mdInline(m[1], opts)}</blockquote>`; continue; }
     close(); para.push(line);
   }
   flush(); close();
@@ -9258,10 +9348,22 @@ function boardTimelineHTML() {
    Open it from any screen with J, the notepad button at the bottom of the sidebar, or (on
    iPhone) the button at the top of every list. Start typing in the box at the top and it
    becomes a note; empty notes aren't kept. Each note remembers the list, project or area it
-   was written on (This Page shows only those, and its chip goes back there).
+   was written on (This Page shows only those, and its chip goes back there). A page with notes
+   shows a notepad badge with their count in its header; it opens the Notepad on This Page.
+   Notes read formatted, like a to-do's notes (links you can click, **bold**, bullets…), and
+   turn back into plain text when you click into them. The things you keep notes for (serial
+   numbers, IP and MAC addresses, license keys, phone numbers…) get a one-click copy button,
+   and phone numbers call. A long note shows its first lines, with Show More.
    ••• on a note: Pin to Top, Make To-Do (the selected text, or the note: first line as the
-   title, the rest as notes, into the Inbox), Copy Text, Move to This Page, Delete.
+   title, the rest as notes, into the Inbox), One To-Do per Line (each line, or each list item,
+   becomes its own Inbox to-do), Copy Text, Show as Sticky, Move to This Page, Archive, Delete.
+   Archived notes leave the list but search and Quick Find still find them; ••• in the header
+   → Archived Notes lists them, and Group by Page sorts the list under the page each note was
+   written on.
+   A sticky is one note popped out as a small card of its own (Mac): it stays on screen on every
+   page, whether the Notepad is open or not, and you can move it, resize it and edit it there.
    Notes sync like everything else ('note' records), go in backups, and Quick Find finds them.
+   Sintr can add a meeting's summary as a note, on the page its to-dos went to.
    On a wide Mac window the Notepad sits beside the list; narrower, it slides over it; on
    iPhone it fills the screen.
    On a Mac it can also float: drag it by its title (or press the float button in its
@@ -9269,16 +9371,29 @@ function boardTimelineHTML() {
    and resize from any edge or corner. Drag it back to the right edge of the window, or press
    the button again, and it goes back to the side. Attached, drag its left edge to make it
    wider or narrower (double-click the edge for the usual width). Each device remembers its
-   own width, and where and how big the floating Notepad was. */
-ui.np = { open: lsGet('sectis.np') === '1', q: '', page: false, focus: null, float: lsGet('sectis.npFloat') === '1' };
+   own width, where and how big the floating Notepad was, and where its stickies are. */
+ui.np = {
+  open: lsGet('sectis.np') === '1', q: '', page: false, focus: null, float: lsGet('sectis.npFloat') === '1',
+  editing: null, // the note being typed in (plain text); the rest read formatted
+  expanded: new Set(), // long notes opened with Show More
+  arch: false, // showing Archived Notes
+  group: lsGet('sectis.npGroup') === '1', // Group by Page
+};
 const NP_DOCK_AT = 1100;
 const NP_W_MIN = 260, NP_W_MAX = 720, NP_H_MIN = 220, NP_PAD = 6, NP_SNAP = 28;
+const NP_FOLD_AT = 150; // how much of a long note shows before Show More
+const NP_MD = { values: true };
+const NP_ST = { w: 240, h: 190, minW: 170, minH: 110 };
 let npW = +lsGet('sectis.npw') || 0; // its width at the side (0: the usual 340)
 let npRect = (() => { try { const r = JSON.parse(lsGet('sectis.npRect') || 'null'); return r && r.w > 0 && r.h > 0 ? r : null; } catch (e) { return null; } })(); // where it floats
+let npStickies = (() => { try { const a = JSON.parse(lsGet('sectis.npStickies') || '[]'); return Array.isArray(a) ? a.filter((s) => s && s.id) : []; } catch (e) { return []; } })(); // which notes are stickies, and where
+let npStZ = 1;
 const getNote = (id) => (S.notes || []).find((n) => n.id === id);
-function normalizeNote(n) { return Object.assign({ type: 'note', text: '', ctx: null, pinned: false, createdAt: 0, modifiedAt: 0 }, n); }
-const noteTitle = (n) => { const l = (n.text || '').split('\n').map((s) => s.trim()).find(Boolean); return l ? l.replace(/^(?:[-*•+]|\d+[.)])\s+/, '') : 'Empty Note'; };
+function normalizeNote(n) { return Object.assign({ type: 'note', text: '', ctx: null, pinned: false, archived: false, createdAt: 0, modifiedAt: 0 }, n); }
+const noteTitle = (n) => { const l = (n.text || '').split('\n').map((s) => s.trim()).find(Boolean); return l ? l.replace(/^(?:#{1,6}\s+|(?:[-*•+]|\d+[.)])\s+(?:\[[ xX]\]\s*)?)/, '').replace(/\*\*|__|`/g, '') : 'Empty Note'; };
 const viewKeyNow = () => (ui.view.id ? `${ui.view.type}:${ui.view.id}` : ui.view.type);
+const liveNotes = () => (S.notes || []).filter((n) => n.text.trim());
+const pageNoteCount = (key) => liveNotes().filter((n) => n.ctx === key && !n.archived).length;
 /* the page a note was written on, as a label and icon (null once it's gone) */
 function noteCtx(key) {
   if (!key) return null;
@@ -9313,6 +9428,7 @@ function applyNotepadMode() {
   if (float) setNpGeom(npFit(npRect || npDefaultRect()));
   else ['left', 'top', 'width', 'height'].forEach((k) => np.style.removeProperty(k));
   $$('[data-action="notepad"]').forEach((b) => b.classList.toggle('on', open));
+  renderStickies();
 }
 /* ---- its size and where it floats ---- */
 const npStays = () => { const app = $('#app'); return app.classList.contains('np-dock') || app.classList.contains('np-float'); }; // still open after you go somewhere
@@ -9327,17 +9443,19 @@ function npDefaultRect() {
   return { x: window.innerWidth - w - 56, y: 76, w, h };
 }
 /* a floating spot kept inside the window (what was saved stays as it was, for when the window grows again) */
-function npFit(r) {
+function npFit(r, minW = NP_W_MIN, minH = NP_H_MIN) {
   const vw = window.innerWidth, vh = window.innerHeight;
-  const w = clamp(r.w, NP_W_MIN, vw - 2 * NP_PAD), h = clamp(r.h, NP_H_MIN, vh - 2 * NP_PAD);
+  const w = clamp(r.w, minW, vw - 2 * NP_PAD), h = clamp(r.h, minH, vh - 2 * NP_PAD);
   return { x: clamp(r.x, NP_PAD, vw - w - NP_PAD), y: clamp(r.y, NP_PAD, vh - h - NP_PAD), w, h };
 }
-function setNpGeom(r) {
-  const np = $('#notepad'); if (!np) return;
-  np.style.left = Math.round(r.x) + 'px'; np.style.top = Math.round(r.y) + 'px';
-  np.style.width = Math.round(r.w) + 'px'; np.style.height = Math.round(r.h) + 'px';
+function setGeom(el, r) {
+  if (!el) return;
+  el.style.left = Math.round(r.x) + 'px'; el.style.top = Math.round(r.y) + 'px';
+  el.style.width = Math.round(r.w) + 'px'; el.style.height = Math.round(r.h) + 'px';
 }
-function saveNpRect(r) { npRect = { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) }; lsSet('sectis.npRect', JSON.stringify(npRect)); }
+const setNpGeom = (r) => setGeom($('#notepad'), r);
+const roundRect = (r) => ({ x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.w), h: Math.round(r.h) });
+function saveNpRect(r) { npRect = roundRect(r); lsSet('sectis.npRect', JSON.stringify(npRect)); }
 function setNotepadFloat(on) {
   if (isMobile()) return;
   if (on && !npRect) {
@@ -9348,7 +9466,7 @@ function setNotepadFloat(on) {
   ui.np.float = on; lsSet('sectis.npFloat', on ? '1' : '');
   renderNotepad(); rewrapAfterNp();
 }
-const rewrapAfterNp = () => requestAnimationFrame(() => $$('textarea[data-autosize]').forEach(autosize)); // titles and notes rewrap at the new width
+const rewrapAfterNp = () => requestAnimationFrame(() => { $$('textarea[data-autosize]').forEach((t) => { if (!t.hidden) autosize(t); }); npMeasureFolds($('#notepad')); }); // titles and notes rewrap at the new width
 function npSizing(cursor) {
   if (cursor) { document.body.style.setProperty('--np-cur', cursor); document.body.classList.add('np-sizing'); }
   else { document.body.classList.remove('np-sizing'); document.body.style.removeProperty('--np-cur'); }
@@ -9361,17 +9479,26 @@ function npSnapHint(on) {
 }
 function openNotepad(opts = {}) {
   ui.np.open = true; lsSet('sectis.np', '1');
-  if (opts.focus) { ui.np.q = ''; const n = getNote(opts.focus); if (n && ui.np.page && n.ctx !== viewKeyNow()) ui.np.page = false; }
-  ui.np.focus = opts.focus || (opts.write === false ? null : 'draft');
+  if (opts.focus) {
+    ui.np.q = ''; const n = getNote(opts.focus);
+    if (n) { ui.np.arch = !!n.archived; if (ui.np.page && n.ctx !== viewKeyNow()) ui.np.page = false; }
+  }
+  ui.np.focus = opts.focus || (opts.write === false || ui.np.arch ? null : 'draft');
   applyNotepadMode(); renderNotepad();
 }
 function closeNotepad() {
   if (!ui.np.open) return;
   const a = document.activeElement; if (a && a.closest && a.closest('#notepad')) a.blur();
-  ui.np.open = false; lsSet('sectis.np', ''); ui.np.focus = null;
-  dropEmptyNotes(); applyNotepadMode();
+  ui.np.open = false; lsSet('sectis.np', ''); ui.np.focus = null; ui.np.editing = null;
+  dropEmptyNotes(); applyNotepadMode(); noteBadge();
 }
 function toggleNotepad() { if (ui.np.open) closeNotepad(); else openNotepad({ write: !isCoarse() }); }
+/* the badge in a page's header: open the Notepad on This Page (or close it again) */
+function openNotepadHere() {
+  if (ui.np.open && ui.np.page && !ui.np.arch) { closeNotepad(); return; }
+  ui.np.page = true; ui.np.arch = false; ui.np.q = '';
+  openNotepad({ write: false });
+}
 function dropEmptyNotes(except) {
   const empty = (S.notes || []).filter((n) => n.id !== except && !n.text.trim());
   if (!empty.length) return;
@@ -9379,116 +9506,367 @@ function dropEmptyNotes(except) {
 }
 
 /* ---- drawing it ---- */
+function noteCardHTML(n, o = {}) {
+  const editing = ui.np.editing === n.id, c = o.noCtx ? null : noteCtx(n.ctx);
+  return `<div class="np-card${n.pinned && !n.archived ? ' pinned' : ''}${n.archived ? ' archived' : ''}" data-note="${n.id}">`
+    + `<div class="np-view md" data-np-view="${n.id}"${editing ? ' hidden' : ''}>${editing ? '' : renderMarkdown(n.text, NP_MD)}</div>`
+    + `<textarea class="np-text" data-np-text="${n.id}" data-fkey="note-${n.id}" data-autosize rows="1" aria-label="Note" spellcheck="true"${editing ? '' : ' hidden'}>${esc(n.text)}</textarea>`
+    + `<button class="np-more" data-np-fold="${n.id}" hidden>${ui.np.expanded.has(n.id) ? 'Show Less' : 'Show More'}</button>`
+    + `<div class="np-meta">${n.pinned && !n.archived ? `<span class="np-pin" title="Pinned">${ic('pin')}</span>` : ''}${n.archived && o.archTag ? `<span class="np-arch" title="Archived">${ic('archive')}</span>` : ''}${stickyOf(n.id) && !isMobile() ? `<span class="np-pin" title="Showing as a sticky">${ic('popout')}</span>` : ''}${c ? `<button class="np-ctx" data-nav="${esc(n.ctx)}" title="Written on ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : ''}<span class="np-time" title="${esc(new Date(n.modifiedAt || n.createdAt).toLocaleString())}">${esc(noteWhen(n.modifiedAt || n.createdAt))}</span><span class="spacer"></span>`
+    + `<button class="np-todo" data-np-todo="${n.id}" title="Make a to-do of this note, or of the text you've selected in it">${ic('plus')}<span>To-Do</span></button><button class="ib" data-np-more="${n.id}" aria-label="More" title="More">${ic('more')}</button></div></div>`;
+}
+const draftHTML = () => `<div class="np-card np-draft"><textarea class="np-text" data-np-text="draft" data-fkey="note-draft" data-autosize rows="2" placeholder="Jot something down…" aria-label="New note"></textarea></div>`;
 function notepadHTML() {
-  const here = viewKeyNow(), herectx = noteCtx(here);
+  const here = viewKeyNow(), herectx = noteCtx(here), arch = ui.np.arch;
   const words = ui.np.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
-  const all = (S.notes || []).filter((n) => n.text.trim());
-  const pageCount = all.filter((n) => n.ctx === here).length;
-  let list = all.filter((n) => (!ui.np.page || n.ctx === here) && words.every((w) => n.text.toLowerCase().includes(w)));
-  list.sort((a, b) => (b.pinned - a.pinned) || (b.modifiedAt - a.modifiedAt));
-  const card = (n) => {
-    const c = noteCtx(n.ctx);
-    return `<div class="np-card${n.pinned ? ' pinned' : ''}" data-note="${n.id}"><textarea class="np-text" data-np-text="${n.id}" data-fkey="note-${n.id}" data-autosize rows="1" aria-label="Note" spellcheck="true">${esc(n.text)}</textarea>`
-      + `<div class="np-meta">${n.pinned ? `<span class="np-pin" title="Pinned">${ic('pin')}</span>` : ''}${c ? `<button class="np-ctx" data-nav="${esc(n.ctx)}" title="Written on ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : ''}<span class="np-time" title="${esc(new Date(n.modifiedAt || n.createdAt).toLocaleString())}">${esc(noteWhen(n.modifiedAt || n.createdAt))}</span><span class="spacer"></span>`
-      + `<button class="np-todo" data-np-todo="${n.id}" title="Make a to-do of this note, or of the text you've selected in it">${ic('plus')}<span>To-Do</span></button><button class="ib" data-np-more="${n.id}" aria-label="More" title="More">${ic('more')}</button></div></div>`;
-  };
-  const draft = words.length ? '' : `<div class="np-card np-draft"><textarea class="np-text" data-np-text="draft" data-fkey="note-draft" data-autosize rows="2" placeholder="Jot something down…" aria-label="New note"></textarea></div>`;
-  const empty = !list.length ? `<p class="np-empty">${words.length ? 'No notes match.' : ui.np.page ? `Nothing written on ${herectx ? esc(herectx.label) : 'this page'} yet.` : 'Notes that aren’t to-dos go here: a serial number, a phone number, what someone said.'}</p>` : '';
+  const all = liveNotes(), match = (n) => words.every((w) => n.text.toLowerCase().includes(w));
+  const pageCount = all.filter((n) => n.ctx === here && !n.archived).length;
+  const newest = (a, b) => b.modifiedAt - a.modifiedAt, pinFirst = (a, b) => (b.pinned - a.pinned) || newest(a, b);
+  const onPage = (n) => !ui.np.page || n.ctx === here;
+  let list, archHits = [];
+  if (arch) list = all.filter((n) => n.archived && match(n)).sort(newest);
+  else {
+    list = all.filter((n) => !n.archived && onPage(n) && match(n)).sort(pinFirst);
+    if (words.length) archHits = all.filter((n) => n.archived && onPage(n) && match(n)).sort(newest); // search still finds archived notes
+  }
+  let body;
+  if (ui.np.group && !ui.np.page && !arch && list.length) {
+    // under the page each was written on: this page first, then the most recently written in
+    const groups = new Map();
+    list.forEach((n) => { const k = noteCtx(n.ctx) ? n.ctx : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(n); });
+    const latest = (k) => Math.max(...groups.get(k).map((n) => n.modifiedAt));
+    const keys = [...groups.keys()].sort((a, b) => (b === here) - (a === here) || (a === '') - (b === '') || latest(b) - latest(a));
+    body = keys.map((k) => {
+      const c = noteCtx(k), ns = groups.get(k);
+      return `<div class="np-group"><div class="np-gh">${c ? `<button class="np-gl" data-nav="${esc(k)}" title="Go to ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : '<span class="np-gl"><span>Other Notes</span></span>'}<span class="np-gn">${ns.length}</span></div>${ns.map((n) => noteCardHTML(n, { noCtx: !!c })).join('')}</div>`;
+    }).join('');
+  } else body = list.map((n) => noteCardHTML(n)).join('');
+  if (archHits.length) body += `<div class="np-gh np-arch-h"><span class="np-gl">${ic('archive')}<span>Archived</span></span><span class="np-gn">${archHits.length}</span></div>${archHits.map((n) => noteCardHTML(n, { archTag: true })).join('')}`;
+  const draft = words.length || arch ? '' : draftHTML();
+  const empty = !list.length && !archHits.length ? `<p class="np-empty">${arch ? (words.length ? 'No archived notes match.' : 'No archived notes. Archive a note from its ••• menu to put it away without deleting it.') : words.length ? 'No notes match.' : ui.np.page ? `Nothing written on ${herectx ? esc(herectx.label) : 'this page'} yet.` : 'Notes that aren’t to-dos go here: a serial number, a phone number, what someone said.'}</p>` : '';
   const fl = ui.np.float, floatBtn = isMobile() ? '' : `<button class="ib np-fl" data-np="float" aria-label="${fl ? 'Attach to the Side' : 'Float the Notepad'}" title="${fl ? 'Attach to the side (or drag it to the right edge)' : 'Float it in its own window (or drag its title)'}">${ic(fl ? 'dockR' : 'popout')}</button>`;
+  const closeBtn = `<button class="ib" data-np="close" aria-label="Close Notepad" title="Close (J)">${isMobile() ? '<span class="np-done">Done</span>' : ic('x')}</button>`;
   const grips = isMobile() ? '' : ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'].map((d) => `<div class="np-rs ${d}" data-np-rs="${d}" aria-hidden="true"${d === 'w' ? ' title="Drag to change the Notepad’s width. Double-click for the usual width."' : ''}></div>`).join('');
-  return `<div class="np-h">${ic('notepad', 'np-ic')}<h2>Notepad</h2><span class="spacer"></span>${floatBtn}<button class="ib" data-np="close" aria-label="Close Notepad" title="Close (J)">${isMobile() ? '<span class="np-done">Done</span>' : ic('x')}</button></div>`
-    + `<div class="np-tools"><label class="np-q">${ic('search')}<input id="np-q" value="${esc(ui.np.q)}" placeholder="Search notes" autocomplete="off" aria-label="Search notes"></label>`
-    + `<div class="seg np-scope" role="group" aria-label="Which notes"><button data-np-page="0" class="${ui.np.page ? '' : 'on'}" aria-pressed="${!ui.np.page}">All</button><button data-np-page="1" class="${ui.np.page ? 'on' : ''}" aria-pressed="${ui.np.page}" title="${herectx ? 'Notes written on ' + esc(herectx.label) : 'Notes written on this page'}">This Page${pageCount ? ` <span class="np-n">${pageCount}</span>` : ''}</button></div></div>`
-    + `<div class="np-list" id="np-list">${draft}${list.map(card).join('')}${empty}</div>${grips}`;
+  const head = arch
+    ? `<div class="np-h"><button class="ib np-back" data-np="back" aria-label="Back to Notes" title="Back to your notes">${ic('chevL')}</button><h2>Archived Notes</h2><span class="spacer"></span>${floatBtn}${closeBtn}</div>`
+    : `<div class="np-h">${ic('notepad', 'np-ic')}<h2>Notepad</h2><span class="spacer"></span>${floatBtn}<button class="ib" data-np="menu" aria-label="Notepad options" title="Notepad options">${ic('more')}</button>${closeBtn}</div>`;
+  return head
+    + `<div class="np-tools"><label class="np-q">${ic('search')}<input id="np-q" data-fkey="np-q" value="${esc(ui.np.q)}" placeholder="${arch ? 'Search archived notes' : 'Search notes'}" autocomplete="off" aria-label="Search notes"></label>`
+    + (arch ? '' : `<div class="seg np-scope" role="group" aria-label="Which notes"><button data-np-page="0" class="${ui.np.page ? '' : 'on'}" aria-pressed="${!ui.np.page}">All</button><button data-np-page="1" class="${ui.np.page ? 'on' : ''}" aria-pressed="${ui.np.page}" title="${herectx ? 'Notes written on ' + esc(herectx.label) : 'Notes written on this page'}">This Page${pageCount ? ` <span class="np-n">${pageCount}</span>` : ''}</button></div>`) + '</div>'
+    + `<div class="np-list" id="np-list">${draft}${body}${empty}</div>${grips}`;
 }
 function renderNotepad() {
   const np = $('#notepad'); if (!np) return;
   applyNotepadMode();
-  if (!ui.np.open) { np.innerHTML = ''; return; }
+  if (!ui.np.open) { np.innerHTML = ''; noteBadge(); return; }
   const box = $('#np-list', np), st = box ? box.scrollTop : 0;
-  const qFocused = document.activeElement && document.activeElement.id === 'np-q', qs = qFocused ? document.activeElement.selectionStart : null;
+  // keep typing where you were (the search box, or a note) across a redraw
+  const a = document.activeElement, fk = a && np.contains(a) && a.dataset ? a.dataset.fkey : null;
+  const ss = fk && 'selectionStart' in a ? a.selectionStart : null, se = fk && 'selectionEnd' in a ? a.selectionEnd : null;
   np.innerHTML = notepadHTML();
   const nb = $('#np-list', np); if (nb) nb.scrollTop = st;
-  $$('textarea[data-autosize]', np).forEach(autosize);
-  if (qFocused) { const q = $('#np-q', np); q.focus(); try { q.setSelectionRange(qs, qs); } catch (e) { /* ignore */ } }
+  $$('textarea[data-autosize]', np).forEach((t) => { if (!t.hidden) autosize(t); });
+  npMeasureFolds(np);
+  if (fk) { const el = $(`[data-fkey="${CSS.escape(fk)}"]`, np); if (el && !el.hidden) { el.focus({ preventScroll: true }); try { el.setSelectionRange(ss, se); } catch (e) { /* ignore */ } } }
   if (ui.np.focus) {
     const f = ui.np.focus; ui.np.focus = null;
-    const el = $(`[data-np-text="${CSS.escape(f)}"]`, np);
-    if (el) { el.focus({ preventScroll: true }); el.closest('.np-card').scrollIntoView({ block: 'nearest' }); if (f !== 'draft') { const e2 = el.value.length; el.setSelectionRange(e2, e2); el.closest('.np-card').classList.add('flash'); } }
+    if (f === 'draft') { const el = $('[data-np-text="draft"]', np); if (el) { el.focus({ preventScroll: true }); el.closest('.np-card').scrollIntoView({ block: 'nearest' }); } }
+    else {
+      const card = $(`.np-card[data-note="${CSS.escape(f)}"]`, np);
+      if (card) { if (card.classList.contains('folded')) { ui.np.expanded.add(f); npMeasureFolds(card.parentElement); } card.scrollIntoView({ block: 'nearest' }); card.classList.add('flash'); }
+    }
   }
+  noteBadge();
+}
+/* long notes show their first lines, with Show More */
+function npMeasureFolds(root) {
+  if (!root) return;
+  $$('.np-card[data-note]', root).forEach((card) => {
+    const v = $('.np-view', card), b = $('.np-more', card); if (!v || !b) return;
+    card.classList.remove('folded');
+    if (v.hidden) { b.hidden = true; return; }
+    const open = ui.np.expanded.has(card.dataset.note), tall = v.scrollHeight > NP_FOLD_AT + 30;
+    b.hidden = !tall; b.textContent = open ? 'Show Less' : 'Show More';
+    card.classList.toggle('folded', tall && !open);
+  });
+}
+/* the badge with this page's note count, in the page's header */
+function noteBadge() {
+  const lh = S && $('#content .lh'); if (!lh) return;
+  const old = $('.lh-np', lh), n = pageNoteCount(viewKeyNow());
+  if (!n) { if (old) old.remove(); return; }
+  const on = ui.np.open && ui.np.page && !ui.np.arch;
+  const html = `<button class="lh-np${on ? ' on' : ''}" data-action="np-page" aria-pressed="${on}" title="${n === 1 ? '1 note' : n + ' notes'} written here. ${on ? 'Close the Notepad' : 'Show them in the Notepad'}." aria-label="${n === 1 ? '1 note' : n + ' notes'} written here">${ic('notepad')}<span>${n}</span></button>`;
+  if (old) { old.outerHTML = html; return; }
+  const btn = [...lh.children].find((c) => c.matches('button.ib, button.btn'));
+  if (btn) btn.insertAdjacentHTML('beforebegin', html); else lh.insertAdjacentHTML('beforeend', html);
 }
 
-/* ---- typing ---- */
+/* ---- reading and typing: formatted until you click in, plain text while you type ---- */
+const noteBox = (el) => el && el.closest('.np-card, .np-sticky');
+function npEditNote(id, box) {
+  const ta = box && $(`textarea[data-np-text="${CSS.escape(id)}"]`, box), v = box && $('[data-np-view]', box); if (!ta) return;
+  if (box.closest('#notepad')) ui.np.editing = id; else box.classList.add('editing');
+  if (v) v.hidden = true;
+  box.classList.remove('folded'); const more = $('.np-more', box); if (more) more.hidden = true;
+  ta.hidden = false; if (ta.dataset.autosize != null) autosize(ta);
+  ta.focus({ preventScroll: true }); const e = ta.value.length; try { ta.setSelectionRange(e, e); } catch (err) { /* ignore */ }
+}
+function npShowView(box, n) {
+  const ta = $('textarea[data-np-text]', box), v = $('[data-np-view]', box);
+  box.classList.remove('editing');
+  if (!v) { // a note just started in the box at the top: draw it as a note, with a fresh box above
+    if (!box.closest('#notepad')) return;
+    box.outerHTML = noteCardHTML(n);
+    const list = $('#np-list'); if (list && !$('.np-draft', list) && !ui.np.q.trim() && !ui.np.arch) list.insertAdjacentHTML('afterbegin', draftHTML());
+    const card = $(`#notepad .np-card[data-note="${CSS.escape(n.id)}"]`); if (card) npMeasureFolds(card.parentElement);
+    return;
+  }
+  v.innerHTML = renderMarkdown(n.text, NP_MD); v.hidden = false; if (ta) ta.hidden = true;
+  if (box.classList.contains('np-card')) npMeasureFolds(box.parentElement);
+}
+/* the same note shown twice (in the Notepad and as a sticky) stays the same in both */
+function npMirror(n, from) {
+  const src = noteBox(from);
+  $$(`textarea[data-np-text="${CSS.escape(n.id)}"]`).forEach((ta) => { if (ta === from) return; ta.value = n.text; if (!ta.hidden && ta.dataset.autosize != null) autosize(ta); });
+  $$(`[data-np-view="${CSS.escape(n.id)}"]`).forEach((v) => { if (noteBox(v) !== src) v.innerHTML = renderMarkdown(n.text, NP_MD); });
+  $$(`.np-sticky[data-sticky="${CSS.escape(n.id)}"]`).forEach((st) => { st.dataset.v = n.modifiedAt; });
+}
 document.addEventListener('input', (e) => {
-  const el = e.target; if (!el.closest || !el.closest('#notepad')) return;
+  const el = e.target; if (!el.closest || !el.closest('#notepad, #np-stickies')) return;
   if (el.id === 'np-q') { ui.np.q = el.value; renderNotepad(); return; }
   const id = el.dataset.npText; if (!id) return;
   if (id === 'draft') {
     if (!el.value.trim()) return;
     // the box at the top becomes a note as soon as there's something in it
     const now = Date.now(), n = normalizeNote({ id: uid(), text: el.value, ctx: viewKeyNow(), createdAt: now, modifiedAt: now });
-    S.notes.unshift(n); saveSoon();
+    S.notes.unshift(n); saveSoon(); ui.np.editing = n.id;
     el.dataset.npText = n.id; el.dataset.fkey = 'note-' + n.id; el.removeAttribute('placeholder');
     el.closest('.np-card').classList.remove('np-draft'); el.closest('.np-card').dataset.note = n.id;
     const hint = $('#notepad .np-empty'); if (hint) hint.remove();
+    noteBadge();
     return;
   }
   const n = getNote(id); if (!n) return;
-  n.text = el.value; touch(n); saveSoon();
+  n.text = el.value; touch(n); saveSoon(); npMirror(n, el);
 });
+document.addEventListener('click', (e) => {
+  const v = e.target.closest && e.target.closest('[data-np-view]'); if (!v) return;
+  if (e.target.closest('a, button')) return;
+  const sel = window.getSelection(); if (sel && !sel.isCollapsed && v.contains(sel.anchorNode)) return; // selecting text to copy or make a to-do of
+  npEditNote(v.dataset.npView, noteBox(v));
+});
+/* changes to the layout wait until a click that's under way has landed, so what you clicked
+   doesn't move out from under the pointer */
+let npPtrDown = false;
+document.addEventListener('pointerdown', () => { npPtrDown = true; }, true);
+['pointerup', 'pointercancel'].forEach((t) => document.addEventListener(t, () => { npPtrDown = false; }, true));
+function npAfterPointer(fn) {
+  if (!npPtrDown) { fn(); return; }
+  const go = () => { window.removeEventListener('pointerup', go, true); window.removeEventListener('pointercancel', go, true); setTimeout(fn, 0); };
+  window.addEventListener('pointerup', go, true); window.addEventListener('pointercancel', go, true);
+}
 document.addEventListener('focusout', (e) => {
-  const el = e.target; if (!el.closest || !el.closest('#notepad') || !el.dataset.npText || el.dataset.npText === 'draft') return;
-  const n = getNote(el.dataset.npText);
-  if (n && !n.text.trim()) setTimeout(() => { if (document.activeElement !== el) { dropEmptyNotes(); if (ui.np.open) renderNotepad(); } }, 150);
+  const el = e.target; if (!el.dataset || !el.dataset.npText || el.dataset.npText === 'draft' || !el.closest('#notepad, #np-stickies')) return;
+  const id = el.dataset.npText, inSticky = !!el.closest('#np-stickies');
+  setTimeout(() => npAfterPointer(() => {
+    const a = document.activeElement;
+    if (a === el || (a && a.dataset && a.dataset.npText === id && !!a.closest('#np-stickies') === inSticky)) return; // still typing in it (or a redraw put you back)
+    const n = getNote(id);
+    if (!n || !n.text.trim()) { if (ui.np.editing === id) ui.np.editing = null; dropEmptyNotes(); if (ui.np.open) renderNotepad(); renderStickies(); return; }
+    if (inSticky) { const st = $(`#np-stickies .np-sticky[data-sticky="${CSS.escape(id)}"]`); if (st) npShowView(st, n); return; }
+    if (ui.np.editing === id) ui.np.editing = null;
+    const card = $(`#notepad .np-card[data-note="${CSS.escape(id)}"]`); if (card) npShowView(card, n);
+  }), 0);
 });
 document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  if (t.closest && t.closest('#np-stickies') && e.key === 'Escape' && t.dataset && t.dataset.npText) { e.preventDefault(); e.stopImmediatePropagation(); t.blur(); return; } // done typing in a sticky
   if (!ui.np.open || layers.length) return;
-  const inside = e.target.closest && e.target.closest('#notepad');
+  const inside = t.closest && t.closest('#notepad');
   if (e.key === 'Escape' && (inside || $('#app').classList.contains('np-over'))) { e.preventDefault(); e.stopImmediatePropagation(); closeNotepad(); return; }
-  if (inside && (e.metaKey || e.ctrlKey) && e.key === 'Enter' && e.target.dataset.npText) { e.preventDefault(); e.target.blur(); ui.np.focus = 'draft'; renderNotepad(); } // ⌘↩: done with this one, a fresh one
+  if (inside && (e.metaKey || e.ctrlKey) && e.key === 'Enter' && t.dataset.npText) { e.preventDefault(); ui.np.editing = null; t.blur(); ui.np.focus = 'draft'; renderNotepad(); } // ⌘↩: done with this one, a fresh one
 }, true);
 
 /* ---- clicks ---- */
+async function copyText(v) {
+  try { await navigator.clipboard.writeText(v); return true; } catch (e) {
+    const ta = document.createElement('textarea'); ta.value = v; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch (err) { /* ignore */ }
+    ta.remove(); return ok;
+  }
+}
 document.addEventListener('pointerdown', (e) => {
-  // keep the note's text selection when Make To-Do is pressed
-  if (e.target.closest && e.target.closest('#notepad [data-np-todo]')) e.preventDefault();
+  // keep the note's text selection when Make To-Do or ••• is pressed
+  if (e.target.closest && e.target.closest('#notepad [data-np-todo], #notepad [data-np-more]')) e.preventDefault();
   // the Notepad over a narrow window steps aside when you click the list behind it
-  if (ui.np.open && $('#app').classList.contains('np-over') && e.target.closest && !e.target.closest('#notepad') && !e.target.closest('#layer') && !e.target.closest('[data-action="notepad"]')) closeNotepad();
+  if (ui.np.open && $('#app').classList.contains('np-over') && e.target.closest && !e.target.closest('#notepad') && !e.target.closest('#layer') && !e.target.closest('#np-stickies') && !e.target.closest('[data-action="notepad"], [data-action="np-page"]')) closeNotepad();
+}, true);
+/* a value's copy button (in the Notepad or a sticky) */
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('#notepad [data-copy], #np-stickies [data-copy]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const v = b.dataset.copy;
+  copyText(v).then((ok) => {
+    toast(ok ? `Copied ${v.length > 40 ? v.slice(0, 39) + '…' : v}` : 'Couldn’t copy');
+    if (ok) { b.classList.add('copied'); setTimeout(() => b.classList.remove('copied'), 1200); }
+  });
 }, true);
 $('#notepad').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.np === 'close') { closeNotepad(); return; }
   if (b.dataset.np === 'float') { setNotepadFloat(!ui.np.float); return; }
+  if (b.dataset.np === 'menu') { notepadMenu(b); return; }
+  if (b.dataset.np === 'back') { ui.np.arch = false; ui.np.q = ''; renderNotepad(); return; }
   if (b.dataset.npPage) { ui.np.page = b.dataset.npPage === '1'; renderNotepad(); return; }
+  if (b.dataset.npFold) { const id = b.dataset.npFold; if (ui.np.expanded.has(id)) ui.np.expanded.delete(id); else ui.np.expanded.add(id); npMeasureFolds(b.closest('.np-card').parentElement); return; }
   if (b.dataset.nav) { if (!npStays()) closeNotepad(); navigate(b.dataset.nav); return; } // to the page it was written on
   if (b.dataset.npTodo) { noteToTodo(b.dataset.npTodo); return; }
   if (b.dataset.npMore) { noteMenu(getNote(b.dataset.npMore), b); }
 });
+function notepadMenu(el) {
+  const archived = liveNotes().filter((n) => n.archived).length;
+  openMenu(el, [
+    { label: 'Group by Page', icon: ui.np.group ? 'check' : 'blank', fn: () => { ui.np.group = !ui.np.group; lsSet('sectis.npGroup', ui.np.group ? '1' : ''); renderNotepad(); } },
+    { sep: 1 },
+    { label: 'Archived Notes', icon: 'archive', hint: archived ? String(archived) : '', disabled: !archived, fn: () => { ui.np.arch = true; ui.np.q = ''; ui.np.editing = null; renderNotepad(); } },
+  ]);
+}
 function noteMenu(n, el) {
   if (!n) return;
-  const here = viewKeyNow(), hc = noteCtx(here);
+  const here = viewKeyNow(), hc = noteCtx(here), picked = npSelected(n.id), lines = npTodoLines(picked || n.text).length;
   openMenu(el, [
-    { label: n.pinned ? 'Unpin' : 'Pin to Top', icon: 'pin', fn: () => { commit(n.pinned ? 'Unpin Note' : 'Pin Note', () => { n.pinned = !n.pinned; }); renderNotepad(); } },
-    { label: 'Make To-Do', icon: 'circle', fn: () => noteToTodo(n.id) },
-    { label: 'Copy Text', icon: 'copy', fn: () => { try { navigator.clipboard.writeText(n.text).then(() => toast('Copied'), () => toast('Couldn’t copy')); } catch (e) { toast('Couldn’t copy'); } } },
+    ...(n.archived ? [] : [{ label: n.pinned ? 'Unpin' : 'Pin to Top', icon: 'pin', fn: () => { commit(n.pinned ? 'Unpin Note' : 'Pin Note', () => { n.pinned = !n.pinned; }); renderNotepad(); } }]),
+    { label: picked ? 'Make To-Do of Selection' : 'Make To-Do', icon: 'circle', fn: () => noteToTodo(n.id, picked) },
+    ...(lines > 1 ? [{ label: picked ? 'One To-Do per Selected Line' : 'One To-Do per Line', icon: 'checklist', hint: String(lines), fn: () => noteToTodos(n.id, picked) }] : []),
+    { label: 'Copy Text', icon: 'copy', fn: () => { copyText(n.text).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy')); } },
+    ...(isMobile() || n.archived ? [] : [stickyOf(n.id) ? { label: 'Hide Sticky', icon: 'popout', fn: () => hideSticky(n.id) } : { label: 'Show as Sticky', icon: 'popout', fn: () => showSticky(n.id) }]),
     ...(hc && n.ctx !== here ? [{ label: `Move to ${hc.label}`, icon: 'move', fn: () => { commit('Move Note', () => { n.ctx = here; touch(n); }); renderNotepad(); } }] : []),
     { sep: 1 },
+    n.archived
+      ? { label: 'Move Out of Archive', icon: 'archive', fn: () => archiveNote(n.id, false) }
+      : { label: 'Archive', icon: 'archive', fn: () => archiveNote(n.id, true) },
     { label: 'Delete Note', icon: 'trash', danger: true, fn: () => { commit('Delete Note', () => { S.notes = S.notes.filter((x) => x.id !== n.id); }); renderNotepad(); toast('Note deleted', { undo: true }); } },
   ]);
 }
+function archiveNote(id, on) {
+  const n = getNote(id); if (!n) return;
+  if (ui.np.editing === id) ui.np.editing = null;
+  commit(on ? 'Archive Note' : 'Unarchive Note', () => { n.archived = on; touch(n); });
+  renderNotepad();
+  if (on) toast('Note archived', { undo: true, action: 'Show', fn: () => { ui.np.arch = true; openNotepad({ focus: id }); } });
+  else toast('Note moved back to your notes');
+}
+/* the text selected in a note: in its text box while typing, or in the formatted note */
+function npSelected(id) {
+  const a = document.activeElement;
+  if (a && a.dataset && a.dataset.npText === id && a.selectionStart !== a.selectionEnd) return a.value.slice(a.selectionStart, a.selectionEnd);
+  const sel = window.getSelection();
+  if (sel && !sel.isCollapsed && sel.anchorNode) {
+    const node = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement, v = node && node.closest('[data-np-view]');
+    if (v && v.dataset.npView === id) return sel.toString();
+  }
+  return '';
+}
 /* the selected text, or the whole note: its first line the title, the rest the to-do's notes */
-function noteToTodo(id) {
+function noteToTodo(id, picked) {
   const n = getNote(id); if (!n || !n.text.trim()) return;
-  const ta = $(`#notepad [data-np-text="${CSS.escape(id)}"]`);
-  const sel = ta && document.activeElement === ta && ta.selectionStart !== ta.selectionEnd ? ta.value.slice(ta.selectionStart, ta.selectionEnd) : n.text;
+  const sel = picked || npSelected(id) || n.text;
   const lines = sel.split('\n'), i = lines.findIndex((l) => l.trim());
   if (i < 0) return;
-  const title = lines[i].trim().replace(/^(?:[-*•+]|\d+[.)]|\[[ xX]?\])\s+/, ''), notes = lines.slice(i + 1).join('\n').trim();
+  const title = lines[i].trim().replace(/^(?:#{1,6}\s+|(?:[-*•+]|\d+[.)])\s+)?(?:\[[ xX]?\]\s+)?/, '').replace(/\*\*|__|`/g, ''), notes = lines.slice(i + 1).join('\n').trim();
   let t;
   commit('Make To-Do', () => { t = makeTodo({ title, notes, start: 'inbox' }); t.order = topOrder(S.todos.filter((x) => isInbox(x) && !x.trashed)); S.todos.push(t); });
   toast(`Added “${title.length > 40 ? title.slice(0, 39) + '…' : title}” to the Inbox`, { action: 'Show', fn: () => { if (!npStays()) closeNotepad(); revealTodo(t.id); } });
 }
-window.addEventListener('resize', debounce(applyNotepadMode, 60));
+/* the to-dos in some text: its list items if it has any (so a title line above a list isn't
+   one), otherwise every line; headings and checked-off items are left out */
+function npTodoLines(text) {
+  const lines = String(text || '').split('\n').map((l) => l.trim()).filter(Boolean);
+  const bullet = /^(?:[-*•+]|\d+[.)])\s+/;
+  const listed = lines.filter((l) => bullet.test(l) || /^\[[ xX]?\]\s/.test(l));
+  return (listed.length ? listed : lines)
+    .filter((l) => !/^#{1,6}\s/.test(l) && !/^(?:(?:[-*•+]|\d+[.)])\s+)?\[[xX]\]/.test(l))
+    .map((l) => l.replace(bullet, '').replace(/^\[[ xX]?\]\s*/, '').replace(/\*\*|__|`/g, '').trim())
+    .filter(Boolean);
+}
+function noteToTodos(id, picked) {
+  const n = getNote(id); if (!n) return;
+  const titles = npTodoLines(picked || n.text); if (!titles.length) return;
+  const made = [];
+  commit('Make To-Dos', () => {
+    let o = topOrder(S.todos.filter((x) => isInbox(x) && !x.trashed)) - titles.length + 1;
+    titles.forEach((title) => { const t = makeTodo({ title, start: 'inbox' }); t.order = o++; S.todos.push(t); made.push(t); });
+  });
+  toast(`Added ${made.length} to-dos to the Inbox`, { undo: true, action: 'Show', fn: () => { if (!npStays()) closeNotepad(); navigate('inbox'); revealTodo(made[0].id); } });
+}
+window.addEventListener('resize', debounce(() => { applyNotepadMode(); if (ui.np.open) npMeasureFolds($('#notepad')); }, 60));
+
+/* ---- stickies: one note on its own small card, on every page (Mac) ---- */
+const stickyOf = (id) => npStickies.find((s) => s.id === id);
+function saveStickies() { lsSet('sectis.npStickies', JSON.stringify(npStickies)); }
+function showSticky(id) {
+  if (stickyOf(id) || isMobile()) return;
+  const k = npStickies.length % 6, side = $('#app').classList.contains('np-dock') ? $('#notepad').offsetWidth : 0;
+  npStickies.push(roundRect({ x: window.innerWidth - side - NP_ST.w - 70 - k * 26, y: 96 + k * 26, w: NP_ST.w, h: NP_ST.h }));
+  npStickies[npStickies.length - 1].id = id;
+  saveStickies(); renderStickies(); if (ui.np.open) renderNotepad();
+  const st = $(`#np-stickies .np-sticky[data-sticky="${CSS.escape(id)}"]`); if (st) { st.style.zIndex = ++npStZ; st.classList.add('flash'); }
+}
+function hideSticky(id) {
+  npStickies = npStickies.filter((s) => s.id !== id); saveStickies(); renderStickies(); if (ui.np.open) renderNotepad();
+}
+function stickyHTML(n) {
+  return `<div class="np-st-h" title="Drag to move"><span class="np-st-t"></span><button class="ib" data-st="open" title="Show in the Notepad" aria-label="Show in the Notepad">${ic('notepad')}</button><button class="ib" data-st="close" title="Put it away (it stays in the Notepad)" aria-label="Close sticky">${ic('x')}</button></div>`
+    + `<div class="np-st-b"><div class="np-view md" data-np-view="${n.id}">${renderMarkdown(n.text, NP_MD)}</div><textarea class="np-text" data-np-text="${n.id}" data-fkey="sticky-${n.id}" aria-label="Sticky note" spellcheck="true" hidden>${esc(n.text)}</textarea></div>`
+    + ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'].map((d) => `<div class="np-rs ${d}" data-st-rs="${d}" aria-hidden="true"></div>`).join('');
+}
+function renderStickies() {
+  let box = $('#np-stickies');
+  const list = S && !isMobile() ? npStickies.map((s) => ({ s, n: getNote(s.id) })).filter((x) => x.n && !x.n.archived && x.n.text.trim()) : [];
+  if (!list.length) { if (box) box.innerHTML = ''; return; }
+  if (!box) { box = document.createElement('div'); box.id = 'np-stickies'; box.className = 'np-stickies'; document.body.appendChild(box); }
+  const keep = new Set(list.map((x) => x.n.id));
+  $$('.np-sticky', box).forEach((el) => { if (!keep.has(el.dataset.sticky)) el.remove(); });
+  list.forEach(({ s, n }) => {
+    let el = $(`.np-sticky[data-sticky="${CSS.escape(n.id)}"]`, box);
+    if (!el) { el = document.createElement('div'); el.className = 'np-sticky'; el.dataset.sticky = n.id; el.innerHTML = stickyHTML(n); el.dataset.v = n.modifiedAt; box.appendChild(el); }
+    else if (+el.dataset.v !== n.modifiedAt && !el.classList.contains('editing')) {
+      // changed somewhere else (the Notepad, another device)
+      $('[data-np-view]', el).innerHTML = renderMarkdown(n.text, NP_MD); $('textarea', el).value = n.text; el.dataset.v = n.modifiedAt;
+    }
+    if (!el.classList.contains('moving')) setGeom(el, npFit(s, NP_ST.minW, NP_ST.minH));
+  });
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('#np-stickies [data-st]'); if (!b) return;
+  const id = b.closest('.np-sticky').dataset.sticky;
+  if (b.dataset.st === 'close') hideSticky(id);
+  else if (b.dataset.st === 'open') openNotepad({ focus: id });
+});
+
+/* ---- following the pointer: a frame at a time, until it's let go ---- */
+function npTrack(step, end) {
+  let raf = 0, last = null;
+  const run = () => { raf = 0; if (last) step(last); };
+  const move = (ev) => { last = ev; if (!raf) raf = requestAnimationFrame(run); };
+  const up = () => {
+    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
+    if (raf) { cancelAnimationFrame(raf); run(); }
+    end();
+  };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+}
+/* a box resized from one edge or corner, kept inside the window and no smaller than min */
+function edgeRect(r0, dir, dx, dy, minW, minH) {
+  const vw = window.innerWidth, vh = window.innerHeight;
+  let L = r0.left, T = r0.top, R = r0.right, B = r0.bottom;
+  if (dir.includes('w')) L = clamp(r0.left + dx, NP_PAD, R - minW);
+  if (dir.includes('e')) R = clamp(r0.right + dx, L + minW, vw - NP_PAD);
+  if (dir.includes('n')) T = clamp(r0.top + dy, NP_PAD, B - minH);
+  if (dir.includes('s')) B = clamp(r0.bottom + dy, T + minH, vh - NP_PAD);
+  return { x: L, y: T, w: R - L, h: B - T };
+}
 
 /* ---- resizing: its left edge at the side; any edge or corner when it floats ---- */
 const NP_CURSORS = { n: 'ns-resize', s: 'ns-resize', e: 'ew-resize', w: 'ew-resize', nw: 'nwse-resize', se: 'nwse-resize', ne: 'nesw-resize', sw: 'nesw-resize' };
@@ -9500,29 +9878,17 @@ document.addEventListener('pointerdown', (e) => {
   e.preventDefault(); e.stopPropagation();
   // at the side it can't crowd out the list; over a narrow window it stops short of the left edge
   const r0 = np.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY, maxW = app.classList.contains('np-dock') ? npDockMax() : Math.min(NP_W_MAX, app.clientWidth - 44);
-  let w = r0.width, rect = null, raf = 0, last = null;
+  let w = r0.width, rect = null;
   npSizing(float ? NP_CURSORS[dir] : 'col-resize'); h.classList.add('on');
-  const step = () => {
-    raf = 0; const dx = last.clientX - x0, dy = last.clientY - y0;
-    if (!float) { w = clamp(r0.width - dx, NP_W_MIN, maxW); setNpWidth(w); return; }
-    const vw = window.innerWidth, vh = window.innerHeight;
-    let L = r0.left, T = r0.top, R = r0.right, B = r0.bottom;
-    if (dir.includes('w')) L = clamp(r0.left + dx, NP_PAD, R - NP_W_MIN);
-    if (dir.includes('e')) R = clamp(r0.right + dx, L + NP_W_MIN, vw - NP_PAD);
-    if (dir.includes('n')) T = clamp(r0.top + dy, NP_PAD, B - NP_H_MIN);
-    if (dir.includes('s')) B = clamp(r0.bottom + dy, T + NP_H_MIN, vh - NP_PAD);
-    rect = { x: L, y: T, w: R - L, h: B - T }; setNpGeom(rect);
-  };
-  const move = (ev) => { last = ev; if (!raf) raf = requestAnimationFrame(step); };
-  const up = () => {
-    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
-    if (raf) { cancelAnimationFrame(raf); step(); }
+  npTrack((ev) => {
+    if (!float) { w = clamp(r0.width - (ev.clientX - x0), NP_W_MIN, maxW); setNpWidth(w); return; }
+    rect = edgeRect(r0, dir, ev.clientX - x0, ev.clientY - y0, NP_W_MIN, NP_H_MIN); setNpGeom(rect);
+  }, () => {
     npSizing(null); h.classList.remove('on');
     if (float) { if (rect) saveNpRect(rect); }
     else if (Math.abs(w - r0.width) > 1) { npW = Math.round(w); lsSet('sectis.npw', String(npW)); }
     rewrapAfterNp();
-  };
-  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  });
 }, true);
 document.addEventListener('dblclick', (e) => {
   const h = e.target.closest && e.target.closest('#notepad .np-rs');
@@ -9539,11 +9905,10 @@ document.addEventListener('pointerdown', (e) => {
   const app = $('#app'), np = $('#notepad'), r0 = np.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
   const gx = (x0 - r0.left) / r0.width, gy = y0 - r0.top; // where on it you took hold
   const wasFloat = app.classList.contains('np-float');
-  let moving = false, snap = false, rect = null, size = null, raf = 0, last = null;
-  const step = () => {
-    raf = 0;
+  let moving = false, snap = false, rect = null, size = null;
+  npTrack((ev) => {
     if (!moving) {
-      if (Math.hypot(last.clientX - x0, last.clientY - y0) < 5) return;
+      if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 5) return;
       moving = true; npSizing('grabbing');
       if (wasFloat) size = { w: r0.width, h: r0.height };
       else {
@@ -9552,26 +9917,42 @@ document.addEventListener('pointerdown', (e) => {
         size = { w: d.w, h: d.h }; ui.np.float = true; applyNotepadMode();
       }
     }
-    rect = npFit({ x: last.clientX - gx * size.w, y: last.clientY - gy, w: size.w, h: size.h });
+    rect = npFit({ x: ev.clientX - gx * size.w, y: ev.clientY - gy, w: size.w, h: size.h });
     setNpGeom(rect);
-    snap = last.clientX >= window.innerWidth - NP_SNAP; npSnapHint(snap);
-  };
-  const move = (ev) => { last = ev; if (!raf) raf = requestAnimationFrame(step); };
-  const up = () => {
-    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up);
-    if (raf) { cancelAnimationFrame(raf); step(); }
+    snap = ev.clientX >= window.innerWidth - NP_SNAP; npSnapHint(snap);
+  }, () => {
     npSizing(null); npSnapHint(false);
     if (!moving) return;
     if (snap) { ui.np.float = false; lsSet('sectis.npFloat', ''); if (rect && wasFloat) saveNpRect({ x: r0.left, y: r0.top, w: r0.width, h: r0.height }); } // it floats back where it was next time
     else { saveNpRect(rect); ui.np.float = true; lsSet('sectis.npFloat', '1'); }
     renderNotepad(); rewrapAfterNp();
-  };
-  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+  });
 }, true);
 document.addEventListener('dblclick', (e) => {
   if (isMobile() || !(e.target.closest && e.target.closest('#notepad .np-h')) || e.target.closest('button, input')) return;
   setNotepadFloat(!ui.np.float);
 });
+
+/* ---- moving and resizing a sticky ---- */
+document.addEventListener('pointerdown', (e) => {
+  const st = e.target.closest && e.target.closest('#np-stickies .np-sticky'); if (!st || e.button !== 0) return;
+  st.style.zIndex = ++npStZ; // to the front
+  const s = stickyOf(st.dataset.sticky); if (!s) return;
+  const h = e.target.closest('[data-st-rs]'), hd = !h && e.target.closest('.np-st-h');
+  if ((!h && !hd) || (hd && e.target.closest('button'))) return;
+  e.preventDefault();
+  const r0 = st.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY;
+  let rect = null;
+  st.classList.add('moving'); npSizing(h ? NP_CURSORS[h.dataset.stRs] : 'grabbing');
+  npTrack((ev) => {
+    const dx = ev.clientX - x0, dy = ev.clientY - y0;
+    rect = h ? edgeRect(r0, h.dataset.stRs, dx, dy, NP_ST.minW, NP_ST.minH) : npFit({ x: r0.left + dx, y: r0.top + dy, w: r0.width, h: r0.height }, NP_ST.minW, NP_ST.minH);
+    setGeom(st, rect);
+  }, () => {
+    st.classList.remove('moving'); npSizing(null);
+    if (rect) { Object.assign(s, roundRect(rect)); saveStickies(); }
+  });
+}, true);
 
 /* ===================== Menus wherever you'd look for one =====================
    Right-click (or Control-click) gives the menu that belongs to what's under the pointer:

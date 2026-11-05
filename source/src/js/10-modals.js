@@ -17,7 +17,7 @@ function findResults(q, includeLog) {
       .sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.modifiedAt - a.modifiedAt)
       .forEach((t) => { if (n < 60 && m(t.title, t.notes, t.checklist.map((c) => c.title).join(' '))) { n++; out.push({ g: t.blueprint ? 'Templates' : t.isTemplate ? 'Repeating' : 'To-Dos', kind: t.isTemplate ? 'template' : 'todo', id: t.id, title: t.title || 'New To-Do', icon: t.blueprint ? 'template' : t.isTemplate ? 'repeat' : t.status === 'open' ? 'select' : 'logbook', color: t.status === 'open' ? 'var(--faint)' : 'var(--c-logbook)', sub: [parentLabel(t), t.when && t.start === 'anytime' ? fmtRel(t.when) : t.start === 'someday' ? 'Someday' : ''].filter(Boolean).join(' · ') }); } });
     (S.notes || []).filter((x) => x.text.trim() && m(x.text)).sort((a, b) => b.modifiedAt - a.modifiedAt).slice(0, 20)
-      .forEach((x) => { const c = noteCtx(x.ctx); out.push({ g: 'Notepad', kind: 'note', id: x.id, title: noteTitle(x), icon: 'notepad', color: 'var(--c-note)', sub: c ? c.label : '' }); });
+      .forEach((x) => { const c = noteCtx(x.ctx); out.push({ g: 'Notepad', kind: 'note', id: x.id, title: noteTitle(x), icon: 'notepad', color: 'var(--c-note)', sub: [x.archived ? 'Archived' : '', c ? c.label : ''].filter(Boolean).join(' · ') }); });
   }
   return out;
 }

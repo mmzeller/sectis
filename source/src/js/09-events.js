@@ -141,6 +141,7 @@ function handleAction(act, el, e) {
     case 'find': openFind(); return;
     case 'sb-toggle': toggleSidebar(); return;
     case 'notepad': toggleNotepad(); return;
+    case 'np-page': openNotepadHere(); return;
     case 'focus-menu': openFocusMenu(el); return;
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;

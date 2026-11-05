@@ -49,6 +49,7 @@ function restoreFocus(f) {
 }
 function afterRender() {
   fitBoardName($('#content .board-name'));
+  noteBadge(); // how many notes were written on this page
   $$('textarea[data-autosize]').forEach(autosize);
   if (ui.scrollToEditor) {
     ui.scrollToEditor = false;
