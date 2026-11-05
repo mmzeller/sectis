@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.40.0';
+const APP_VERSION = '1.41.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -196,6 +196,8 @@ const I = {
   link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1.1 1.1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1"/>'),
   notepad: svg('<path d="M6.5 3.5h8.2l3.3 3.3v13.7H6.5z"/><path d="M14.5 3.5v3.5H18M9.2 11h5.8M9.2 14.4h5.8M9.2 17.8h3.6"/>'),
   pin: svg('<path d="M9 3.8h6M10 3.8v5.4l-3.2 3.6v1.6h10.4v-1.6L14 9.2V3.8M12 14.4v5.8"/>'),
+  popout: svg('<path d="M18.5 13.5v4.5a2.5 2.5 0 0 1-2.5 2.5H6A2.5 2.5 0 0 1 3.5 18V8A2.5 2.5 0 0 1 6 5.5h4.5"/><path d="M14.5 3.5h6v6M20.5 3.5l-8.5 8.5"/>'),
+  dockR: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M14.5 4.5v15M16.6 8.2h1.6M16.6 11.2h1.6"/>'),
   circle: svg('<circle cx="12" cy="12" r="7.6"/>'),
   timeline: svg('<rect x="3.5" y="4.5" width="9" height="4" rx="2"/><rect x="7.5" y="10" width="13" height="4" rx="2"/><rect x="5.5" y="15.5" width="7" height="4" rx="2"/>'),
   sidebar: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M5.8 8.2h1.6M5.8 11.2h1.6"/>'),
