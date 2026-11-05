@@ -1161,7 +1161,7 @@ body.tl-dragging, body.tl-dragging * { cursor: grabbing !important; user-select:
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.36.0';
+const APP_VERSION = '1.37.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1334,6 +1334,7 @@ const I = {
   x: svg('<path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/>'),
   check: svg('<path d="m5 12.5 4.3 4.3L19 7"/>'),
   move: svg('<path d="M4 12h13M13 7l5 5-5 5"/>'),
+  paste: svg('<rect x="5" y="4.5" width="14" height="16" rx="2.5"/><path d="M9 4.5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v.5a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 4.5ZM8.8 11h6.4M8.8 15h4.4"/>'),
   copy: svg('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>'),
   heading: svg('<path d="M5 6h14M5 12h9M5 18h11"/>'),
   project: svg('<circle cx="12" cy="12" r="8.5"/><path class="fill" d="M12 12V3.5a8.5 8.5 0 0 1 8.5 8.5z"/>'),
@@ -2956,14 +2957,31 @@ function selectedProjectRow() {
 }
 function newTodo(opts = {}) {
   if (ui.view.type === 'templates') { newTodoTemplate(); return; }
-  if (['logbook', 'trash', 'waiting', 'timeline'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
-  if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) { toast('Reopen the project to add to-dos'); return; } }
+  const spot = newTodoSpot(opts);
+  if (spot.qe) { openQuickEntry(); return; }
+  if (spot.closed) { toast('Reopen the project to add to-dos'); return; }
+  const { props, place } = spot;
+  let t;
+  commit('New To-Do', () => { t = createTodoIn(props, place); }, { render: false });
+  ui.newId = t.id; ui.editing = t.id; ui.sel = new Set([t.id]); ui.anchor = t.id; ui.scrollToEditor = true;
+  ui.focusAfter = `[data-fkey="title-${t.id}"]`;
+  render();
+  return t;
+}
+/* where a new to-do goes: its props and place (order, todayOrder). With n > 1, the place's
+   orders are lists of n, one for each of several to-dos in a row (see pasteTodos).
+   { qe: true } means this list takes no new to-dos (Quick Entry instead); { closed: true }
+   means the project is done or in the Trash. */
+function newTodoSpot(opts = {}, n = 1) {
+  if (['logbook', 'trash', 'waiting', 'timeline', 'templates'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) return { qe: true };
+  if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) return { closed: true }; }
+  const one = (arr) => (n === 1 ? arr[0] : arr);
   // A selected project row (an area's projects, an area's column on the Board, Today…) takes the new
   // to-do, wherever the row is. An expandable row opens so the new to-do shows under it.
   const selP = !opts.sec && !opts.place && selectedProjectRow();
   if (selP) {
     const { p, row } = selP;
-    if (p.trashed || p.status !== 'open') { toast('Reopen the project to add to-dos'); return; }
+    if (p.trashed || p.status !== 'open') return { closed: true };
     if (row.dataset.expandable && !ui.expanded.has(p.id)) { ui.expanded.add(p.id); lsSet('sectis.expanded', JSON.stringify([...ui.expanded])); }
     opts = Object.assign({}, opts, { sec: `project:${p.id}:` });
   }
@@ -2972,7 +2990,7 @@ function newTodo(opts = {}) {
     const row = ui.anchor && ui.sel.has(ui.anchor) && document.querySelector(`#content .row[data-id="${CSS.escape(ui.anchor)}"]`);
     if (!(row && row.dataset.kind === 'todo' && row.closest('[data-sec]'))) {
       const sec = boardNewSec();
-      if (!sec) { openQuickEntry(); return; }
+      if (!sec) return { qe: true };
       opts = Object.assign({}, opts, { sec });
     }
   }
@@ -2993,20 +3011,15 @@ function newTodo(opts = {}) {
         let nRow = nextRowEl(row);
         if (sinksDone()) while (nRow && (rowItem(nRow) || {}).status !== 'open') nRow = nextRowEl(nRow); // past the completed ones at the bottom
         const nxt = rowItem(nRow);
-        place[ok] = orderBetween(ref[ok], nxt && nxt.type === 'todo' ? nxt[ok] : null)[0];
-        if (ok === 'order') place.todayOrder = orderBetween(ref.todayOrder, null)[0];
-        if (ok === 'todayOrder') place.order = orderBetween(ref.order, null)[0];
+        place[ok] = one(orderBetween(ref[ok], nxt && nxt.type === 'todo' ? nxt[ok] : null, n));
+        if (ok === 'order') place.todayOrder = one(orderBetween(ref.todayOrder, null, n));
+        if (ok === 'todayOrder') place.order = one(orderBetween(ref.order, null, n));
       }
     }
   }
   if (props._fromInbox && props.start === 'inbox') props.start = props._fromInbox; // filed in a project or area, so not the Inbox
   for (const k of Object.keys(props)) if (k.startsWith('_') || props[k] === undefined) delete props[k];
-  let t;
-  commit('New To-Do', () => { t = createTodoIn(props, place); }, { render: false });
-  ui.newId = t.id; ui.editing = t.id; ui.sel = new Set([t.id]); ui.anchor = t.id; ui.scrollToEditor = true;
-  ui.focusAfter = `[data-fkey="title-${t.id}"]`;
-  render();
-  return t;
+  return { props, place };
 }
 
 /* checklist */
@@ -4105,8 +4118,10 @@ function viewMenu(el) {
     ]);
     return;
   }
-  if (v === 'project') { projectMenu(getP(ui.view.id), el, batch); return; }
-  if (v === 'area') { areaMenu(getA(ui.view.id), el, batch); return; }
+  const paste = batch.length ? [] : listPasteMenuItems(); // nothing selected: Paste goes into this list
+  if (paste.length) paste.push({ sep: 1 });
+  if (v === 'project') { projectMenu(getP(ui.view.id), el, batch.length ? batch : paste); return; }
+  if (v === 'area') { areaMenu(getA(ui.view.id), el, batch.length ? batch : paste); return; }
   if (v === 'board') {
     const n = boardCols().length;
     openMenu(el, [...batch,
@@ -4124,6 +4139,7 @@ function viewMenu(el) {
   if (v === 'today') items.push({ label: S.settings.groupToday ? 'Don’t Group by Project' : 'Group by Project & Area', icon: 'layers', fn: () => { S.settings.groupToday = !S.settings.groupToday; saveSoon(); render(); } });
   const unlogged = S.todos.concat(S.projects).some((x) => x.status !== 'open' && !x.logged);
   if (['inbox', 'today', 'upcoming', 'anytime', 'someday', 'tag'].includes(v)) items.push({ label: 'New To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'] }) });
+  items.push(...paste);
   if (sortableView()) items.push(sortMenuItem(el));
   if (v !== 'trash') items.push({ label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) });
   if (v !== 'trash') items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'all' }) });
@@ -4767,7 +4783,7 @@ function openShortcuts() {
   const k = (...keys) => keys.map((x) => `<kbd>${esc(x)}</kbd>`).join(' ');
   const rows = [
     ['Create', [['New to-do', k('N') + ' or ' + k('Space')], ['New heading (in a project)', k('⇧', 'N')], ['Quick Entry', k('Q')], ['Quick Find', k('/') + ' or ' + k(MODK + 'F')]]],
-    ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
+    ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Copy', k(MODK + 'C')], ['Paste after it', k(MODK + 'V')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
     ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Show or hide the sidebar', IS_MAC ? k('⌃', '⌘', 'S') : k('Ctrl', 'Alt', 'S')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing', [['Save and close', k('Return') + ' or ' + k(MODK + '↩')], ['Complete', k(MODK + 'K')], ['When…', k(MODK + 'S')], ['Deadline…', k(MODK + '⇧', 'D')], ['Add checklist', k(MODK + '⇧', 'C')], ['Move checklist item', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Paste several lines', 'one to-do per line']]],
   ];
@@ -7325,43 +7341,163 @@ function retimeRepeat(x, day) {
   tpl.next = next; return true;
 }
 
-/* ===================== Copy and paste checklists =====================
-   Copy Checklist on a to-do keeps its items; Paste Checklist adds them, unchecked, to another
-   to-do or to every selected one, skipping items a to-do already has. The items also go to
-   the clipboard as lines, so pasting into any checklist's "Add item" works too. */
-function loadCkClip() { try { const c = JSON.parse(lsGet('sectis.ckclip') || 'null'); ui.ckClip = c && Array.isArray(c.items) && c.items.length ? c : null; } catch (e) { ui.ckClip = null; } }
+/* ===================== Copy and paste =====================
+   One clipboard for to-dos and checklists, each device its own:
+   - Copy To-Do / Copy N To-Dos (⌘C) keeps the selected to-dos: title, notes, tags, checklist,
+     deadline and priority. Paste (⌘V) puts copies after the selected to-do, in its project,
+     heading or list, or into the list you're in when nothing is selected. Paste as Checklist
+     turns them into checklist items on the selected to-dos instead.
+   - Copy Checklist keeps a to-do's checklist; Paste Checklist adds it, unchecked, to the
+     selected to-dos, skipping items a to-do already has. Paste (⌘V) makes to-dos of it.
+   - Either way the titles go to the system clipboard as lines, so they paste into other apps,
+     and lines copied in another app paste into Sectis as to-dos.
+   - Copying anything else (text in a title, say) replaces it, and Clear Copied Items in the
+     menu forgets it. */
+function loadCkClip() {
+  lsSet('sectis.ckclip', ''); // the checklist-only clipboard from before 1.37 is let go
+  try { const c = JSON.parse(lsGet('sectis.clip') || 'null'); ui.clip = c && (c.kind === 'todos' || c.kind === 'checklist') && Array.isArray(c.items) && c.items.length ? c : null; } catch (e) { ui.clip = null; }
+}
+function setClip(c) {
+  ui.clip = c;
+  lsSet('sectis.clip', c ? JSON.stringify(c) : '');
+  if (c) { try { navigator.clipboard.writeText(c.text).catch(() => {}); } catch (e) { /* no system clipboard here */ } }
+}
+function clearClip(quiet) { if (!ui.clip) return; setClip(null); if (!quiet) toast('Cleared copied items'); }
+const clipTitles = () => (!ui.clip ? [] : ui.clip.kind === 'todos' ? ui.clip.items.map((x) => x.title) : ui.clip.items).filter((s) => s && s.trim());
+const pasteKeyHint = () => (isCoarse() ? '' : MODK + 'V');
+
+function copyTodos(ids) {
+  const vis = visibleRowIds(), at = (id) => { const i = vis.indexOf(id); return i < 0 ? 1e9 : i; };
+  const todos = ids.slice().sort((a, b) => at(a) - at(b)).map(getT).filter((t) => t && !t.blueprint); // in the order they're shown
+  if (!todos.length) return;
+  const items = todos.map((t) => ({ title: t.title || '', notes: t.notes || '', tags: (t.tags || []).slice(), checklist: (t.checklist || []).map((c) => c.title).filter((s) => s.trim()), deadline: t.deadline || null, priority: t.priority || 0 }));
+  setClip({ kind: 'todos', items, text: items.map((x) => x.title || 'New To-Do').join('\n'), at: Date.now() });
+  const n = plural(items.length, 'to-do');
+  toast(isCoarse() ? `Copied ${n}. Choose Paste in a to-do's menu or a list's ••• menu.` : `Copied ${n}. ${MODK}V pastes after the selected to-do.`, { ms: 4200 });
+}
 function copyChecklist(id) {
   const t = getT(id); if (!t || !t.checklist.length) return;
-  ui.ckClip = { from: t.id, title: t.title || 'New To-Do', items: t.checklist.map((c) => c.title).filter((s) => s.trim()) };
-  lsSet('sectis.ckclip', JSON.stringify(ui.ckClip));
-  try { navigator.clipboard.writeText(ui.ckClip.items.join('\n')).catch(() => {}); } catch (e) { /* no clipboard here */ }
-  toast(`Copied ${plural(ui.ckClip.items.length, 'checklist item')}. Choose Paste Checklist on another to-do, or select several first.`, { ms: 5200 });
+  const items = t.checklist.map((c) => c.title).filter((s) => s.trim());
+  setClip({ kind: 'checklist', from: t.id, title: t.title || 'New To-Do', items, text: items.join('\n'), at: Date.now() });
+  toast(`Copied ${plural(items.length, 'checklist item')}. Choose Paste Checklist on another to-do, or select several first.`, { ms: 5200 });
 }
-const pasteTargets = (ids) => ids.map(getT).filter((t) => t && !t.trashed);
-function pasteChecklist(ids) {
-  if (!ui.ckClip) return;
-  const targets = pasteTargets(ids).filter((t) => !(ids.length > 1 && t.id === ui.ckClip.from)); // pasting into several skips the one it came from
+const pasteTargets = (ids) => ids.map(getT).filter((t) => t && !t.trashed && !t.blueprint);
+/* titles become checklist items on each to-do that lacks them */
+function pasteChecklist(ids, titles = clipTitles()) {
+  if (!titles.length) return;
+  const from = ui.clip && ui.clip.kind === 'checklist' ? ui.clip.from : null;
+  const targets = pasteTargets(ids).filter((t) => !(ids.length > 1 && t.id === from)); // pasting into several skips the one it came from
   if (!targets.length) return;
   // work out what each one lacks first, so a paste that adds nothing leaves no undo step behind
   const adds = targets.map((t) => {
     const have = new Set(t.checklist.map((c) => c.title.trim().toLowerCase()));
-    return [t, ui.ckClip.items.filter((s) => !have.has(s.trim().toLowerCase()))];
+    return [t, titles.filter((s) => !have.has(s.trim().toLowerCase()))];
   }).filter(([, fresh]) => fresh.length);
   const added = adds.reduce((n, [, fresh]) => n + fresh.length, 0), into = adds.length;
   if (added) commit('Paste Checklist', () => adds.forEach(([t, fresh]) => { t.checklist = t.checklist.concat(fresh.map((title) => ({ id: uid(), title, done: false }))); touch(t); }));
   if (!added) { toast(targets.length > 1 ? 'Those to-dos already have every item' : 'That to-do already has every item'); return; }
   toast(into > 1 ? `Added the checklist to ${into} to-dos` : `Added ${plural(added, 'checklist item')}`, { undo: true });
 }
-/* menu items: Copy for a to-do with a checklist, Paste once something's copied */
+/* copies of to-dos (or plain titles) after the selected to-do, or into this list */
+function pasteTodos(src) {
+  if (!src || !src.length) return;
+  const spot = newTodoSpot({}, src.length);
+  if (spot.closed) { toast('Reopen the project to add to-dos'); return; }
+  if (spot.qe) { toast('Open a list or project to paste into'); return; }
+  const at = (v, i) => (Array.isArray(v) ? v[i] : v);
+  const made = [];
+  commit(src.length > 1 ? 'Paste To-Dos' : 'Paste To-Do', () => {
+    // last first: those placed at the top of a list then end up in their copied order
+    for (let i = src.length - 1; i >= 0; i--) {
+      const s = typeof src[i] === 'string' ? { title: src[i] } : src[i];
+      const place = {}; for (const k of Object.keys(spot.place)) place[k] = at(spot.place[k], i);
+      const tags = [...new Set([...(spot.props.tags || []), ...(s.tags || []).filter((id) => getTag(id))])];
+      const props = Object.assign({}, spot.props, {
+        title: s.title || '', notes: s.notes || '', tags, priority: s.priority || spot.props.priority || 0,
+        deadline: s.deadline || spot.props.deadline || null, checklist: (s.checklist || []).map((title) => ({ id: uid(), title, done: false })),
+      });
+      made.unshift(createTodoIn(props, place));
+    }
+  }, { render: false });
+  ui.sel = new Set(made.map((t) => t.id)); ui.anchor = made[made.length - 1].id; ui.selectMode = false;
+  render();
+  toast(`Pasted ${plural(made.length, 'to-do')}`, { undo: true });
+}
+/* ⌘V or Paste: whatever's on the clipboard, into the list (to-dos) */
+function pasteClipHere() {
+  if (!ui.clip) return;
+  if (ui.clip.kind === 'todos') pasteTodos(ui.clip.items);
+  else pasteTodos(ui.clip.items.slice());
+}
+
+/* menu items for one to-do or several selected */
 function checklistMenuItems(ids) {
   const out = [], one = ids.length === 1 && getT(ids[0]);
-  if (one && one.checklist.length) out.push({ label: 'Copy Checklist', icon: 'copy', fn: () => copyChecklist(one.id) });
-  const n = pasteTargets(ids).length;
-  if (ui.ckClip && n && !(n === 1 && one && one.id === ui.ckClip.from)) {
-    out.push({ label: `Paste Checklist (${plural(ui.ckClip.items.length, 'item')})`, icon: 'checklist', fn: () => pasteChecklist(ids) });
+  const todos = ids.map(getT).filter((t) => t && !t.blueprint);
+  if (todos.length) out.push({ label: todos.length > 1 ? `Copy ${todos.length} To-Dos` : 'Copy To-Do', icon: 'copy', hint: isCoarse() ? '' : MODK + 'C', fn: () => copyTodos(todos.map((t) => t.id)) });
+  if (one && one.checklist.length) out.push({ label: 'Copy Checklist', icon: 'checklist', fn: () => copyChecklist(one.id) });
+  if (ui.clip) {
+    const c = ui.clip, n = c.items.length, targets = pasteTargets(ids).length;
+    if (c.kind === 'todos') {
+      out.push({ label: n > 1 ? `Paste ${n} To-Dos` : 'Paste To-Do', icon: 'paste', hint: pasteKeyHint(), fn: pasteClipHere });
+      if (targets) out.push({ label: `Paste as Checklist (${plural(n, 'item')})`, icon: 'checklist', fn: () => pasteChecklist(ids) });
+    } else {
+      if (targets && !(targets === 1 && one && one.id === c.from)) out.push({ label: `Paste Checklist (${plural(n, 'item')})`, icon: 'checklist', fn: () => pasteChecklist(ids) });
+      out.push({ label: `Paste as ${n > 1 ? n + ' To-Dos' : 'a To-Do'}`, icon: 'paste', hint: pasteKeyHint(), fn: pasteClipHere });
+    }
+    out.push({ label: 'Clear Copied Items', icon: 'x', fn: () => clearClip() });
   }
   return out;
 }
+/* a list's ••• menu, for pasting with nothing selected (handy on iPhone) */
+function listPasteMenuItems() {
+  if (!ui.clip || ['logbook', 'trash', 'waiting', 'timeline', 'templates'].includes(ui.view.type)) return [];
+  const n = ui.clip.items.length;
+  return [
+    { label: ui.clip.kind === 'todos' ? (n > 1 ? `Paste ${n} To-Dos` : 'Paste To-Do') : `Paste Checklist as ${n > 1 ? n + ' To-Dos' : 'a To-Do'}`, icon: 'paste', hint: pasteKeyHint(), fn: pasteClipHere },
+    { label: 'Clear Copied Items', icon: 'x', fn: () => clearClip() },
+  ];
+}
+
+/* ---- keys: ⌘C and ⌘V with to-dos selected (not while typing) ---- */
+let pasteWait = null;
+document.addEventListener('keydown', (e) => {
+  const mod = e.metaKey || e.ctrlKey;
+  if (!mod || e.altKey || e.shiftKey || layers.length || isTyping(e.target) || (e.code !== 'KeyC' && e.code !== 'KeyV')) return;
+  const sel = window.getSelection && window.getSelection();
+  if (sel && !sel.isCollapsed && String(sel).trim()) return; // copying text on the page
+  if (e.code === 'KeyC') {
+    const ids = selectedIds().filter((id) => getT(id));
+    const ids2 = ids.length ? ids : ui.editing ? [ui.editing] : [];
+    if (!ids2.length) return;
+    e.preventDefault(); e.stopImmediatePropagation(); copyTodos(ids2);
+    return;
+  }
+  // ⌘V: the paste event below brings the clipboard's text, so text copied in another app
+  // is used rather than to-dos copied earlier. Where no paste event comes (Safari, with
+  // nothing to type into), what was copied in Sectis is pasted.
+  e.stopImmediatePropagation();
+  clearTimeout(pasteWait);
+  pasteWait = setTimeout(() => { pasteWait = null; if (ui.clip) pasteClipHere(); }, 120);
+}, true);
+document.addEventListener('paste', (e) => {
+  if (isTyping(e.target) || layers.length) return;
+  clearTimeout(pasteWait); pasteWait = null;
+  const text = ((e.clipboardData || window.clipboardData) && (e.clipboardData || window.clipboardData).getData('text')) || '';
+  const lines = splitPasted(text);
+  if (ui.clip && (!text.trim() || text.trim() === ui.clip.text.trim())) { e.preventDefault(); pasteClipHere(); return; }
+  if (!lines.length) return;
+  e.preventDefault();
+  if (ui.clip) setClip(null); // the clipboard moved on: it holds something else now
+  pasteTodos(lines);
+});
+/* copying or cutting text anywhere in Sectis replaces what was copied */
+['copy', 'cut'].forEach((type) => document.addEventListener(type, (e) => {
+  if (!ui.clip) return;
+  const el = e.target, s = window.getSelection && window.getSelection();
+  const some = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') ? el.selectionStart !== el.selectionEnd : !!(s && !s.isCollapsed);
+  if (some) { ui.clip = null; lsSet('sectis.clip', ''); } // ⌘C with nothing selected copies nothing, so it keeps
+}));
 
 /* ===================== Rename in place =====================
    Rename in a project's or area's ••• and right-click menus edits the name right where it is:

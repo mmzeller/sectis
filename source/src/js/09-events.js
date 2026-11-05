@@ -371,8 +371,10 @@ function viewMenu(el) {
     ]);
     return;
   }
-  if (v === 'project') { projectMenu(getP(ui.view.id), el, batch); return; }
-  if (v === 'area') { areaMenu(getA(ui.view.id), el, batch); return; }
+  const paste = batch.length ? [] : listPasteMenuItems(); // nothing selected: Paste goes into this list
+  if (paste.length) paste.push({ sep: 1 });
+  if (v === 'project') { projectMenu(getP(ui.view.id), el, batch.length ? batch : paste); return; }
+  if (v === 'area') { areaMenu(getA(ui.view.id), el, batch.length ? batch : paste); return; }
   if (v === 'board') {
     const n = boardCols().length;
     openMenu(el, [...batch,
@@ -390,6 +392,7 @@ function viewMenu(el) {
   if (v === 'today') items.push({ label: S.settings.groupToday ? 'Don’t Group by Project' : 'Group by Project & Area', icon: 'layers', fn: () => { S.settings.groupToday = !S.settings.groupToday; saveSoon(); render(); } });
   const unlogged = S.todos.concat(S.projects).some((x) => x.status !== 'open' && !x.logged);
   if (['inbox', 'today', 'upcoming', 'anytime', 'someday', 'tag'].includes(v)) items.push({ label: 'New To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'] }) });
+  items.push(...paste);
   if (sortableView()) items.push(sortMenuItem(el));
   if (v !== 'trash') items.push({ label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) });
   if (v !== 'trash') items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'all' }) });

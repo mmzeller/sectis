@@ -69,14 +69,31 @@ function selectedProjectRow() {
 }
 function newTodo(opts = {}) {
   if (ui.view.type === 'templates') { newTodoTemplate(); return; }
-  if (['logbook', 'trash', 'waiting', 'timeline'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) { openQuickEntry(); return; }
-  if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) { toast('Reopen the project to add to-dos'); return; } }
+  const spot = newTodoSpot(opts);
+  if (spot.qe) { openQuickEntry(); return; }
+  if (spot.closed) { toast('Reopen the project to add to-dos'); return; }
+  const { props, place } = spot;
+  let t;
+  commit('New To-Do', () => { t = createTodoIn(props, place); }, { render: false });
+  ui.newId = t.id; ui.editing = t.id; ui.sel = new Set([t.id]); ui.anchor = t.id; ui.scrollToEditor = true;
+  ui.focusAfter = `[data-fkey="title-${t.id}"]`;
+  render();
+  return t;
+}
+/* where a new to-do goes: its props and place (order, todayOrder). With n > 1, the place's
+   orders are lists of n, one for each of several to-dos in a row (see pasteTodos).
+   { qe: true } means this list takes no new to-dos (Quick Entry instead); { closed: true }
+   means the project is done or in the Trash. */
+function newTodoSpot(opts = {}, n = 1) {
+  if (['logbook', 'trash', 'waiting', 'timeline', 'templates'].includes(ui.view.type) || (isMobile() && ui.mobile === 'home')) return { qe: true };
+  if (ui.view.type === 'project') { const p = getP(ui.view.id); if (p && (p.trashed || p.status !== 'open')) return { closed: true }; }
+  const one = (arr) => (n === 1 ? arr[0] : arr);
   // A selected project row (an area's projects, an area's column on the Board, Today…) takes the new
   // to-do, wherever the row is. An expandable row opens so the new to-do shows under it.
   const selP = !opts.sec && !opts.place && selectedProjectRow();
   if (selP) {
     const { p, row } = selP;
-    if (p.trashed || p.status !== 'open') { toast('Reopen the project to add to-dos'); return; }
+    if (p.trashed || p.status !== 'open') return { closed: true };
     if (row.dataset.expandable && !ui.expanded.has(p.id)) { ui.expanded.add(p.id); lsSet('sectis.expanded', JSON.stringify([...ui.expanded])); }
     opts = Object.assign({}, opts, { sec: `project:${p.id}:` });
   }
@@ -85,7 +102,7 @@ function newTodo(opts = {}) {
     const row = ui.anchor && ui.sel.has(ui.anchor) && document.querySelector(`#content .row[data-id="${CSS.escape(ui.anchor)}"]`);
     if (!(row && row.dataset.kind === 'todo' && row.closest('[data-sec]'))) {
       const sec = boardNewSec();
-      if (!sec) { openQuickEntry(); return; }
+      if (!sec) return { qe: true };
       opts = Object.assign({}, opts, { sec });
     }
   }
@@ -106,20 +123,15 @@ function newTodo(opts = {}) {
         let nRow = nextRowEl(row);
         if (sinksDone()) while (nRow && (rowItem(nRow) || {}).status !== 'open') nRow = nextRowEl(nRow); // past the completed ones at the bottom
         const nxt = rowItem(nRow);
-        place[ok] = orderBetween(ref[ok], nxt && nxt.type === 'todo' ? nxt[ok] : null)[0];
-        if (ok === 'order') place.todayOrder = orderBetween(ref.todayOrder, null)[0];
-        if (ok === 'todayOrder') place.order = orderBetween(ref.order, null)[0];
+        place[ok] = one(orderBetween(ref[ok], nxt && nxt.type === 'todo' ? nxt[ok] : null, n));
+        if (ok === 'order') place.todayOrder = one(orderBetween(ref.todayOrder, null, n));
+        if (ok === 'todayOrder') place.order = one(orderBetween(ref.order, null, n));
       }
     }
   }
   if (props._fromInbox && props.start === 'inbox') props.start = props._fromInbox; // filed in a project or area, so not the Inbox
   for (const k of Object.keys(props)) if (k.startsWith('_') || props[k] === undefined) delete props[k];
-  let t;
-  commit('New To-Do', () => { t = createTodoIn(props, place); }, { render: false });
-  ui.newId = t.id; ui.editing = t.id; ui.sel = new Set([t.id]); ui.anchor = t.id; ui.scrollToEditor = true;
-  ui.focusAfter = `[data-fkey="title-${t.id}"]`;
-  render();
-  return t;
+  return { props, place };
 }
 
 /* checklist */

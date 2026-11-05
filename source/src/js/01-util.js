@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.36.0';
+const APP_VERSION = '1.37.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -172,6 +172,7 @@ const I = {
   x: svg('<path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/>'),
   check: svg('<path d="m5 12.5 4.3 4.3L19 7"/>'),
   move: svg('<path d="M4 12h13M13 7l5 5-5 5"/>'),
+  paste: svg('<rect x="5" y="4.5" width="14" height="16" rx="2.5"/><path d="M9 4.5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v.5a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 4.5ZM8.8 11h6.4M8.8 15h4.4"/>'),
   copy: svg('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>'),
   heading: svg('<path d="M5 6h14M5 12h9M5 18h11"/>'),
   project: svg('<circle cx="12" cy="12" r="8.5"/><path class="fill" d="M12 12V3.5a8.5 8.5 0 0 1 8.5 8.5z"/>'),

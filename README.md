@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.36.0
+Version 1.37.0
 
 ## What's in it
 
@@ -20,6 +20,7 @@ Version 1.36.0
 - **To-dos** with notes, checklists, tags, a When date, a reminder time and a deadline. Click a to-do's checklist count (like 0/4) to show the checklist under it and tick items off without opening it; ⌥-click shows or hides every checklist in the list, and → / ← do it for the selected to-do
 - **Formatted notes**: links you can click, plus `**bold**`, `*italic*`, `~~strike~~`, `` `code` ``, `# headings`, `- bullets`, `1. numbered lists` and `> quotes`. Tap the notes to edit the plain text
 - **Checklists** you can reorder by dragging the grip (or ⌘↑ / ⌘↓), and any item can become its own to-do from its ••• menu. **Copy Checklist** in a to-do's ••• or right-click menu, then **Paste Checklist** on another to-do, or on several selected at once, to add the same items (unchecked; ones a to-do already has are skipped). The items go to your clipboard too, so you can paste them into any checklist's Add item box
+- **Copy and paste to-dos**: select one or several and press `⌘C` (or **Copy To-Do** in the ••• or right-click menu), then select a to-do anywhere and press `⌘V` (or **Paste**) to put copies after it, in its project, heading or list; with nothing selected they go into the list you're in. Copies keep the title, notes, tags, checklist (unchecked), deadline and priority. **Paste as Checklist** turns copied to-dos into checklist items on the selected to-dos instead. Lines of text copied in another app paste as one to-do each. Copying something else replaces what's copied, and **Clear Copied Items** in the menu forgets it. On iPhone, Paste is in a to-do's menu and in a list's ••• menu
 - **Repeating to-dos and projects**, on a schedule (every weekday, the last Friday of each month…) or a set time after you finish the last one. A repeating project makes a fresh copy with all its headings and to-dos each time
 - **Automatic backups**: each device keeps a daily copy for 14 days, plus a copy before big changes. Restore from **Settings → Backups**
 - **Templates**: **Save as Template** in a project's ••• menu keeps its headings, to-dos and checklists to reuse; **New Project from Template…** (in **+ New List**) makes a fresh copy, in the template's area. To-dos with checklists can be templates too: **New To-Do from Template…** in any list's ••• menu, or **Add To-Do from Template…** in a project's. Edit them all under **+ New List → Templates**
