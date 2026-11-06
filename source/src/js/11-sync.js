@@ -2,7 +2,16 @@
    No accounts. A random sync key decides where the data lives in Firestore
    (a hash of it) and encrypts every record (AES-GCM) before upload.
    Each to-do, project, heading, area and tag is its own document; the most
-   recent edit of an item wins. Deletions leave a small marker. */
+   recent edit of an item wins. Deletions leave a small marker.
+   Two rules keep an old copy from coming back over a newer one:
+   - When Sectis opens, the other devices' changes come in before anything here is sent. What
+     looks changed here at that point (an edit made while closed, or a field this version reads
+     differently) goes up as "the next version of what this device last saw", so it only wins
+     if nobody changed that item since. Edits after that are stamped as they're made.
+   - Sending never overwrites a copy that's as new or newer: that one comes here instead.
+   After an update each device compares everything once (and Settings → Sync → Check
+   Everything does it any time): anything that never arrived comes in, and anything an older
+   copy overwrote goes back up. */
 const SYNC_KEY = 'sectis.sync.v1';
 const FB_VERSION = '10.14.1';
 const SYNC_KINDS = { todo: 'todos', project: 'projects', heading: 'headings', area: 'areas', tag: 'tags', smart: 'smart', focus: 'focuses', note: 'notes' };
@@ -10,7 +19,9 @@ const Y = {
   enabled: false, cfg: null, key: null, space: null, base: {}, pending: {}, cursor: [0, 0], lastSync: 0,
   status: 'off', error: '', db: null, col: null, aes: null, unsub: null, pushing: false, again: false,
   queue: Promise.resolve(), firstPull: null, hints: {}, applying: false,
+  pulled: false, // the other devices' changes are in (or can't be: offline), so edits here can be stamped
 };
+const SYNC_CHECK = '1.44.0'; // compare everything once after updating to this
 const syncAvailable = () => SECTIS_WEB && !IN_FRAME && !!(window.crypto && crypto.subtle);
 
 /* ---- small helpers ---- */
@@ -138,18 +149,21 @@ function syncRecords() {
   for (const [kind, list] of Object.entries(SYNC_KINDS)) for (const r of S[list]) if (r && r.id && !r.isDraft) out.set(r.id, { k: kind, rec: r });
   return out;
 }
-function syncDiff() {
+/* startup: what changed here before the other devices' changes came in is only the next version
+   of what this device last saw (it loses to anything newer), not an edit made now */
+function syncDiff(startup = false) {
   const recs = syncRecords(), now = Date.now(); let changed = false;
   for (const [id, { k, rec }] of recs) {
     const h = recHash(rec), b = Y.base[id];
     if (b && !b.d && b.h === h) continue;
-    const m = Y.hints[id] ? Math.max(Y.hints[id], ((b && b.m) || 0) + 1) : Math.max(now, ((b && b.m) || 0) + 1);
+    const bm = (b && b.m) || 0;
+    const m = Y.hints[id] ? Math.max(Y.hints[id], bm + 1) : startup && b ? Math.max(bm + 1, (Y.pending[id] && Y.pending[id].m) || 0) : Math.max(now, bm + 1);
     Y.pending[id] = { k, m }; Y.base[id] = { h, m, k }; changed = true;
   }
   for (const id of Object.keys(Y.base)) {
     const b = Y.base[id];
     if (recs.has(id) || b.d) continue;
-    const m = Math.max(now, (b.m || 0) + 1);
+    const m = startup ? (b.m || 0) + 1 : Math.max(now, (b.m || 0) + 1);
     Y.pending[id] = { k: b.k, m, d: true }; Y.base[id] = { h: '', m, k: b.k, d: true }; changed = true;
   }
   Y.hints = {};
@@ -157,8 +171,14 @@ function syncDiff() {
   return changed;
 }
 function syncLocalSaved() {
-  if (!Y.enabled || Y.applying || !Y.col) return;
-  if (syncDiff()) pushSoon();
+  if (!Y.enabled || Y.applying || !Y.pulled) return; // until then, syncReady picks the changes up
+  if (syncDiff() && Y.col) pushSoon(); // offline, they wait (stamped when made) for the connection
+}
+/* the other devices' changes are in, or can't come in yet: from now on edits are stamped as made */
+function syncReady() {
+  if (Y.pulled || !Y.enabled) return;
+  Y.pulled = true;
+  if (syncDiff(true) && Y.col) pushSoon();
 }
 const pushSoon = debounce(() => syncPush(), 600);
 function withTimeout(p, ms, msg) { return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error(msg), { code: 'timeout' })), ms))]); }
@@ -169,21 +189,33 @@ async function syncPush() {
   if (!ids.length) { if (Y.status === 'syncing') setSyncStatus('synced'); return; }
   Y.pushing = true; setSyncStatus('syncing');
   try {
-    const recs = syncRecords();
-    for (let i = 0; i < ids.length; i += 400) {
-      const chunk = ids.slice(i, i + 400), sent = {};
-      const batch = Y.db.batch();
+    const recs = syncRecords(), newer = [];
+    for (let i = 0; i < ids.length; i += 200) {
+      const chunk = ids.slice(i, i + 200), pend = {}, enc = {};
       for (const id of chunk) {
         const p = Y.pending[id]; if (!p) continue;
-        const r = recs.get(id);
-        const ts = Y.fb.firestore.FieldValue.serverTimestamp();
-        if (r && !p.d) batch.set(Y.col.doc(id), Object.assign({ k: p.k, m: p.m, d: false, t: ts }, await encryptRec(r.rec)));
-        else batch.set(Y.col.doc(id), { k: p.k, m: p.m, d: true, c: '', iv: '', t: ts });
-        sent[id] = p.m;
+        pend[id] = p; const r = recs.get(id);
+        if (r && !p.d) enc[id] = await encryptRec(r.rec);
       }
-      await withTimeout(batch.commit(), 20000, 'Sync timed out');
+      const want = Object.keys(pend); if (!want.length) continue;
+      let sent = {}, kept = [];
+      // in one transaction: read what's there, and write only over older copies
+      await withTimeout(Y.db.runTransaction(async (tx) => {
+        sent = {}; kept = [];
+        const refs = want.map((id) => Y.col.doc(id)), snaps = await Promise.all(refs.map((ref) => tx.get(ref)));
+        want.forEach((id, j) => {
+          const p = pend[id], cur = snaps[j].exists ? snaps[j].data() : null;
+          if (cur && typeof cur.m === 'number' && cur.m >= p.m) { kept.push(Object.assign({ id }, cur)); return; } // as new or newer: theirs stays
+          const ts = Y.fb.firestore.FieldValue.serverTimestamp();
+          if (enc[id] && !p.d) tx.set(refs[j], Object.assign({ k: p.k, m: p.m, d: false, t: ts }, enc[id]));
+          else tx.set(refs[j], { k: p.k, m: p.m, d: true, c: '', iv: '', t: ts });
+          sent[id] = p.m;
+        });
+      }), 20000, 'Sync timed out');
       for (const id of Object.keys(sent)) if (Y.pending[id] && Y.pending[id].m === sent[id]) delete Y.pending[id];
+      newer.push(...kept);
     }
+    if (newer.length) await syncApplyRemote(newer, { theirs: true }); // the newer copies replace ours here
     Y.lastSync = Date.now(); syncSaveState();
     setSyncStatus('synced');
   } catch (e) {
@@ -204,13 +236,15 @@ function normalizeRecord(kind, rec) {
   return rec;
 }
 function tsAfter(t, cur) { return t.seconds > cur[0] || (t.seconds === cur[0] && t.nanoseconds > cur[1]); }
-async function syncApplyRemote(docs) {
+/* opts.theirs: copies the server kept over ours (as new or newer): they win even on a tie */
+async function syncApplyRemote(docs, opts = {}) {
   const updates = [];
+  let cursor = Y.cursor;
   for (const d of docs) {
-    if (d.t && typeof d.t.seconds === 'number' && tsAfter(d.t, Y.cursor)) Y.cursor = [d.t.seconds, d.t.nanoseconds];
+    if (d.t && typeof d.t.seconds === 'number' && tsAfter(d.t, cursor)) cursor = [d.t.seconds, d.t.nanoseconds];
     if (!SYNC_KINDS[d.k]) continue;
     const b = Y.base[d.id];
-    if (b && d.m <= b.m) { if (Y.pending[d.id] && Y.pending[d.id].m === d.m) delete Y.pending[d.id]; continue; }
+    if (b && (opts.theirs ? d.m < b.m : d.m <= b.m)) { if (Y.pending[d.id] && Y.pending[d.id].m === d.m) delete Y.pending[d.id]; continue; }
     let rec = null;
     if (!d.d) { try { rec = await decryptRec(d); } catch (e) { continue; } }
     updates.push({ id: d.id, k: d.k, m: d.m, d: !!d.d, rec });
@@ -229,11 +263,13 @@ async function syncApplyRemote(docs) {
       for (const id of [...ui.sel]) if (!itemById(id)) ui.sel.delete(id);
       if (ui.editing && !getT(ui.editing)) ui.editing = null;
       undoStack.length = 0; // undo would otherwise roll back changes made on the other device
-      S.savedAt = Date.now(); lsSet(STORE_KEY, JSON.stringify(S)); syncSaveState();
+      S.savedAt = Date.now(); lsSet(STORE_KEY, JSON.stringify(S));
       if (typeof fileSyncWrite === 'function') fileSyncWrite(JSON.stringify(S));
     } finally { Y.applying = false; }
+    if (!opts.theirs) Y.cursor = cursor; // (copies read while sending don't move it: changes before them may still be on the way)
+    syncSaveState();
     render();
-  }
+  } else if (!opts.theirs) Y.cursor = cursor;
   Y.lastSync = Date.now(); syncSaveSoon();
   if (Y.status !== 'error' && !Y.pushing) setSyncStatus('synced'); else renderSyncIndicator();
 }
@@ -252,20 +288,46 @@ function syncListen() {
 async function syncStart() {
   if (!Y.enabled || !syncAvailable()) return;
   setSyncStatus('connecting');
+  if (navigator.onLine === false) syncReady(); // nothing can come in: stamp edits as they're made
   try {
     const c = await syncConnect(Y.cfg, Y.key);
     Object.assign(Y, c);
     const first = syncListen();
-    syncDiff(); pushSoon();
-    await Promise.race([first, new Promise((r) => setTimeout(r, 6000))]);
+    // the other devices' changes first (a slow connection gets 20 seconds); then what changed here goes up
+    const came = await Promise.race([first.then(() => true), new Promise((r) => setTimeout(() => r(false), 20000))]);
+    syncReady(); pushSoon();
+    if (came && lsGet('sectis.sync.check') !== SYNC_CHECK) syncCheckAll().then((r) => { if (r) lsSet('sectis.sync.check', SYNC_CHECK); }).catch(() => {});
   } catch (e) {
+    syncReady();
     setSyncStatus(navigator.onLine === false ? 'offline' : 'error', friendlySyncError(e));
   }
+}
+/* compare everything with what's in Firebase: what another device changed that never arrived
+   comes in, and what's newer here than there (an older copy overwrote it) goes back up */
+async function syncCheckAll() {
+  if (!Y.enabled || !Y.col) return null;
+  setSyncStatus('syncing');
+  const snap = await withTimeout(Y.col.get(), 60000, 'Timed out');
+  const recs = syncRecords(), seen = new Set(), theirs = [];
+  let up = 0;
+  snap.forEach((doc) => {
+    const d = Object.assign({ id: doc.id }, doc.data()); seen.add(d.id);
+    if (!SYNC_KINDS[d.k] || typeof d.m !== 'number' || Y.pending[d.id]) return;
+    const b = Y.base[d.id];
+    if (!b || d.m > b.m) theirs.push(d);
+    else if (d.m < b.m && (b.d || recs.has(d.id))) { Y.pending[d.id] = b.d ? { k: b.k, m: b.m, d: true } : { k: b.k, m: b.m }; up++; }
+  });
+  for (const [id, b] of Object.entries(Y.base)) if (!seen.has(id) && !Y.pending[id] && (b.d || recs.has(id))) { Y.pending[id] = b.d ? { k: b.k, m: b.m, d: true } : { k: b.k, m: b.m }; up++; }
+  const down = theirs.length;
+  if (down) await syncApplyRemote(theirs);
+  if (up) { syncSaveState(); await syncPush(); }
+  if (Y.status === 'syncing') setSyncStatus('synced');
+  return { up, down };
 }
 async function syncSetup(cfg) {
   const key = newSyncKey();
   const c = await syncConnect(cfg, key);
-  Object.assign(Y, c, { enabled: true, cfg, key, base: {}, pending: {}, cursor: [0, 0], lastSync: 0, hints: {} });
+  Object.assign(Y, c, { enabled: true, cfg, key, base: {}, pending: {}, cursor: [0, 0], lastSync: 0, hints: {}, pulled: true });
   syncDiff();
   setSyncStatus('syncing');
   await syncPushOrThrow();
@@ -296,7 +358,7 @@ async function syncJoin(code) {
   snapshot('Join Sync');
   if (mode === 'replace') { for (const list of Object.values(SYNC_KINDS)) S[list] = []; reindex(); }
   else if (hasRemote) dropSampleData(); // the other device already has the tour
-  Object.assign(Y, c, { enabled: true, cfg: j.cfg, key: j.key, base: {}, pending: {}, cursor: [0, 0], lastSync: 0, hints: {} });
+  Object.assign(Y, c, { enabled: true, cfg: j.cfg, key: j.key, base: {}, pending: {}, cursor: [0, 0], lastSync: 0, hints: {}, pulled: true });
   setSyncStatus('syncing');
   await Promise.race([syncListen(), new Promise((r) => setTimeout(r, 15000))]);
   if (mode === 'merge') dedupeTags();
@@ -340,7 +402,7 @@ function syncSettingsHTML() {
   if (!Y.enabled) return `<div class="set-row"><span class="lbl">Keep your Mac and iPhone in step through your own Firebase project. To-dos are encrypted before they leave this device.</span></div>
     <div class="set-btns"><button class="btn primary" data-s="sync-setup">Set Up Sync…</button><button class="btn" data-s="sync-join">Join with a Code…</button></div>`;
   return `<div class="set-row"><span class="lbl">Status<small id="sync-status">${syncStatusText()}</small></span></div>
-    <div class="set-btns"><button class="btn" data-s="sync-code">Add Another Device…</button><button class="btn" data-s="sync-now">Sync Now</button><button class="btn" data-s="sync-off">Turn Off on This Device…</button></div>`;
+    <div class="set-btns"><button class="btn" data-s="sync-code">Add Another Device…</button><button class="btn" data-s="sync-now">Sync Now</button><button class="btn" data-s="sync-check" title="Compare everything on this device with what’s synced, and fix anything that’s out of step">Check Everything</button><button class="btn" data-s="sync-off">Turn Off on This Device…</button></div>`;
 }
 function copyText(text, el, note) {
   const done = (msg) => { if (note) note.textContent = msg; };

@@ -373,6 +373,10 @@ function viewMenu(el) {
     openMenu(el, [
       { label: 'Scheduled To-Dos Too', icon: ui.tl.when ? 'check' : 'blank', fn: () => { ui.tl.when = !ui.tl.when; saveTimeline(); render(); } },
       { label: 'To-Dos Inside Projects', icon: ui.tl.kids ? 'check' : 'blank', fn: () => { ui.tl.kids = !ui.tl.kids; saveTimeline(); render(); } },
+      { label: 'Names Beside Flags', icon: ui.tl.names ? 'check' : 'blank', fn: () => { ui.tl.names = !ui.tl.names; saveTimeline(); render(); } },
+      { sep: 1 },
+      { label: 'Fold All', icon: 'chevU', fn: () => tlFoldAll(true) },
+      { label: 'Unfold All', icon: 'chevD', disabled: ![...ui.tl.fold].some((k) => /^[ap]:/.test(k)), fn: () => tlFoldAll(false) },
       { sep: 1 },
       { label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) },
       { label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'all' }) },

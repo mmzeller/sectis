@@ -1086,6 +1086,18 @@ button.ucal-d:hover { border-color: var(--line-strong); }
 .tl-months, .tl-days { position: absolute; left: 0; right: 0; }
 .tl-months { top: 2px; height: 18px; }
 .tl-days { top: 20px; bottom: 0; }
+/* the Due row: how much is due each day (or week), darker as it piles up */
+.tl-scale.bz { height: 68px; }
+.tl-scale.bz .tl-days { bottom: auto; height: 26px; }
+.tl-busy { position: absolute; left: 0; right: 0; top: 48px; height: 17px; }
+.tl-corner { align-items: flex-end; }
+.tl-busy-l { margin: 0 0 4px 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; color: var(--faint); text-transform: uppercase; }
+.tl-bz { position: absolute; top: 0; height: 17px; padding: 0; border: 0; border-radius: 4px; background-clip: content-box; border-left: 1px solid transparent; border-right: 1px solid transparent; font-size: 10.5px; font-weight: 650; line-height: 17px; text-align: center; font-variant-numeric: tabular-nums; cursor: pointer; }
+.tl-bz.l1 { background-color: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.tl-bz.l2 { background-color: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); }
+.tl-bz.l3 { background-color: color-mix(in srgb, var(--accent) 62%, transparent); color: #fff; }
+.tl-bz.l4 { background-color: color-mix(in srgb, var(--orange, #e8590c) 85%, transparent); color: #fff; }
+.tl-bz:hover { filter: brightness(1.08); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fg) 25%, transparent); }
 .tl-mon { position: absolute; top: 0; height: 18px; border-left: 1px solid var(--line-strong); padding-left: 5px; font-weight: 650; font-size: 12px; color: var(--fg); white-space: nowrap; overflow: hidden; }
 .tl-mon:first-child { border-left: 0; padding-left: 2px; }
 .tl-day { position: absolute; top: 0; bottom: 0; width: var(--dw); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; color: var(--muted); font-size: 11.5px; }
@@ -1349,15 +1361,32 @@ button.np-gl:hover { color: var(--fg); }
 .tl-band-empty { margin: 4px 4px 10px; font-size: 13px; color: var(--muted); }
 /* a Board row's lines: things on the same days each get their own, with their names */
 .tl-lanes { --lane: 24px; min-height: calc(var(--lanes) * var(--lane) + 6px); }
+/* names beside flags */
+.tl-nm { margin: 0; }
+.tl-nm.nm { color: color-mix(in srgb, var(--fg) 80%, transparent); }
+.tl-nm.cut { overflow: hidden; text-overflow: ellipsis; }
+.tl-nm.late { color: var(--red); }
+.tl-nm.done { text-decoration: line-through; opacity: .6; }
+/* folding: ▸ beside an area, project or Board row; a folded one is a line of dots and a count */
+.tl-fold, .tl-fold-sp { flex: none; width: 16px; height: 16px; margin-right: -3px; }
+.tl-fold { display: inline-flex; align-items: center; justify-content: center; padding: 0; border-radius: 4px; color: var(--faint); }
+.tl-fold .ic { width: 12px; height: 12px; transition: transform .12s; }
+.tl-fold.open .ic { transform: rotate(90deg); }
+.tl-fold:hover { color: var(--fg); background: var(--hover); }
+.tl-tline { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--line-strong); border-radius: 1px; pointer-events: none; }
+.tl-tick { --tlc: var(--accent); position: absolute; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--tlc); box-shadow: 0 0 0 2px var(--bg); pointer-events: none; }
+.tl-tick.late { --tlc: var(--red); }
+.tl-tick.done { opacity: .45; }
+.tl-nm.cnt { color: var(--muted); font-weight: 600; }
+.tl.stack .tl-area.folded .tl-track { display: block; height: 30px; }
+/* where a click on an empty day adds something */
+.tl-ghost { position: absolute; top: 50%; width: 18px; height: 18px; margin-top: -9px; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent); color: var(--accent); pointer-events: none; z-index: 1; }
+.tl-ghost .ic { width: 12px; height: 12px; }
 .tl-laned > .tl-lab { align-items: flex-start; padding-top: 5px; }
 .tl.stack .tl-laned > .tl-lab { padding-top: 6px; }
 .tl.stack .tl-track.tl-lanes { height: auto; }
 .tl-lane { position: absolute; left: 0; right: 0; top: calc(var(--i) * var(--lane)); height: 30px; pointer-events: none; }
 .tl-lane > .tl-bar, .tl-lane > .tl-mk, .tl-lane > .tl-od { pointer-events: auto; }
-.tl-lane > .tl-nm { margin: 0; }
-.tl-nm.nm { color: color-mix(in srgb, var(--fg) 80%, transparent); }
-.tl-nm.late { color: var(--red); }
-.tl-nm.done { text-decoration: line-through; opacity: .6; }
 @media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
   .tl-lanes { --lane: 30px; }
   .tl-lane { height: 36px; }
@@ -1383,7 +1412,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.43.2';
+const APP_VERSION = '1.44.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -4375,6 +4404,10 @@ function viewMenu(el) {
     openMenu(el, [
       { label: 'Scheduled To-Dos Too', icon: ui.tl.when ? 'check' : 'blank', fn: () => { ui.tl.when = !ui.tl.when; saveTimeline(); render(); } },
       { label: 'To-Dos Inside Projects', icon: ui.tl.kids ? 'check' : 'blank', fn: () => { ui.tl.kids = !ui.tl.kids; saveTimeline(); render(); } },
+      { label: 'Names Beside Flags', icon: ui.tl.names ? 'check' : 'blank', fn: () => { ui.tl.names = !ui.tl.names; saveTimeline(); render(); } },
+      { sep: 1 },
+      { label: 'Fold All', icon: 'chevU', fn: () => tlFoldAll(true) },
+      { label: 'Unfold All', icon: 'chevD', disabled: ![...ui.tl.fold].some((k) => /^[ap]:/.test(k)), fn: () => tlFoldAll(false) },
       { sep: 1 },
       { label: 'Share List…', icon: 'share', fn: () => openShare({ type: 'view' }) },
       { label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'all' }) },
@@ -4705,9 +4738,11 @@ function parseEntry(raw) {
   out.title = words.join(' ').replace(/\s+([.,;:])/g, '$1').trim();
   return out;
 }
-function openQuickEntry(prefill = '') {
+/* preset: where it goes and what it starts with (the Timeline's New To-Do Due…: its deadline and place) */
+function openQuickEntry(prefill = '', preset = null) {
   if (ui.editing) closeEditor({ noRender: false });
   const draft = makeTodo({ start: 'inbox', isDraft: true });
+  if (preset) Object.assign(draft, preset, { isDraft: true });
   S.todos.push(draft); idx.todo.set(draft.id, draft);
   const ignore = { when: false, deadline: false, tags: false, priority: false, place: false };
   let saved = false, parsed = null;
@@ -4876,6 +4911,15 @@ function openSettings() {
       if (act === 'sync-setup') { closeLayer(L); openSyncSetup(); }
       if (act === 'sync-join') { closeLayer(L); openSyncJoin(); }
       if (act === 'sync-code') { closeLayer(L); openJoinCode(false); }
+      if (act === 'sync-check') {
+        b.disabled = true; b.textContent = 'Checking…';
+        try {
+          if (!Y.col) await syncStart();
+          const r = await syncCheckAll();
+          toast(!r ? 'Couldn’t reach Firebase. Try again when you’re online.' : !r.up && !r.down ? 'Everything matches your other devices.' : [r.down ? `${plural(r.down, 'change')} brought in` : '', r.up ? `${plural(r.up, 'item')} sent back up` : ''].filter(Boolean).join(', ') + '.');
+        } catch (e) { toast(friendlySyncError(e)); }
+        el.innerHTML = build(); return;
+      }
       if (act === 'sync-now') { if (!Y.col) await syncStart(); else { syncDiff(); setSyncStatus('syncing'); await syncPush(); if (Y.unsub) syncListen(); } el.innerHTML = build(); }
       if (act === 'sync-off') { if (await confirmSyncOff()) el.innerHTML = build(); }
     });
@@ -5182,7 +5226,16 @@ function openImport() {
    No accounts. A random sync key decides where the data lives in Firestore
    (a hash of it) and encrypts every record (AES-GCM) before upload.
    Each to-do, project, heading, area and tag is its own document; the most
-   recent edit of an item wins. Deletions leave a small marker. */
+   recent edit of an item wins. Deletions leave a small marker.
+   Two rules keep an old copy from coming back over a newer one:
+   - When Sectis opens, the other devices' changes come in before anything here is sent. What
+     looks changed here at that point (an edit made while closed, or a field this version reads
+     differently) goes up as "the next version of what this device last saw", so it only wins
+     if nobody changed that item since. Edits after that are stamped as they're made.
+   - Sending never overwrites a copy that's as new or newer: that one comes here instead.
+   After an update each device compares everything once (and Settings → Sync → Check
+   Everything does it any time): anything that never arrived comes in, and anything an older
+   copy overwrote goes back up. */
 const SYNC_KEY = 'sectis.sync.v1';
 const FB_VERSION = '10.14.1';
 const SYNC_KINDS = { todo: 'todos', project: 'projects', heading: 'headings', area: 'areas', tag: 'tags', smart: 'smart', focus: 'focuses', note: 'notes' };
@@ -5190,7 +5243,9 @@ const Y = {
   enabled: false, cfg: null, key: null, space: null, base: {}, pending: {}, cursor: [0, 0], lastSync: 0,
   status: 'off', error: '', db: null, col: null, aes: null, unsub: null, pushing: false, again: false,
   queue: Promise.resolve(), firstPull: null, hints: {}, applying: false,
+  pulled: false, // the other devices' changes are in (or can't be: offline), so edits here can be stamped
 };
+const SYNC_CHECK = '1.44.0'; // compare everything once after updating to this
 const syncAvailable = () => SECTIS_WEB && !IN_FRAME && !!(window.crypto && crypto.subtle);
 
 /* ---- small helpers ---- */
@@ -5318,18 +5373,21 @@ function syncRecords() {
   for (const [kind, list] of Object.entries(SYNC_KINDS)) for (const r of S[list]) if (r && r.id && !r.isDraft) out.set(r.id, { k: kind, rec: r });
   return out;
 }
-function syncDiff() {
+/* startup: what changed here before the other devices' changes came in is only the next version
+   of what this device last saw (it loses to anything newer), not an edit made now */
+function syncDiff(startup = false) {
   const recs = syncRecords(), now = Date.now(); let changed = false;
   for (const [id, { k, rec }] of recs) {
     const h = recHash(rec), b = Y.base[id];
     if (b && !b.d && b.h === h) continue;
-    const m = Y.hints[id] ? Math.max(Y.hints[id], ((b && b.m) || 0) + 1) : Math.max(now, ((b && b.m) || 0) + 1);
+    const bm = (b && b.m) || 0;
+    const m = Y.hints[id] ? Math.max(Y.hints[id], bm + 1) : startup && b ? Math.max(bm + 1, (Y.pending[id] && Y.pending[id].m) || 0) : Math.max(now, bm + 1);
     Y.pending[id] = { k, m }; Y.base[id] = { h, m, k }; changed = true;
   }
   for (const id of Object.keys(Y.base)) {
     const b = Y.base[id];
     if (recs.has(id) || b.d) continue;
-    const m = Math.max(now, (b.m || 0) + 1);
+    const m = startup ? (b.m || 0) + 1 : Math.max(now, (b.m || 0) + 1);
     Y.pending[id] = { k: b.k, m, d: true }; Y.base[id] = { h: '', m, k: b.k, d: true }; changed = true;
   }
   Y.hints = {};
@@ -5337,8 +5395,14 @@ function syncDiff() {
   return changed;
 }
 function syncLocalSaved() {
-  if (!Y.enabled || Y.applying || !Y.col) return;
-  if (syncDiff()) pushSoon();
+  if (!Y.enabled || Y.applying || !Y.pulled) return; // until then, syncReady picks the changes up
+  if (syncDiff() && Y.col) pushSoon(); // offline, they wait (stamped when made) for the connection
+}
+/* the other devices' changes are in, or can't come in yet: from now on edits are stamped as made */
+function syncReady() {
+  if (Y.pulled || !Y.enabled) return;
+  Y.pulled = true;
+  if (syncDiff(true) && Y.col) pushSoon();
 }
 const pushSoon = debounce(() => syncPush(), 600);
 function withTimeout(p, ms, msg) { return Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error(msg), { code: 'timeout' })), ms))]); }
@@ -5349,21 +5413,33 @@ async function syncPush() {
   if (!ids.length) { if (Y.status === 'syncing') setSyncStatus('synced'); return; }
   Y.pushing = true; setSyncStatus('syncing');
   try {
-    const recs = syncRecords();
-    for (let i = 0; i < ids.length; i += 400) {
-      const chunk = ids.slice(i, i + 400), sent = {};
-      const batch = Y.db.batch();
+    const recs = syncRecords(), newer = [];
+    for (let i = 0; i < ids.length; i += 200) {
+      const chunk = ids.slice(i, i + 200), pend = {}, enc = {};
       for (const id of chunk) {
         const p = Y.pending[id]; if (!p) continue;
-        const r = recs.get(id);
-        const ts = Y.fb.firestore.FieldValue.serverTimestamp();
-        if (r && !p.d) batch.set(Y.col.doc(id), Object.assign({ k: p.k, m: p.m, d: false, t: ts }, await encryptRec(r.rec)));
-        else batch.set(Y.col.doc(id), { k: p.k, m: p.m, d: true, c: '', iv: '', t: ts });
-        sent[id] = p.m;
+        pend[id] = p; const r = recs.get(id);
+        if (r && !p.d) enc[id] = await encryptRec(r.rec);
       }
-      await withTimeout(batch.commit(), 20000, 'Sync timed out');
+      const want = Object.keys(pend); if (!want.length) continue;
+      let sent = {}, kept = [];
+      // in one transaction: read what's there, and write only over older copies
+      await withTimeout(Y.db.runTransaction(async (tx) => {
+        sent = {}; kept = [];
+        const refs = want.map((id) => Y.col.doc(id)), snaps = await Promise.all(refs.map((ref) => tx.get(ref)));
+        want.forEach((id, j) => {
+          const p = pend[id], cur = snaps[j].exists ? snaps[j].data() : null;
+          if (cur && typeof cur.m === 'number' && cur.m >= p.m) { kept.push(Object.assign({ id }, cur)); return; } // as new or newer: theirs stays
+          const ts = Y.fb.firestore.FieldValue.serverTimestamp();
+          if (enc[id] && !p.d) tx.set(refs[j], Object.assign({ k: p.k, m: p.m, d: false, t: ts }, enc[id]));
+          else tx.set(refs[j], { k: p.k, m: p.m, d: true, c: '', iv: '', t: ts });
+          sent[id] = p.m;
+        });
+      }), 20000, 'Sync timed out');
       for (const id of Object.keys(sent)) if (Y.pending[id] && Y.pending[id].m === sent[id]) delete Y.pending[id];
+      newer.push(...kept);
     }
+    if (newer.length) await syncApplyRemote(newer, { theirs: true }); // the newer copies replace ours here
     Y.lastSync = Date.now(); syncSaveState();
     setSyncStatus('synced');
   } catch (e) {
@@ -5384,13 +5460,15 @@ function normalizeRecord(kind, rec) {
   return rec;
 }
 function tsAfter(t, cur) { return t.seconds > cur[0] || (t.seconds === cur[0] && t.nanoseconds > cur[1]); }
-async function syncApplyRemote(docs) {
+/* opts.theirs: copies the server kept over ours (as new or newer): they win even on a tie */
+async function syncApplyRemote(docs, opts = {}) {
   const updates = [];
+  let cursor = Y.cursor;
   for (const d of docs) {
-    if (d.t && typeof d.t.seconds === 'number' && tsAfter(d.t, Y.cursor)) Y.cursor = [d.t.seconds, d.t.nanoseconds];
+    if (d.t && typeof d.t.seconds === 'number' && tsAfter(d.t, cursor)) cursor = [d.t.seconds, d.t.nanoseconds];
     if (!SYNC_KINDS[d.k]) continue;
     const b = Y.base[d.id];
-    if (b && d.m <= b.m) { if (Y.pending[d.id] && Y.pending[d.id].m === d.m) delete Y.pending[d.id]; continue; }
+    if (b && (opts.theirs ? d.m < b.m : d.m <= b.m)) { if (Y.pending[d.id] && Y.pending[d.id].m === d.m) delete Y.pending[d.id]; continue; }
     let rec = null;
     if (!d.d) { try { rec = await decryptRec(d); } catch (e) { continue; } }
     updates.push({ id: d.id, k: d.k, m: d.m, d: !!d.d, rec });
@@ -5409,11 +5487,13 @@ async function syncApplyRemote(docs) {
       for (const id of [...ui.sel]) if (!itemById(id)) ui.sel.delete(id);
       if (ui.editing && !getT(ui.editing)) ui.editing = null;
       undoStack.length = 0; // undo would otherwise roll back changes made on the other device
-      S.savedAt = Date.now(); lsSet(STORE_KEY, JSON.stringify(S)); syncSaveState();
+      S.savedAt = Date.now(); lsSet(STORE_KEY, JSON.stringify(S));
       if (typeof fileSyncWrite === 'function') fileSyncWrite(JSON.stringify(S));
     } finally { Y.applying = false; }
+    if (!opts.theirs) Y.cursor = cursor; // (copies read while sending don't move it: changes before them may still be on the way)
+    syncSaveState();
     render();
-  }
+  } else if (!opts.theirs) Y.cursor = cursor;
   Y.lastSync = Date.now(); syncSaveSoon();
   if (Y.status !== 'error' && !Y.pushing) setSyncStatus('synced'); else renderSyncIndicator();
 }
@@ -5432,20 +5512,46 @@ function syncListen() {
 async function syncStart() {
   if (!Y.enabled || !syncAvailable()) return;
   setSyncStatus('connecting');
+  if (navigator.onLine === false) syncReady(); // nothing can come in: stamp edits as they're made
   try {
     const c = await syncConnect(Y.cfg, Y.key);
     Object.assign(Y, c);
     const first = syncListen();
-    syncDiff(); pushSoon();
-    await Promise.race([first, new Promise((r) => setTimeout(r, 6000))]);
+    // the other devices' changes first (a slow connection gets 20 seconds); then what changed here goes up
+    const came = await Promise.race([first.then(() => true), new Promise((r) => setTimeout(() => r(false), 20000))]);
+    syncReady(); pushSoon();
+    if (came && lsGet('sectis.sync.check') !== SYNC_CHECK) syncCheckAll().then((r) => { if (r) lsSet('sectis.sync.check', SYNC_CHECK); }).catch(() => {});
   } catch (e) {
+    syncReady();
     setSyncStatus(navigator.onLine === false ? 'offline' : 'error', friendlySyncError(e));
   }
+}
+/* compare everything with what's in Firebase: what another device changed that never arrived
+   comes in, and what's newer here than there (an older copy overwrote it) goes back up */
+async function syncCheckAll() {
+  if (!Y.enabled || !Y.col) return null;
+  setSyncStatus('syncing');
+  const snap = await withTimeout(Y.col.get(), 60000, 'Timed out');
+  const recs = syncRecords(), seen = new Set(), theirs = [];
+  let up = 0;
+  snap.forEach((doc) => {
+    const d = Object.assign({ id: doc.id }, doc.data()); seen.add(d.id);
+    if (!SYNC_KINDS[d.k] || typeof d.m !== 'number' || Y.pending[d.id]) return;
+    const b = Y.base[d.id];
+    if (!b || d.m > b.m) theirs.push(d);
+    else if (d.m < b.m && (b.d || recs.has(d.id))) { Y.pending[d.id] = b.d ? { k: b.k, m: b.m, d: true } : { k: b.k, m: b.m }; up++; }
+  });
+  for (const [id, b] of Object.entries(Y.base)) if (!seen.has(id) && !Y.pending[id] && (b.d || recs.has(id))) { Y.pending[id] = b.d ? { k: b.k, m: b.m, d: true } : { k: b.k, m: b.m }; up++; }
+  const down = theirs.length;
+  if (down) await syncApplyRemote(theirs);
+  if (up) { syncSaveState(); await syncPush(); }
+  if (Y.status === 'syncing') setSyncStatus('synced');
+  return { up, down };
 }
 async function syncSetup(cfg) {
   const key = newSyncKey();
   const c = await syncConnect(cfg, key);
-  Object.assign(Y, c, { enabled: true, cfg, key, base: {}, pending: {}, cursor: [0, 0], lastSync: 0, hints: {} });
+  Object.assign(Y, c, { enabled: true, cfg, key, base: {}, pending: {}, cursor: [0, 0], lastSync: 0, hints: {}, pulled: true });
   syncDiff();
   setSyncStatus('syncing');
   await syncPushOrThrow();
@@ -5476,7 +5582,7 @@ async function syncJoin(code) {
   snapshot('Join Sync');
   if (mode === 'replace') { for (const list of Object.values(SYNC_KINDS)) S[list] = []; reindex(); }
   else if (hasRemote) dropSampleData(); // the other device already has the tour
-  Object.assign(Y, c, { enabled: true, cfg: j.cfg, key: j.key, base: {}, pending: {}, cursor: [0, 0], lastSync: 0, hints: {} });
+  Object.assign(Y, c, { enabled: true, cfg: j.cfg, key: j.key, base: {}, pending: {}, cursor: [0, 0], lastSync: 0, hints: {}, pulled: true });
   setSyncStatus('syncing');
   await Promise.race([syncListen(), new Promise((r) => setTimeout(r, 15000))]);
   if (mode === 'merge') dedupeTags();
@@ -5520,7 +5626,7 @@ function syncSettingsHTML() {
   if (!Y.enabled) return `<div class="set-row"><span class="lbl">Keep your Mac and iPhone in step through your own Firebase project. To-dos are encrypted before they leave this device.</span></div>
     <div class="set-btns"><button class="btn primary" data-s="sync-setup">Set Up Sync…</button><button class="btn" data-s="sync-join">Join with a Code…</button></div>`;
   return `<div class="set-row"><span class="lbl">Status<small id="sync-status">${syncStatusText()}</small></span></div>
-    <div class="set-btns"><button class="btn" data-s="sync-code">Add Another Device…</button><button class="btn" data-s="sync-now">Sync Now</button><button class="btn" data-s="sync-off">Turn Off on This Device…</button></div>`;
+    <div class="set-btns"><button class="btn" data-s="sync-code">Add Another Device…</button><button class="btn" data-s="sync-now">Sync Now</button><button class="btn" data-s="sync-check" title="Compare everything on this device with what’s synced, and fix anything that’s out of step">Check Everything</button><button class="btn" data-s="sync-off">Turn Off on This Device…</button></div>`;
 }
 function copyText(text, el, note) {
   const done = (msg) => { if (note) note.textContent = msg; };
@@ -9721,7 +9827,14 @@ function placeAutocomplete(ti, box, onPick) {
    - Drag a flag (or a bar's right end) to change the deadline, a bar's left end to change
      its start, or the bar itself to move both. Click a flag or bar for its dates; click a name
      to open it. Follows the focus and the tag bar, like every other list.
-   Zoom and options are each device's own. */
+   - Each flag or bar has its name beside it (••• → Names Beside Flags turns that off).
+   - The Due row under the dates shows how much is due each day (each week at 3 Months), darker
+     as it piles up; click one for what's due then.
+   - ▸ beside an area or project folds it to one line: a dot for each deadline and how many
+     (⌥-click folds or unfolds them all; ••• → Fold All / Unfold All too).
+   - Click an empty day on a row for that day: a new to-do due then (in that project, area or
+     list, through Quick Entry), or that to-do's or project's deadline moved there.
+   Zoom, options and what's folded are each device's own. */
 const TL_ZOOM = {
   '2w': { days: 14, step: 7, min: 30, label: '2 Weeks' },
   month: { days: 35, step: 28, min: 13, label: 'Month' },
@@ -9729,10 +9842,11 @@ const TL_ZOOM = {
 };
 (function loadTimeline() {
   let t = null; try { t = JSON.parse(lsGet('sectis.timeline') || 'null'); } catch (e) { t = null; }
-  ui.tl = Object.assign({ zoom: 'month', when: false, kids: true }, t || {}, { off: 0 });
+  ui.tl = Object.assign({ zoom: 'month', when: false, kids: true, names: true }, t || {}, { off: 0 });
+  ui.tl.fold = new Set(Array.isArray(ui.tl.fold) ? ui.tl.fold : []);
   if (!TL_ZOOM[ui.tl.zoom]) ui.tl.zoom = 'month';
 })();
-function saveTimeline() { lsSet('sectis.timeline', JSON.stringify({ zoom: ui.tl.zoom, when: ui.tl.when, kids: ui.tl.kids })); }
+function saveTimeline() { lsSet('sectis.timeline', JSON.stringify({ zoom: ui.tl.zoom, when: ui.tl.when, kids: ui.tl.kids, names: ui.tl.names, fold: [...ui.tl.fold] })); }
 function tlRange() {
   const z = TL_ZOOM[ui.tl.zoom], from = addDays(weekStart(T0()), ui.tl.off * z.step);
   return { from, to: addDays(from, z.days - 1), days: z.days, z };
@@ -9807,6 +9921,74 @@ function tlDateText(e) {
   if (e.dl) return e.late ? deadlineInfo(e.dl).text : fmtRel(e.dl);
   return 'Starts ' + fmtRel(e.st);
 }
+const tlName = (x) => x.title || (x.type === 'project' ? 'New Project' : 'New To-Do');
+const tlShort = (s, n = 34) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s);
+let tlCtx = null;
+function tlTextW(s) {
+  if (!tlCtx) tlCtx = document.createElement('canvas').getContext('2d');
+  tlCtx.font = `11.5px ${getComputedStyle(document.body).fontFamily}`;
+  return Math.ceil(tlCtx.measureText(s).width);
+}
+/* where an entry sits on its track, in pixels */
+function tlSpan(e, r, L) {
+  const dw = L.dw, last = r.days - 1, idx = (d) => diffDays(r.from, d), half = L.stack ? 11 : 9;
+  if (e.overdue) return { x1: 2, x2: 2 + tlTextW(fmtDate(e.dl, { weekday: false })) + 26 };
+  if (e.a < e.b) return { x1: Math.max(0, idx(e.a)) * dw, x2: (Math.min(last, idx(e.b)) + 1) * dw };
+  const c = (idx(e.b) + 0.5) * dw; return { x1: c - half, x2: c + half };
+}
+/* a label beside something running x1..x2 on a track W wide: after it if there's room, else
+   before it, else after it cut short. lo..hi is the room the two take up */
+function tlLabel(text, x1, x2, W, cls = '') {
+  if (!text) return { html: '', lo: x1, hi: x2 };
+  const w = tlTextW(text), at = (x, extra = '') => `<span class="tl-dt tl-nm${cls ? ' ' + cls : ''}" style="left:${Math.round(x)}px${extra}">${esc(text)}</span>`;
+  if (x2 + 5 + w <= W) return { html: at(x2 + 5), lo: x1, hi: x2 + 5 + w };
+  if (x1 - 5 - w >= 0) return { html: at(x1 - 5 - w), lo: x1 - 5 - w, hi: x2 };
+  const room = Math.floor(W - x2 - 5);
+  return room < 40 ? { html: '', lo: x1, hi: x2 } : { html: at(x2 + 5, `;max-width:${room}px`).replace('tl-nm', 'tl-nm cut'), lo: x1, hi: W };
+}
+/* an entry with its name (and, but at 3 Months, its date) beside it */
+function tlNamedHTML(e, r, L, nameIt = true) {
+  const sp = tlSpan(e, r, L), date = ui.tl.zoom === 'quarter' ? '' : tlDateText(e);
+  const text = nameIt ? tlShort(tlName(e.x)) + (date ? ` · ${date}` : '') : date;
+  const lab = tlLabel(text, sp.x1, sp.x2, L.dw * r.days, `${nameIt ? 'nm' : ''}${e.x.status !== 'open' ? ' done' : ''}${e.late ? ' late' : ''}`);
+  return { html: tlTrackHTML(e, r, { nolabel: true }) + lab.html, lo: lab.lo, hi: lab.hi };
+}
+/* a folded area, project or row: a dot on each deadline, a line from the first to the last, and how many */
+function tlTicksHTML(list, r, L, noun) {
+  const W = L.dw * r.days, idx = (d) => diffDays(r.from, d);
+  const pts = list.map((e) => ({ e, x: e.overdue ? 6 : (Math.max(0, Math.min(r.days - 1, idx(e.b))) + 0.5) * L.dw }));
+  if (!pts.length) return '';
+  const lo = Math.min(...pts.map((p) => p.x)), hi = Math.max(...pts.map((p) => p.x));
+  const dots = pts.map(({ e, x }) => { const col = tlColor(e.x); return `<i class="tl-tick${e.late ? ' late' : ''}${e.x.status !== 'open' ? ' done' : ''}" style="left:${Math.round(x)}px${col ? `;--tlc:${col}` : ''}"></i>`; }).join('');
+  const lab = tlLabel(plural(list.length, noun), lo - 4, hi + 4, W, 'cnt');
+  return `<i class="tl-tline" style="left:${Math.round(lo)}px;width:${Math.round(hi - lo)}px"></i>${dots}${lab.html}`;
+}
+/* the ▸ that folds a row (a blank of the same size where there's nothing to fold) */
+function tlFoldHTML(key, name, can = true) {
+  if (!can) return '<span class="tl-fold-sp"></span>';
+  const f = ui.tl.fold.has(key);
+  return `<button class="tl-fold${f ? '' : ' open'}" data-tlfold="${esc(key)}" aria-expanded="${!f}" aria-label="${f ? 'Unfold' : 'Fold'} ${esc(name)}" title="${f ? 'Unfold' : 'Fold'} (⌥-click for all)">${ic('chevR')}</button>`;
+}
+/* the Due row: how much is due each day (each week at 3 Months), darker as it piles up */
+let tlBusyIds = new Map();
+function tlBusyHTML(entries, r, L) {
+  const q = ui.tl.zoom === 'quarter', ids = new Map();
+  entries.forEach((e) => {
+    if (e.x.status !== 'open' || e.overdue) return;
+    const d = e.dl || e.st; if (!d || d < r.from || d > r.to) return;
+    const k = q ? weekStart(d) : d; if (!ids.has(k)) ids.set(k, []); ids.get(k).push(e.x.id);
+  });
+  tlBusyIds = ids;
+  const steps = q ? [1, 4, 7, 11] : [1, 2, 3, 5];
+  let cells = '';
+  ids.forEach((list, k) => {
+    const n = list.length, lvl = steps.filter((m) => n >= m).length, i = Math.max(0, diffDays(r.from, k)), w = q ? Math.min(7, r.days - i) : 1;
+    const what = `${plural(n, 'thing')} due ${q ? `the week of ${fmtDate(k, { weekday: false })}` : fmtDate(k)}`;
+    cells += `<button class="tl-bz l${lvl}" data-tlbusy="${k}" style="left:${tlAt(i)};width:${tlAt(w)}" title="${esc(what)}" aria-label="${esc(what)}">${w * L.dw >= 15 ? n : ''}</button>`;
+  });
+  return `<div class="tl-busy" aria-label="How much is due">${cells}</div>`;
+}
+const tlHeadHTML = (months, scale, busy) => `<div class="tl-head"><div class="tl-lab tl-corner"><span class="tl-busy-l">Due</span></div><div class="tl-scale bz"><div class="tl-months">${months}</div><div class="tl-days">${scale}</div>${busy}</div></div>`;
 function tlTrackHTML(e, r, opts = {}) {
   const idx = (d) => diffDays(r.from, d), last = r.days - 1;
   const x = e.x, col = tlColor(x), style = col ? `;--tlc:${col}` : '';
@@ -9824,9 +10006,9 @@ function tlTrackHTML(e, r, opts = {}) {
 }
 function tlRowHTML(e, kind, depth) {
   const x = e.x, done = x.status !== 'open';
-  const name = x.title || (x.type === 'project' ? 'New Project' : 'New To-Do');
+  const name = tlName(x);
   const icon = x.type === 'project' ? projIc(x, 'tl-ic') : `<button class="tl-cb${done ? ' on' : ''}" data-tl-done="${x.id}" aria-label="${done ? 'Mark as not done' : 'Complete'}" title="${done ? 'Mark as not done' : 'Complete'}">${done ? ic('check') : ''}</button>`;
-  return `<div class="tl-row ${kind}${done ? ' done' : ''}" data-tlid="${x.id}"><div class="tl-lab" style="padding-left:${6 + depth * 18}px">${icon}<button class="tl-name" data-tl-open="${x.id}" title="${esc(name)}">${esc(name)}</button></div><div class="tl-track">${e.__track}</div></div>`;
+  return `<div class="tl-row ${kind}${done ? ' done' : ''}" data-tlid="${x.id}"><div class="tl-lab" style="padding-left:${22 + depth * 18}px">${icon}<button class="tl-name" data-tl-open="${x.id}" title="${esc(name)}">${esc(name)}</button></div><div class="tl-track">${e.__track}</div></div>`;
 }
 function viewTimeline() {
   const r = tlRange(), L = tlLayout(r), groups = timelineData(r), allEntries = timelineEntries(r, false);
@@ -9853,16 +10035,20 @@ function viewTimeline() {
   if (ti >= 0 && ti < r.days) bg += `<i class="tl-now" style="left:${tlAt(ti)}"></i>`;
   // the rows
   let rows = '';
-  const row = (e, kind, depth) => { e.__track = tlTrackHTML(e, r); return tlRowHTML(e, kind, depth); };
+  const track = (e) => (ui.tl.names && !L.stack ? tlNamedHTML(e, r, L).html : tlTrackHTML(e, r)); // on iPhone each name is right above its row
+  const row = (e, kind, depth) => { e.__track = track(e); return tlRowHTML(e, kind, depth); };
   const areaCount = groups.filter((g) => g.a).length;
   groups.forEach((g) => {
-    if (g.a || areaCount) rows += `<div class="tl-row tl-area"><div class="tl-lab">${g.a ? (placeColor(g.a) ? areaIc(g.a, 'tl-ic') : ic('area', 'tl-ic')) : ic('inbox', 'tl-ic')}<button class="tl-name"${g.a ? ` data-nav="area:${g.a.id}"` : ''}>${esc(g.a ? aTitle(g.a) : 'No Area')}</button></div><div class="tl-track"></div></div>`;
+    const ak = 'a:' + (g.a ? g.a.id : '-'), aName = g.a ? aTitle(g.a) : 'No Area', aFold = !!(g.a || areaCount) && ui.tl.fold.has(ak);
+    const inGroup = () => g.own.concat(...g.projs.map((pg) => (pg.pe ? [pg.pe] : []).concat(ui.tl.kids ? pg.kids : [])));
+    if (g.a || areaCount) rows += `<div class="tl-row tl-area${aFold ? ' folded' : ''}" data-tlnew="a:${g.a ? g.a.id : ''}"><div class="tl-lab">${tlFoldHTML(ak, aName)}${g.a ? (placeColor(g.a) ? areaIc(g.a, 'tl-ic') : ic('area', 'tl-ic')) : ic('inbox', 'tl-ic')}<button class="tl-name"${g.a ? ` data-nav="area:${g.a.id}"` : ''}>${esc(aName)}</button></div><div class="tl-track">${aFold ? tlTicksHTML(inGroup(), r, L, 'thing') : ''}</div></div>`;
+    if (aFold) return;
     g.own.forEach((e) => { rows += row(e, 'tl-todo', 0); });
     g.projs.forEach((pg) => {
-      const pe = pg.pe || { x: pg.p, a: null, b: null };
-      pe.__track = pg.pe ? tlTrackHTML(pg.pe, r) : '';
-      rows += `<div class="tl-row tl-proj${pg.p.status !== 'open' ? ' done' : ''}" data-tlid="${pg.p.id}"><div class="tl-lab">${projIc(pg.p, 'tl-ic')}<button class="tl-name" data-tl-open="${pg.p.id}" title="${esc(pTitle(pg.p))}">${esc(pTitle(pg.p))}</button></div><div class="tl-track">${pe.__track}</div></div>`;
-      if (ui.tl.kids) pg.kids.forEach((e) => { rows += row(e, 'tl-todo kid', 1); });
+      const pk = 'p:' + pg.p.id, canFold = ui.tl.kids && pg.kids.length > 0, pFold = canFold && ui.tl.fold.has(pk);
+      const t = (pg.pe ? track(pg.pe) : '') + (pFold ? tlTicksHTML(pg.kids, r, L, 'to-do') : '');
+      rows += `<div class="tl-row tl-proj${pg.p.status !== 'open' ? ' done' : ''}${pFold ? ' folded' : ''}" data-tlid="${pg.p.id}"><div class="tl-lab">${tlFoldHTML(pk, pTitle(pg.p), canFold)}${projIc(pg.p, 'tl-ic')}<button class="tl-name" data-tl-open="${pg.p.id}" title="${esc(pTitle(pg.p))}">${esc(pTitle(pg.p))}</button></div><div class="tl-track">${t}</div></div>`;
+      if (ui.tl.kids && !pFold) pg.kids.forEach((e) => { rows += row(e, 'tl-todo kid', 1); });
     });
   });
   // the header
@@ -9876,7 +10062,7 @@ function viewTimeline() {
     return html + emptyHTML('timeline', ui.tl.off ? 'Nothing due in these weeks' : 'Nothing due yet', `Give a project or to-do a deadline (select it and press D) and it shows up here, on its day.${ui.tl.when ? '' : ' To see When dates too, choose <b>Scheduled To-Dos Too</b> in the ••• menu.'}`);
   }
   html += `<div class="tl-wrap${L.fits ? ' fits' : ''}" data-hscroll="timeline"><div class="tl ${'z-' + ui.tl.zoom}${L.stack ? ' stack' : ''}" style="--dw:${L.dw}px;--lw:${L.lw}px;--days:${r.days};--vw:${Math.round(L.vw)}px">`
-    + `<div class="tl-head"><div class="tl-lab tl-corner"></div><div class="tl-scale"><div class="tl-months">${months}</div><div class="tl-days">${scale}</div></div></div>`
+    + tlHeadHTML(months, scale, tlBusyHTML(timelineEntries(r).filter((e) => ui.tl.kids || e.x.type === 'project' || !e.x.projectId), r, L))
     + `<div class="tl-body"><div class="tl-bg" aria-hidden="true">${bg}</div>${rows}</div></div></div>`;
   return html;
 }
@@ -9895,9 +10081,78 @@ document.addEventListener('click', (e) => {
   if (c) { toggleComplete([c.dataset.tlDone]); return; }
   // a flag or bar clicked without dragging: its dates. (On the click, not the pointer coming up,
   // so a phone's tap doesn't land on the menu that just opened under the finger.)
+  const fb = e.target.closest('#content [data-tlfold]');
+  if (fb) { tlFoldClick(fb, e.altKey); return; }
+  const bz = e.target.closest('#content [data-tlbusy]');
+  if (bz) { tlBusyMenu(bz); return; }
   const it = e.target.closest('#content [data-tl-item]');
-  if (it && !tlNoClick) tlItemMenu(it.dataset.tlid || it.closest('[data-tlid]').dataset.tlid, it);
+  if (it) { if (!tlNoClick) tlItemMenu(it.dataset.tlid || it.closest('[data-tlid]').dataset.tlid, it); return; }
+  // an empty day on a row: a to-do due then, or this one's deadline moved there
+  const tr = e.target.closest('#content .tl-body .tl-track');
+  if (tr && !e.target.closest('button, a')) tlDayMenu(tr, e);
 });
+function tlFoldClick(b, all) {
+  const fold = !ui.tl.fold.has(b.dataset.tlfold), band = b.closest('.tl-band');
+  if (!all) { if (fold) ui.tl.fold.add(b.dataset.tlfold); else ui.tl.fold.delete(b.dataset.tlfold); }
+  else if (fold) (band || document).querySelectorAll('[data-tlfold]').forEach((x) => ui.tl.fold.add(x.dataset.tlfold));
+  else [...ui.tl.fold].filter((k) => (band ? /^(p|ba|bc):/ : /^[ap]:/).test(k)).forEach((k) => ui.tl.fold.delete(k)); // those inside folded ones too
+  saveTimeline(); render();
+}
+function tlFoldAll(fold) {
+  if (fold) document.querySelectorAll('#content [data-tlfold]').forEach((b) => ui.tl.fold.add(b.dataset.tlfold));
+  else [...ui.tl.fold].filter((k) => /^[ap]:/.test(k)).forEach((k) => ui.tl.fold.delete(k));
+  saveTimeline(); render();
+}
+/* what's due on a day (or in a week) of the Due row */
+function tlBusyMenu(b) {
+  const k = b.dataset.tlbusy, q = ui.tl.zoom === 'quarter', xs = (tlBusyIds.get(k) || []).map(itemById).filter(Boolean);
+  if (!xs.length) return;
+  const where = (x) => (x.type === 'todo' && x.projectId && getP(x.projectId) ? tlShort(pTitle(getP(x.projectId)), 20) : x.type === 'todo' && x.areaId && getA(x.areaId) ? tlShort(aTitle(getA(x.areaId)), 20) : '');
+  openMenu(b, [{ header: q ? `Due the week of ${fmtDate(k, { weekday: false })}` : `Due ${fmtDate(k)}` },
+    ...xs.map((x) => ({ label: tlShort(tlName(x), 40), icon: x.type === 'project' ? 'project' : 'flag', hint: q ? fmtDate(x.deadline || tlSched(x), { weekday: false }) : where(x), fn: () => (x.type === 'project' ? navigate('project:' + x.id) : revealTodo(x.id)) }))]);
+}
+/* the day under the pointer on a track */
+function tlDayAt(tr, clientX) {
+  const tl = tr.closest('.tl'), dw = parseFloat(tl.style.getPropertyValue('--dw')) || 20, r = tlRange();
+  return clamp(Math.floor((clientX - tr.getBoundingClientRect().left) / dw), 0, r.days - 1);
+}
+function tlDayMenu(tr, e) {
+  const row = tr.closest('.tl-row'); if (!row) return;
+  const x = row.dataset.tlid ? itemById(row.dataset.tlid) : null, add = row.dataset.tlnew;
+  if (!x && !add) return;
+  const day = addDays(tlRange().from, tlDayAt(tr, e.clientX)), d = fmtDate(day, { weekday: false });
+  const newDue = (preset) => ({ label: `New To-Do Due ${d}`, icon: 'plus', fn: () => openQuickEntry('', Object.assign({ deadline: day }, preset)) });
+  const items = [];
+  if (x && x.type === 'project') {
+    items.push({ header: pTitle(x) });
+    if (x.status === 'open' && !x.trashed) items.push(newDue({ projectId: x.id, start: 'anytime' }));
+    if (x.status === 'open' && x.deadline !== day) items.push({ label: x.deadline ? `Move Its Deadline to ${d}` : `Deadline ${d}`, icon: 'flag', fn: () => tlSetDeadline(x, day) });
+  } else if (x) {
+    items.push({ header: tlShort(tlName(x), 40) });
+    if (x.status === 'open' && x.deadline !== day) items.push({ label: x.deadline ? `Move Its Deadline to ${d}` : `Deadline ${d}`, icon: 'flag', fn: () => tlSetDeadline(x, day) });
+    items.push(newDue(x.projectId ? { projectId: x.projectId, headingId: x.headingId || null, start: 'anytime' } : x.areaId ? { areaId: x.areaId, start: 'anytime' } : { start: 'inbox' })); // beside it, in the same place
+  } else {
+    const [t, a, b] = add.split(':');
+    if (t === 'a') { const ar = a && getA(a); items.push({ header: ar ? aTitle(ar) : 'No Area' }, newDue(ar ? { areaId: a, start: 'anytime' } : { start: 'inbox' })); }
+    else if (t === 'c') items.push({ header: colName(a, b) }, newDue(a === 't' && getTag(b) ? { tags: [b], start: 'inbox' } : a === 's' && getSmart(b) ? Object.assign({ start: 'inbox' }, smartNewProps(getSmart(b))) : { start: 'inbox' }));
+  }
+  if (items.length < 2) return;
+  openMenu({ x: e.clientX, y: e.clientY }, items);
+}
+function tlSetDeadline(x, day) {
+  commit('Change Deadline', () => { x.deadline = day; const st = tlSched(x); if (st && st > day) scheduleItems(x, { date: day }); touch(x); });
+  toast(`Deadline ${fmtDate(day)}`, { undo: true });
+}
+/* a + under the pointer on an empty day of a row, where a click adds something */
+document.addEventListener('pointermove', (e) => {
+  if (e.pointerType !== 'mouse' || tlDrag) return;
+  const tr = tlHere() && e.target.closest && e.target.closest('#content .tl-body .tl-track');
+  const ok = tr && !e.target.closest('[data-tl-item], button, a') && tr.closest('.tl-row[data-tlid], .tl-row[data-tlnew]');
+  let g = document.querySelector('#content .tl-ghost');
+  if (!ok) { if (g) g.remove(); return; }
+  if (!g || g.parentNode !== tr) { if (g) g.remove(); g = document.createElement('i'); g.className = 'tl-ghost'; g.setAttribute('aria-hidden', 'true'); g.innerHTML = ic('plus'); tr.appendChild(g); }
+  g.style.left = tlAt(tlDayAt(tr, e.clientX) + 0.5);
+}, { passive: true });
 document.addEventListener('contextmenu', (e) => {
   const row = tlHere() && e.target.closest && (e.target.closest('#content .tl [data-tl-item][data-tlid]') || e.target.closest('#content .tl-row[data-tlid]'));
   if (!row || layers.length) return;
@@ -9993,8 +10248,9 @@ function timelineExport(B, f) {
    One row per project on it (a project column, or a project in an area column), with its
    deadline bar and its to-dos' deadlines and start dates, each named; an area's own to-dos; and
    a list, tag or smart-list column's to-dos with deadlines. Things on the same days get lines
-   of their own in the row, so none hides another. Same span, paging, dragging and menus as the
-   Timeline. Each Board remembers whether it shows one (the Timeline button). */
+   of their own in the row, so none hides another; ▸ folds a row to one line. Same span,
+   paging, Due row, dragging, menus and adding as the Timeline. Each Board remembers whether
+   it shows one (the Timeline button). */
 function toggleBoardTimeline() { const b = curBoard(); b.tl = !b.tl; saveBoard(); render(); }
 function boardTimelineRows(r) {
   const rows = [], seen = new Set();
@@ -10003,18 +10259,18 @@ function boardTimelineRows(r) {
   const addProject = (p) => {
     if (!p || seen.has(p.id) || !liveProject(p)) return; seen.add(p.id);
     const pe = tlEntry(p, r), kids = entries(S.todos.filter((t) => t.projectId === p.id && live(t)));
-    if (pe || kids.length) rows.push({ x: p, label: pTitle(p), icon: projIc(p, 'tl-ic'), open: `data-tl-open="${p.id}"`, main: pe, kids, key: pe ? pe.b : kids[0].b });
+    if (pe || kids.length) rows.push({ x: p, k: 'p:' + p.id, label: pTitle(p), icon: projIc(p, 'tl-ic'), open: `data-tl-open="${p.id}"`, main: pe, kids, key: pe ? pe.b : kids[0].b });
   };
   boardCols().forEach((c) => {
     if (c.t === 'p') addProject(getP(c.id));
     else if (c.t === 'a') {
       const a = getA(c.id); if (!a) return;
       const own = entries(S.todos.filter((t) => t.areaId === a.id && !t.projectId && live(t)));
-      if (own.length) rows.push({ x: null, label: aTitle(a), icon: placeColor(a) ? areaIc(a, 'tl-ic') : ic('area', 'tl-ic'), open: `data-nav="area:${a.id}"`, main: null, kids: own, key: own[0].b });
+      if (own.length) rows.push({ x: null, k: 'ba:' + a.id, add: 'a:' + a.id, label: aTitle(a), icon: placeColor(a) ? areaIc(a, 'tl-ic') : ic('area', 'tl-ic'), open: `data-nav="area:${a.id}"`, main: null, kids: own, key: own[0].b });
       S.projects.filter((p) => p.areaId === a.id && liveProject(p)).sort(byOrder).forEach(addProject);
     } else {
       const items = entries(S.todos.filter((t) => live(t) && t.deadline && colHas(c, t)));
-      if (items.length) rows.push({ x: null, label: colName(c.t, c.id), icon: c.t === 'l' ? `<span class="ic tl-ic" style="color:${LISTS[c.id].color}">${I[LISTS[c.id].icon]}</span>` : c.t === 't' ? ic('tag', 'tl-ic tc-ic ' + tcls(getTag(c.id))) : `<span class="ic tl-ic" style="color:var(--c-smart)">${I.funnel}</span>`, open: `data-nav="${c.t === 'l' ? c.id : (c.t === 't' ? 'tag:' : 'smart:') + c.id}"`, main: null, kids: items, key: items[0].b });
+      if (items.length) rows.push({ x: null, k: `bc:${c.t}:${c.id}`, add: `c:${c.t}:${c.id}`, label: colName(c.t, c.id), icon: c.t === 'l' ? `<span class="ic tl-ic" style="color:${LISTS[c.id].color}">${I[LISTS[c.id].icon]}</span>` : c.t === 't' ? ic('tag', 'tl-ic tc-ic ' + tcls(getTag(c.id))) : `<span class="ic tl-ic" style="color:var(--c-smart)">${I.funnel}</span>`, open: `data-nav="${c.t === 'l' ? c.id : (c.t === 't' ? 'tag:' : 'smart:') + c.id}"`, main: null, kids: items, key: items[0].b });
     }
   });
   return rows;
@@ -10022,24 +10278,13 @@ function boardTimelineRows(r) {
 /* a Board row holds a project and all its to-dos, so things on the same days would sit on top of
    each other: each goes on the first line of the row where it (and its name) has room, and the
    row grows a line for each one that doesn't fit */
-let tlCtx = null;
-function tlTextW(s) {
-  if (!tlCtx) tlCtx = document.createElement('canvas').getContext('2d');
-  tlCtx.font = `11.5px ${getComputedStyle(document.body).fontFamily}`;
-  return Math.ceil(tlCtx.measureText(s).width);
-}
 function tlLanes(list, r, L) {
-  const dw = L.dw, W = dw * r.days, last = r.days - 1, half = L.stack ? 11 : 9, idx = (d) => diffDays(r.from, d);
+  const W = L.dw * r.days;
   const items = list.map((e, k) => {
     const own = k === 0 && e.x.type === 'project'; // the project's own bar is named by its row, so it shows its date
-    const name = e.x.title || 'New To-Do', text = own ? (ui.tl.zoom === 'quarter' ? '' : tlDateText(e)) : name.length > 34 ? name.slice(0, 33).trimEnd() + '…' : name;
-    let x1, x2;
-    if (e.overdue) { x1 = 2; x2 = 2 + tlTextW(fmtDate(e.dl, { weekday: false })) + 26; }
-    else if (e.a < e.b) { x1 = Math.max(0, idx(e.a)) * dw; x2 = (Math.min(last, idx(e.b)) + 1) * dw; }
-    else { const c = (idx(e.b) + 0.5) * dw; x1 = c - half; x2 = c + half; }
-    const w = text ? tlTextW(text) : 0;
-    const side = !w ? '' : x2 + 5 + w <= W ? 'r' : x1 - 5 - w >= 0 ? 'l' : '';
-    return { e, text, own, x1, x2, w, side, lo: side === 'l' ? x1 - 5 - w : x1, hi: side === 'r' ? x2 + 5 + w : x2 };
+    const sp = tlSpan(e, r, L), date = own && ui.tl.zoom !== 'quarter' ? tlDateText(e) : '';
+    const lab = tlLabel(own ? date : tlShort(tlName(e.x)), sp.x1, sp.x2, W, `${own ? '' : 'nm'}${e.x.status !== 'open' ? ' done' : ''}${e.late ? ' late' : ''}`);
+    return { e, own, lab, lo: lab.lo, hi: lab.hi };
   });
   const ends = [];
   items.slice().sort((p, q) => (q.own - p.own) || (p.lo - q.lo) || tlSort(p.e, q.e)).forEach((it) => {
@@ -10047,11 +10292,7 @@ function tlLanes(list, r, L) {
     if (l < 0) { l = ends.length; ends.push(0); }
     ends[l] = it.hi; it.lane = l;
   });
-  const html = items.map((it) => {
-    const x = it.e.x, done = x.status !== 'open';
-    const label = it.side ? `<span class="tl-dt tl-nm${it.own ? '' : ' nm'}${done ? ' done' : ''}${it.e.late ? ' late' : ''}" style="left:${Math.round(it.side === 'r' ? it.x2 + 5 : it.lo)}px">${esc(it.text)}</span>` : '';
-    return `<div class="tl-lane" style="--i:${it.lane}">${tlTrackHTML(it.e, r, { nolabel: true })}${label}</div>`;
-  }).join('');
+  const html = items.map((it) => `<div class="tl-lane" style="--i:${it.lane}">${tlTrackHTML(it.e, r, { nolabel: true })}${it.lab.html}</div>`).join('');
   return { html, n: Math.max(1, ends.length) };
 }
 function boardTimelineHTML() {
@@ -10068,13 +10309,16 @@ function boardTimelineHTML() {
   });
   const ti = diffDays(r.from, T); if (ti >= 0 && ti < r.days) bg += `<i class="tl-now" style="left:${tlAt(ti)}"></i>`;
   const body = rows.map((row) => {
+    const f = row.kids.length > 0 && ui.tl.fold.has(row.k), head = `<div class="tl-lab">${tlFoldHTML(row.k, row.label, row.kids.length > 0)}${row.icon}<button class="tl-name" ${row.open} title="${esc(row.label)}">${esc(row.label)}</button></div>`;
+    const attrs = `${row.x ? ` data-tlid="${row.x.id}"` : ''}${row.add ? ` data-tlnew="${esc(row.add)}"` : ''}`;
+    if (f) return `<div class="tl-row tl-proj folded"${attrs}>${head}<div class="tl-track">${row.main ? tlTrackHTML(row.main, r) : ''}${tlTicksHTML(row.kids, r, L, 'to-do')}</div></div>`;
     const lanes = tlLanes((row.main ? [row.main] : []).concat(row.kids), r, L);
-    return `<div class="tl-row tl-proj tl-laned"${row.x ? ` data-tlid="${row.x.id}"` : ''}><div class="tl-lab">${row.icon}<button class="tl-name" ${row.open} title="${esc(row.label)}">${esc(row.label)}</button></div><div class="tl-track tl-lanes" style="--lanes:${lanes.n}">${lanes.html}</div></div>`;
+    return `<div class="tl-row tl-proj tl-laned"${attrs}>${head}<div class="tl-track tl-lanes" style="--lanes:${lanes.n}">${lanes.html}</div></div>`;
   }).join('');
   const zoomSeg = `<div class="seg tl-zoom" role="group" aria-label="Time span">${Object.entries(TL_ZOOM).map(([k, z]) => `<button data-tlzoom="${k}" class="${ui.tl.zoom === k ? 'on' : ''}" aria-pressed="${ui.tl.zoom === k}">${z.label}</button>`).join('')}</div>`;
   const nav = `<div class="tl-nav"><button class="ib" data-tlnav="-1" aria-label="Earlier" title="Earlier">${ic('chevL')}</button><button class="btn tl-today${ui.tl.off ? '' : ' at'}" data-tlnav="0">Today</button><button class="ib" data-tlnav="1" aria-label="Later" title="Later">${ic('chevR')}</button></div>`;
   return `<section class="tl-band" aria-label="Timeline for this Board"><div class="tl-band-h"><span class="ic" style="color:var(--c-timeline)">${I.timeline}</span><b>Timeline</b><span class="tl-band-r">${esc(fmtDate(r.from, { weekday: false }))} – ${esc(fmtDate(r.to, { weekday: false }))}</span><span class="spacer"></span><div class="tl-band-ctl">${zoomSeg}${nav}</div><button class="ib tl-band-x" data-action="board-tl" aria-label="Hide the Timeline" title="Hide the Timeline">${ic('chevU')}</button></div>`
-    + (body ? `<div class="tl-wrap" data-hscroll="board-tl" data-vscroll="board-tl"><div class="tl z-${ui.tl.zoom}${L.stack ? ' stack' : ''}" style="--dw:${L.dw}px;--lw:${L.lw}px;--days:${r.days};--vw:${Math.round(L.vw)}px"><div class="tl-head"><div class="tl-lab tl-corner"></div><div class="tl-scale"><div class="tl-months">${months}</div><div class="tl-days">${scale}</div></div></div><div class="tl-body"><div class="tl-bg" aria-hidden="true">${bg}</div>${body}</div></div></div>`
+    + (body ? `<div class="tl-wrap" data-hscroll="board-tl" data-vscroll="board-tl"><div class="tl z-${ui.tl.zoom}${L.stack ? ' stack' : ''}" style="--dw:${L.dw}px;--lw:${L.lw}px;--days:${r.days};--vw:${Math.round(L.vw)}px">${tlHeadHTML(months, scale, tlBusyHTML(rows.flatMap((row) => (row.main ? [row.main] : []).concat(row.kids)), r, L))}<div class="tl-body"><div class="tl-bg" aria-hidden="true">${bg}</div>${body}</div></div></div>`
       : `<p class="tl-band-empty">Nothing on this Board has a deadline between ${esc(fmtDate(r.from, { weekday: false }))} and ${esc(fmtDate(r.to, { weekday: false }))}.</p>`)
     + `</section>`;
 }

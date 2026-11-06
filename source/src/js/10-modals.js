@@ -105,9 +105,11 @@ function parseEntry(raw) {
   out.title = words.join(' ').replace(/\s+([.,;:])/g, '$1').trim();
   return out;
 }
-function openQuickEntry(prefill = '') {
+/* preset: where it goes and what it starts with (the Timeline's New To-Do Due…: its deadline and place) */
+function openQuickEntry(prefill = '', preset = null) {
   if (ui.editing) closeEditor({ noRender: false });
   const draft = makeTodo({ start: 'inbox', isDraft: true });
+  if (preset) Object.assign(draft, preset, { isDraft: true });
   S.todos.push(draft); idx.todo.set(draft.id, draft);
   const ignore = { when: false, deadline: false, tags: false, priority: false, place: false };
   let saved = false, parsed = null;
@@ -276,6 +278,15 @@ function openSettings() {
       if (act === 'sync-setup') { closeLayer(L); openSyncSetup(); }
       if (act === 'sync-join') { closeLayer(L); openSyncJoin(); }
       if (act === 'sync-code') { closeLayer(L); openJoinCode(false); }
+      if (act === 'sync-check') {
+        b.disabled = true; b.textContent = 'Checking…';
+        try {
+          if (!Y.col) await syncStart();
+          const r = await syncCheckAll();
+          toast(!r ? 'Couldn’t reach Firebase. Try again when you’re online.' : !r.up && !r.down ? 'Everything matches your other devices.' : [r.down ? `${plural(r.down, 'change')} brought in` : '', r.up ? `${plural(r.up, 'item')} sent back up` : ''].filter(Boolean).join(', ') + '.');
+        } catch (e) { toast(friendlySyncError(e)); }
+        el.innerHTML = build(); return;
+      }
       if (act === 'sync-now') { if (!Y.col) await syncStart(); else { syncDiff(); setSyncStatus('syncing'); await syncPush(); if (Y.unsub) syncListen(); } el.innerHTML = build(); }
       if (act === 'sync-off') { if (await confirmSyncOff()) el.innerHTML = build(); }
     });

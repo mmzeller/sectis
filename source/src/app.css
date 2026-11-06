@@ -1065,6 +1065,18 @@ button.ucal-d:hover { border-color: var(--line-strong); }
 .tl-months, .tl-days { position: absolute; left: 0; right: 0; }
 .tl-months { top: 2px; height: 18px; }
 .tl-days { top: 20px; bottom: 0; }
+/* the Due row: how much is due each day (or week), darker as it piles up */
+.tl-scale.bz { height: 68px; }
+.tl-scale.bz .tl-days { bottom: auto; height: 26px; }
+.tl-busy { position: absolute; left: 0; right: 0; top: 48px; height: 17px; }
+.tl-corner { align-items: flex-end; }
+.tl-busy-l { margin: 0 0 4px 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .02em; color: var(--faint); text-transform: uppercase; }
+.tl-bz { position: absolute; top: 0; height: 17px; padding: 0; border: 0; border-radius: 4px; background-clip: content-box; border-left: 1px solid transparent; border-right: 1px solid transparent; font-size: 10.5px; font-weight: 650; line-height: 17px; text-align: center; font-variant-numeric: tabular-nums; cursor: pointer; }
+.tl-bz.l1 { background-color: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.tl-bz.l2 { background-color: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); }
+.tl-bz.l3 { background-color: color-mix(in srgb, var(--accent) 62%, transparent); color: #fff; }
+.tl-bz.l4 { background-color: color-mix(in srgb, var(--orange, #e8590c) 85%, transparent); color: #fff; }
+.tl-bz:hover { filter: brightness(1.08); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fg) 25%, transparent); }
 .tl-mon { position: absolute; top: 0; height: 18px; border-left: 1px solid var(--line-strong); padding-left: 5px; font-weight: 650; font-size: 12px; color: var(--fg); white-space: nowrap; overflow: hidden; }
 .tl-mon:first-child { border-left: 0; padding-left: 2px; }
 .tl-day { position: absolute; top: 0; bottom: 0; width: var(--dw); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.1; color: var(--muted); font-size: 11.5px; }
@@ -1328,15 +1340,32 @@ button.np-gl:hover { color: var(--fg); }
 .tl-band-empty { margin: 4px 4px 10px; font-size: 13px; color: var(--muted); }
 /* a Board row's lines: things on the same days each get their own, with their names */
 .tl-lanes { --lane: 24px; min-height: calc(var(--lanes) * var(--lane) + 6px); }
+/* names beside flags */
+.tl-nm { margin: 0; }
+.tl-nm.nm { color: color-mix(in srgb, var(--fg) 80%, transparent); }
+.tl-nm.cut { overflow: hidden; text-overflow: ellipsis; }
+.tl-nm.late { color: var(--red); }
+.tl-nm.done { text-decoration: line-through; opacity: .6; }
+/* folding: ▸ beside an area, project or Board row; a folded one is a line of dots and a count */
+.tl-fold, .tl-fold-sp { flex: none; width: 16px; height: 16px; margin-right: -3px; }
+.tl-fold { display: inline-flex; align-items: center; justify-content: center; padding: 0; border-radius: 4px; color: var(--faint); }
+.tl-fold .ic { width: 12px; height: 12px; transition: transform .12s; }
+.tl-fold.open .ic { transform: rotate(90deg); }
+.tl-fold:hover { color: var(--fg); background: var(--hover); }
+.tl-tline { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--line-strong); border-radius: 1px; pointer-events: none; }
+.tl-tick { --tlc: var(--accent); position: absolute; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: var(--tlc); box-shadow: 0 0 0 2px var(--bg); pointer-events: none; }
+.tl-tick.late { --tlc: var(--red); }
+.tl-tick.done { opacity: .45; }
+.tl-nm.cnt { color: var(--muted); font-weight: 600; }
+.tl.stack .tl-area.folded .tl-track { display: block; height: 30px; }
+/* where a click on an empty day adds something */
+.tl-ghost { position: absolute; top: 50%; width: 18px; height: 18px; margin-top: -9px; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; border-radius: 6px; border: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent); color: var(--accent); pointer-events: none; z-index: 1; }
+.tl-ghost .ic { width: 12px; height: 12px; }
 .tl-laned > .tl-lab { align-items: flex-start; padding-top: 5px; }
 .tl.stack .tl-laned > .tl-lab { padding-top: 6px; }
 .tl.stack .tl-track.tl-lanes { height: auto; }
 .tl-lane { position: absolute; left: 0; right: 0; top: calc(var(--i) * var(--lane)); height: 30px; pointer-events: none; }
 .tl-lane > .tl-bar, .tl-lane > .tl-mk, .tl-lane > .tl-od { pointer-events: auto; }
-.tl-lane > .tl-nm { margin: 0; }
-.tl-nm.nm { color: color-mix(in srgb, var(--fg) 80%, transparent); }
-.tl-nm.late { color: var(--red); }
-.tl-nm.done { text-decoration: line-through; opacity: .6; }
 @media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
   .tl-lanes { --lane: 30px; }
   .tl-lane { height: 36px; }
