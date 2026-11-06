@@ -67,21 +67,29 @@ function mdInline(raw, opts) {
   s = s.replace(/~~(?=\S)(.+?)~~/g, (m, x) => `<del>${x}</del>`);
   return s.replace(/\u0001(\d+)\u0002/g, (m, i) => tokens[+i]);
 }
+/* opts.tasks (the Notepad): checkboxes you can click, and each line marked with where it is in
+   the text (data-ln), so a click in the formatted note puts the caret on the same spot */
 function renderMarkdown(text, opts) {
-  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n'), tasks = !!(opts && opts.tasks);
   let html = '', list = null, para = [];
-  const flush = () => { if (para.length) { html += `<p>${para.map((l) => mdInline(l, opts)).join('<br>')}</p>`; para = []; } };
+  const flush = () => { if (para.length) { html += `<p>${para.map(([l, i]) => (tasks ? `<span data-ln="${i}">${mdInline(l, opts)}</span>` : mdInline(l, opts))).join('<br>')}</p>`; para = []; } };
   const close = () => { if (list) { html += `</${list}>`; list = null; } };
   const open = (tag, start) => { if (list !== tag) { close(); html += tag === 'ol' && start && start !== '1' ? `<ol start="${+start}">` : `<${tag}>`; list = tag; } };
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i], ln = tasks ? ` data-ln="${i}"` : '';
     let m;
     if (!line.trim()) { flush(); close(); continue; }
-    if ((m = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/))) { flush(); close(); html += `<p class="md-h${m[1].length}">${mdInline(m[2], opts)}</p>`; continue; }
-    if ((m = line.match(/^\s*[-*•+]\s+\[( |x|X)\]\s+(.*)$/))) { flush(); open('ul'); html += `<li class="md-task${m[1] === ' ' ? '' : ' done'}">${mdInline(m[2], opts)}</li>`; continue; }
-    if ((m = line.match(/^\s*[-*•+]\s+(.*)$/))) { flush(); open('ul'); html += `<li>${mdInline(m[1], opts)}</li>`; continue; }
-    if ((m = line.match(/^\s*(\d{1,4})[.)]\s+(.*)$/))) { flush(); open('ol', m[1]); html += `<li>${mdInline(m[2], opts)}</li>`; continue; }
-    if ((m = line.match(/^\s*>\s?(.*)$/))) { flush(); close(); html += `<blockquote>${mdInline(m[1], opts)}</blockquote>`; continue; }
-    close(); para.push(line);
+    if ((m = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/))) { flush(); close(); html += `<p class="md-h${m[1].length}"${ln}>${mdInline(m[2], opts)}</p>`; continue; }
+    if ((m = line.match(/^\s*[-*•+]\s+\[( |x|X)\]\s+(.*)$/))) {
+      const done = m[1] !== ' ';
+      flush(); open('ul');
+      html += `<li class="md-task${done ? ' done' : ''}${tasks ? ' md-tick' : ''}"${ln}>${tasks ? `<button type="button" class="md-box" data-tick="${i}" role="checkbox" aria-checked="${done}" aria-label="${done ? 'Uncheck' : 'Check off'}" title="${done ? 'Uncheck' : 'Check off'}"></button>` : ''}${mdInline(m[2], opts)}</li>`;
+      continue;
+    }
+    if ((m = line.match(/^\s*[-*•+]\s+(.*)$/))) { flush(); open('ul'); html += `<li${ln}>${mdInline(m[1], opts)}</li>`; continue; }
+    if ((m = line.match(/^\s*(\d{1,4})[.)]\s+(.*)$/))) { flush(); open('ol', m[1]); html += `<li${ln}>${mdInline(m[2], opts)}</li>`; continue; }
+    if ((m = line.match(/^\s*>\s?(.*)$/))) { flush(); close(); html += `<blockquote${ln}>${mdInline(m[1], opts)}</blockquote>`; continue; }
+    close(); para.push([line, i]);
   }
   flush(); close();
   return html;

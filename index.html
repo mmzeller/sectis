@@ -667,6 +667,14 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .md li.md-task::before { content: "☐"; position: absolute; left: -1.25em; color: var(--muted); }
 .md li.md-task.done::before { content: "☑"; color: var(--accent); }
 .md li.md-task.done { color: var(--muted); text-decoration: line-through; }
+/* checkboxes you can tick (the Notepad) */
+.md li.md-tick::before { content: none; }
+.md .md-box, .le-task::before { position: absolute; box-sizing: border-box; width: 1em; height: 1em; border: 1.5px solid var(--muted); border-radius: .28em; background: none; }
+.md .md-box { left: -1.23em; top: .23em; padding: 0; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.md .md-box:hover { border-color: var(--accent); }
+.md li.md-task.done .md-box, .le-task.le-done::before { background: var(--accent); border-color: var(--accent); }
+.md li.md-task.done .md-box::after, .le-task.le-done::after { content: ""; position: absolute; width: .28em; height: .52em; border: solid #fff; border-width: 0 .13em .13em 0; transform: rotate(45deg); }
+.md li.md-task.done .md-box::after { left: .3em; top: .1em; }
 .md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; cursor: pointer; overflow-wrap: anywhere; }
 .md code { font: .9em var(--mono); background: var(--hover); padding: 1px 4px; border-radius: 4px; }
 .md strong { font-weight: 650; }
@@ -1255,6 +1263,29 @@ body.np-sizing, body.np-sizing * { cursor: var(--np-cur) !important; user-select
 /* archived notes, and notes grouped by page */
 .np-card.archived { background: transparent; }
 .np-card.archived .np-view { color: var(--muted); }
+/* ---- live notes: formatted while you type; the line you're on shows its inline Markdown ---- */
+.le { position: relative; cursor: text; overflow-wrap: anywhere; white-space: pre-wrap; -webkit-user-select: text; user-select: text; }
+.le-ln { position: relative; min-height: 1.45em; }
+.le.le-empty::before { content: attr(data-placeholder); position: absolute; left: 0; top: 0; color: var(--faint); pointer-events: none; }
+.np-draft .le { min-height: 2.9em; }
+.le .lb { display: none !important; }
+.le .lm { color: var(--faint); font-weight: 400; font-style: normal; text-decoration: none; }
+.le-ln:not(.le-on) .lm, .le:not(:focus) .lm { display: none; }
+.le-h1 { font-size: 1.2em; font-weight: 700; }
+.le-h2 { font-size: 1.08em; font-weight: 700; }
+.le-h3 { font-weight: 700; }
+.le-li, .le-ol, .le-task { padding-left: 1.35em; }
+.le-li::before { content: "•"; position: absolute; left: .45em; top: 0; color: var(--muted); pointer-events: none; }
+.le-ol::before { content: attr(data-n); position: absolute; left: -.6em; width: 1.6em; text-align: right; top: 0; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+.le-task::before { content: ""; left: .12em; top: .23em; cursor: pointer; }
+.le-done::after { left: .42em; top: .33em; pointer-events: none; }
+.le-done { color: var(--muted); text-decoration: line-through; }
+.le-q { border-left: 3px solid var(--line-strong); padding-left: 10px; color: var(--muted); }
+.le code { font: .9em var(--mono); background: var(--hover); padding: 1px 4px; border-radius: 4px; }
+.le strong { font-weight: 650; }
+.le del { color: var(--muted); }
+.le .le-a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; cursor: pointer; }
+.le:focus .le-on .le-a { cursor: text; }
 .np-arch .ic { width: 12px; height: 12px; color: var(--faint); }
 .np-group { display: flex; flex-direction: column; gap: 8px; }
 .np-group + .np-group { margin-top: 6px; }
@@ -1297,7 +1328,7 @@ button.np-gl:hover { color: var(--fg); }
 .tl-band-h > .ic { width: 16px; height: 16px; }
 .tl-band-h .spacer { flex: 1; }
 .tl-band-r { color: var(--muted); }
-.tl-band .tl-wrap { margin-top: 0; max-height: min(320px, 42vh); overflow: auto; }
+.tl-band .tl-wrap { margin-top: 0; max-height: min(420px, 50vh); overflow: auto; }
 .tl-band .tl-wrap .tl-head { position: sticky; top: 0; }
 .tl-band .tl-lab, .tl-band .tl-head { background: var(--card, var(--bg)); }
 .tl-band .tl-row:hover .tl-lab { background: color-mix(in srgb, var(--hover) 55%, var(--card, var(--bg))); }
@@ -1307,6 +1338,21 @@ button.np-gl:hover { color: var(--fg); }
   .tl-band-ctl { order: 2; flex-basis: 100%; justify-content: space-between; }
 }
 .tl-band-empty { margin: 4px 4px 10px; font-size: 13px; color: var(--muted); }
+/* a Board row's lines: things on the same days each get their own, with their names */
+.tl-lanes { --lane: 24px; min-height: calc(var(--lanes) * var(--lane) + 6px); }
+.tl-laned > .tl-lab { align-items: flex-start; padding-top: 5px; }
+.tl.stack .tl-laned > .tl-lab { padding-top: 6px; }
+.tl.stack .tl-track.tl-lanes { height: auto; }
+.tl-lane { position: absolute; left: 0; right: 0; top: calc(var(--i) * var(--lane)); height: 30px; pointer-events: none; }
+.tl-lane > .tl-bar, .tl-lane > .tl-mk, .tl-lane > .tl-od { pointer-events: auto; }
+.tl-lane > .tl-nm { margin: 0; }
+.tl-nm.nm { color: color-mix(in srgb, var(--fg) 80%, transparent); }
+.tl-nm.late { color: var(--red); }
+.tl-nm.done { text-decoration: line-through; opacity: .6; }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
+  .tl-lanes { --lane: 30px; }
+  .tl-lane { height: 36px; }
+}
 .board-tl.on { color: var(--c-timeline); background: color-mix(in srgb, var(--c-timeline) 12%, transparent); }
 
 </style>
@@ -1328,7 +1374,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.42.1';
+const APP_VERSION = '1.43.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -2505,13 +2551,16 @@ function render() {
 function captureFocus() {
   const a = document.activeElement;
   if (!a || !a.dataset || !a.dataset.fkey) return null;
+  if (a.classList.contains('le')) { const r = leGetSel(a); return { key: a.dataset.fkey, le: r }; } // a Notepad note being typed in
   return { key: a.dataset.fkey, s: a.selectionStart, e: a.selectionEnd };
 }
 function restoreFocus(f) {
   if (ui.focusAfter) { const el = $(ui.focusAfter); ui.focusAfter = null; if (el) { el.focus({ preventScroll: false }); if (el.select && !el.value) el.select(); return; } }
   if (!f) return;
   const el = document.querySelector(`[data-fkey="${CSS.escape(f.key)}"]`);
-  if (el) { el.focus({ preventScroll: true }); try { el.setSelectionRange(f.s, f.e); } catch (e) { /* not a text field */ } }
+  if (!el) return;
+  if (f.le !== undefined) { if (document.activeElement !== el) { el.focus({ preventScroll: true }); if (f.le) leSetSel(el, f.le.s, f.le.e, f.le.back); } return; }
+  el.focus({ preventScroll: true }); try { el.setSelectionRange(f.s, f.e); } catch (e) { /* not a text field */ }
 }
 function afterRender() {
   fitBoardName($('#content .board-name'));
@@ -5856,21 +5905,29 @@ function mdInline(raw, opts) {
   s = s.replace(/~~(?=\S)(.+?)~~/g, (m, x) => `<del>${x}</del>`);
   return s.replace(/\u0001(\d+)\u0002/g, (m, i) => tokens[+i]);
 }
+/* opts.tasks (the Notepad): checkboxes you can click, and each line marked with where it is in
+   the text (data-ln), so a click in the formatted note puts the caret on the same spot */
 function renderMarkdown(text, opts) {
-  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n');
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n'), tasks = !!(opts && opts.tasks);
   let html = '', list = null, para = [];
-  const flush = () => { if (para.length) { html += `<p>${para.map((l) => mdInline(l, opts)).join('<br>')}</p>`; para = []; } };
+  const flush = () => { if (para.length) { html += `<p>${para.map(([l, i]) => (tasks ? `<span data-ln="${i}">${mdInline(l, opts)}</span>` : mdInline(l, opts))).join('<br>')}</p>`; para = []; } };
   const close = () => { if (list) { html += `</${list}>`; list = null; } };
   const open = (tag, start) => { if (list !== tag) { close(); html += tag === 'ol' && start && start !== '1' ? `<ol start="${+start}">` : `<${tag}>`; list = tag; } };
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i], ln = tasks ? ` data-ln="${i}"` : '';
     let m;
     if (!line.trim()) { flush(); close(); continue; }
-    if ((m = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/))) { flush(); close(); html += `<p class="md-h${m[1].length}">${mdInline(m[2], opts)}</p>`; continue; }
-    if ((m = line.match(/^\s*[-*•+]\s+\[( |x|X)\]\s+(.*)$/))) { flush(); open('ul'); html += `<li class="md-task${m[1] === ' ' ? '' : ' done'}">${mdInline(m[2], opts)}</li>`; continue; }
-    if ((m = line.match(/^\s*[-*•+]\s+(.*)$/))) { flush(); open('ul'); html += `<li>${mdInline(m[1], opts)}</li>`; continue; }
-    if ((m = line.match(/^\s*(\d{1,4})[.)]\s+(.*)$/))) { flush(); open('ol', m[1]); html += `<li>${mdInline(m[2], opts)}</li>`; continue; }
-    if ((m = line.match(/^\s*>\s?(.*)$/))) { flush(); close(); html += `<blockquote>${mdInline(m[1], opts)}</blockquote>`; continue; }
-    close(); para.push(line);
+    if ((m = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/))) { flush(); close(); html += `<p class="md-h${m[1].length}"${ln}>${mdInline(m[2], opts)}</p>`; continue; }
+    if ((m = line.match(/^\s*[-*•+]\s+\[( |x|X)\]\s+(.*)$/))) {
+      const done = m[1] !== ' ';
+      flush(); open('ul');
+      html += `<li class="md-task${done ? ' done' : ''}${tasks ? ' md-tick' : ''}"${ln}>${tasks ? `<button type="button" class="md-box" data-tick="${i}" role="checkbox" aria-checked="${done}" aria-label="${done ? 'Uncheck' : 'Check off'}" title="${done ? 'Uncheck' : 'Check off'}"></button>` : ''}${mdInline(m[2], opts)}</li>`;
+      continue;
+    }
+    if ((m = line.match(/^\s*[-*•+]\s+(.*)$/))) { flush(); open('ul'); html += `<li${ln}>${mdInline(m[1], opts)}</li>`; continue; }
+    if ((m = line.match(/^\s*(\d{1,4})[.)]\s+(.*)$/))) { flush(); open('ol', m[1]); html += `<li${ln}>${mdInline(m[2], opts)}</li>`; continue; }
+    if ((m = line.match(/^\s*>\s?(.*)$/))) { flush(); close(); html += `<blockquote${ln}>${mdInline(m[1], opts)}</blockquote>`; continue; }
+    close(); para.push([line, i]);
   }
   flush(); close();
   return html;
@@ -5980,6 +6037,621 @@ document.addEventListener('pointerdown', (e) => {
   document.addEventListener('pointermove', move, { passive: false });
   document.addEventListener('pointerup', up);
   document.addEventListener('pointercancel', up);
+});
+
+/* ===================== Live notes: Markdown that stays formatted while you type =====================
+   The Notepad's editor (and a sticky's). A note is still plain Markdown text, but it shows
+   formatted as you type. Bullets, numbers, checkboxes, headings and quotes always show as
+   themselves (their Markdown stays hidden, like in Notes), and the line you're on shows its
+   **, *, ~~, ` and link Markdown so you can see what you're changing. Checkboxes (- [ ] and
+   - [x]) tick with a click. Return carries on a list (bullets, numbers, checkboxes, quotes) and
+   Return on an empty item ends it; Backspace at the start of an item (or heading or quote)
+   takes its bullet, checkbox or number away.
+   Typing [] and a space at the start of a line makes a checkbox.
+   Keys: ⌘B bold, ⌘I italic, ⇧⌘X strikethrough, ⌘E code, ⌘K link, ⇧⌘L checkbox (or tick it),
+   ⌘Z / ⇧⌘Z undo and redo. Pasting a link over selected text links it; copying copies the
+   Markdown.
+   How: a contenteditable div (.le) with one div per line (.le-ln); the note is the lines' text
+   joined with \n. Typing at the caret goes straight in, so the keyboard and input methods work
+   as usual, and only a line whose formatting changed is redrawn. Everything else (deleting,
+   typing over a selection, new lines, pastes, the shortcuts) changes the text here and redraws
+   it: the browser's own deleting would take hidden markers next to the caret with it. Each editor keeps its
+   own undo history (by its data-fkey, so it survives a redraw of the Notepad). */
+const LE_ITEM = /^(\s*)(?:([-*•+])(\s+)\[[ xX]\](\s+)|([-*•+])(\s+)|(\d{1,4})([.)])(\s+)|>(\s?))/;
+const LE_MARKER_ONLY = /^\s*(?:[-*•+]\s+\[[ xX]\]\s+|[-*•+]\s+|\d{1,4}[.)]\s+|>\s?|#{1,3}\s+)$/;
+const LE_TASK = /^(\s*[-*•+]\s+)\[([ xX])\]/;
+const leMk = (s, cls = 'lm') => `<span class="${cls}">${esc(s)}</span>`;
+const leIsW = (c) => !!c && /\w/.test(c);
+const leIsS = (c) => !c || /\s/.test(c);
+
+/* ---- drawing: every character of the text is in the editor. A line's own Markdown (its
+   bullet, checkbox, number, # or >) is in a hidden .lb span and drawn by the line itself; the
+   inline Markdown is in .lm spans, shown on the line you're on ---- */
+const LE_BLOCK = [
+  [/^(\s{0,3}(#{1,3})\s+)(.+)$/, (m) => ({ cls: 'le-h' + m[2].length, pre: m[1], rest: m[3] })],
+  [/^(\s*[-*•+]\s+\[([ xX])\]\s+)(.*)$/, (m) => ({ cls: 'le-task' + (m[2] === ' ' ? '' : ' le-done'), pre: m[1], rest: m[3] })],
+  [/^(\s*[-*•+]\s+)(.*)$/, (m) => ({ cls: 'le-li', pre: m[1], rest: m[2] })],
+  [/^(\s*(\d{1,4}[.)])\s+)(.*)$/, (m) => ({ cls: 'le-ol', pre: m[1], rest: m[3], n: m[2] })],
+  [/^(\s*>\s?)(.*)$/, (m) => ({ cls: 'le-q', pre: m[1], rest: m[2] })],
+];
+function leBlock(line) {
+  for (const [re, f] of LE_BLOCK) { const m = line.match(re); if (m) return f(m); }
+  return { cls: '', pre: '', rest: line };
+}
+function leLine(line) {
+  const b = leBlock(line), inner = leInline(b.rest);
+  return { cls: 'le-ln' + (b.cls ? ' ' + b.cls : ''), n: b.n || null, html: (b.pre ? leMk(b.pre, 'lm lb') : '') + (inner || (b.pre ? '<br>' : '')) };
+}
+/* where an emphasis run that opens at i closes, or -1 (the same rules the formatted view uses) */
+function leClose(s, i, d) {
+  const L = d.length, prev = s[i - 1], first = s[i + L];
+  if (leIsS(first)) return -1;
+  if (d[0] === '_' && leIsW(prev)) return -1;
+  if (L === 1 && (leIsW(prev) || prev === d || first === d)) return -1;
+  for (let j = s.indexOf(d, i + L + 1); j > 0; j = s.indexOf(d, j + 1)) {
+    const before = s[j - 1], after = s[j + L];
+    if (leIsS(before)) continue;
+    if (L === 1 && (before === d || after === d || leIsW(after))) continue;
+    if (d === '__' && leIsW(after)) continue;
+    return j;
+  }
+  return -1;
+}
+function leInline(s) {
+  let out = '', plain = '', i = 0;
+  const flush = () => { if (plain) { out += esc(plain); plain = ''; } };
+  while (i < s.length) {
+    const c = s[i], rest = s.slice(i);
+    let m;
+    if (c === '`' && (m = rest.match(/^`([^`]+)`/))) { flush(); out += leMk('`') + `<code>${esc(m[1])}</code>` + leMk('`'); i += m[0].length; continue; }
+    if (c === '[' && (m = rest.match(/^\[([^\]]+)\]\(([^)\s]+)\)/))) {
+      const h = safeHref(m[2]);
+      if (h) { flush(); out += leMk('[') + `<span class="le-a" data-href="${esc(h)}">${esc(m[1])}</span>` + leMk(`](${m[2]})`); i += m[0].length; continue; }
+    }
+    if (/[hws]/i.test(c) && !leIsW(s[i - 1]) && (m = rest.match(/^(?:https?:\/\/|www\.|sintr:\/\/)[^\s<>"']+/i))) {
+      let url = m[0];
+      while (/[.,;:!?'")\]]$/.test(url)) {
+        if (url.endsWith(')') && (url.match(/\(/g) || []).length >= (url.match(/\)/g) || []).length) break;
+        url = url.slice(0, -1);
+      }
+      const h = safeHref(url);
+      if (h) { flush(); out += `<span class="le-a" data-href="${esc(h)}">${esc(url)}</span>`; i += url.length; continue; }
+    }
+    if (c === '*' || c === '_' || c === '~') {
+      const d = rest.startsWith('**') ? '**' : rest.startsWith('__') ? '__' : rest.startsWith('~~') ? '~~' : c === '~' ? '' : c;
+      const j = d ? leClose(s, i, d) : -1;
+      if (j > 0) {
+        const tag = d === '~~' ? 'del' : d.length === 2 ? 'strong' : 'em';
+        flush(); out += leMk(d) + `<${tag}>${leInline(s.slice(i + d.length, j))}</${tag}>` + leMk(d);
+        i = j + d.length; continue;
+      }
+      if (d.length === 2) { plain += d; i += 2; continue; } // an unclosed ** isn't two single *s
+    }
+    plain += c; i++;
+  }
+  flush();
+  return out;
+}
+/* the editor's inside for some text; lines a..b show their Markdown */
+function leHTML(text, a = -1, b = -1) {
+  return String(text || '').split('\n').map((l, i) => { const r = leLine(l); return `<div class="${r.cls}${i >= a && i <= b ? ' le-on' : ''}"${r.n ? ` data-n="${esc(r.n)}"` : ''}>${r.html || '<br>'}</div>`; }).join('');
+}
+
+/* ---- reading it back ---- */
+const leHost = (n) => { const x = n && (n.nodeType === 1 ? n : n.parentElement); return x && x.closest ? x.closest('.le') : null; };
+function leNodeText(n) {
+  if (n.nodeType === 3) return n.data.replace(/ /g, ' ');
+  if (n.nodeType !== 1 || n.tagName === 'BR') return '';
+  let s = ''; for (const c of n.childNodes) s += leNodeText(c);
+  return s;
+}
+/* the editor's lines: its line divs, or whatever the browser left loose between them */
+function leGroups(el) {
+  const g = []; let cur = null;
+  for (const n of el.childNodes) {
+    if (n.nodeType === 1 && n.tagName === 'DIV') { g.push({ div: n, nodes: [n] }); cur = null; continue; }
+    if (n.nodeType === 1 && n.tagName === 'BR') { if (cur) cur = null; else g.push({ nodes: [] }); continue; }
+    if (!cur) { cur = { nodes: [] }; g.push(cur); }
+    cur.nodes.push(n);
+  }
+  if (!g.length) g.push({ nodes: [] });
+  return g;
+}
+const leGText = (g) => g.nodes.map(leNodeText).join('');
+const leText = (el) => leGroups(el).map(leGText).join('\n');
+function leCount(x, node, off, st) {
+  if (x === node) {
+    if (x.nodeType === 3) st.n += Math.min(off, x.data.length);
+    else for (let i = 0; i < off && i < x.childNodes.length; i++) st.n += leNodeText(x.childNodes[i]).length;
+    st.done = true; return;
+  }
+  if (x.nodeType === 3) { st.n += x.data.length; return; }
+  if (x.nodeType !== 1 || x.tagName === 'BR') return;
+  for (const c of x.childNodes) { leCount(c, node, off, st); if (st.done) return; }
+}
+/* a spot in the editor (node, offset) as a place in the text */
+function leOffset(el, node, off) {
+  const groups = leGroups(el);
+  let base = 0;
+  if (node === el) {
+    const child = el.childNodes[off];
+    for (const g of groups) { if (child && g.nodes.includes(child)) return base; base += leGText(g).length + 1; }
+    return Math.max(0, base - 1);
+  }
+  for (const g of groups) {
+    const st = { n: 0, done: false };
+    for (const x of g.nodes) { leCount(x, node, off, st); if (st.done) return base + st.n; }
+    base += leGText(g).length + 1;
+  }
+  return Math.max(0, base - 1);
+}
+/* a place in the text as a spot in the editor */
+function lePoint(el, off) {
+  const groups = leGroups(el);
+  for (let gi = 0; gi < groups.length; gi++) {
+    const g = groups[gi], len = leGText(g).length;
+    if (off <= len || gi === groups.length - 1) {
+      off = Math.max(0, Math.min(off, len));
+      let n = 0;
+      const texts = [];
+      const walk = (x) => { if (x.nodeType === 3) texts.push(x); else if (x.nodeType === 1 && x.tagName !== 'BR') x.childNodes.forEach(walk); };
+      g.nodes.forEach(walk);
+      for (const t of texts) {
+        const L = t.data.length, hid = t.parentElement && t.parentElement.closest('.lb');
+        if (off < n + L || (off === n + L && !hid)) return [t, off - n];
+        n += L;
+      }
+      if (g.div) return [g.div, g.div.childNodes.length && g.div.lastChild.nodeName === 'BR' ? g.div.childNodes.length - 1 : g.div.childNodes.length];
+      const i = g.nodes.length ? [...el.childNodes].indexOf(g.nodes[0]) : el.childNodes.length;
+      return [el, Math.max(0, i)];
+    }
+    off -= len + 1;
+  }
+  return [el, 0];
+}
+function leGetSel(el) {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount || !el.contains(sel.anchorNode) || !el.contains(sel.focusNode)) return null;
+  const a = leOffset(el, sel.anchorNode, sel.anchorOffset), f = leOffset(el, sel.focusNode, sel.focusOffset);
+  return { s: Math.min(a, f), e: Math.max(a, f), back: f < a };
+}
+function leSetSel(el, s, e = s, back = false) {
+  const sel = window.getSelection(); if (!sel) return;
+  const [an, ao] = lePoint(el, back ? e : s), [fn, fo] = lePoint(el, back ? s : e);
+  try { sel.setBaseAndExtent(an, ao, fn, fo); } catch (err) { /* ignore */ }
+}
+function lePointAt(x, y) {
+  if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(x, y); return p && { node: p.offsetNode, offset: p.offset }; }
+  if (document.caretRangeFromPoint) { const r = document.caretRangeFromPoint(x, y); return r && { node: r.startContainer, offset: r.startOffset }; }
+  return null;
+}
+const leLineAt = (t, off) => { let n = 0; for (let i = t.indexOf('\n'); i >= 0 && i < off; i = t.indexOf('\n', i + 1)) n++; return n; };
+/* which characters of a line are Markdown (hidden or muted when it isn't the line you're on) */
+function leMask(line) {
+  leTmp.innerHTML = leLine(line).html;
+  const mask = [];
+  const walk = (x, mk) => {
+    if (x.nodeType === 3) { for (let i = 0; i < x.data.length; i++) mask.push(mk); return; }
+    if (x.nodeType !== 1) return;
+    const m = mk || x.classList.contains('lm');
+    x.childNodes.forEach((c) => walk(c, m));
+  };
+  leTmp.childNodes.forEach((c) => walk(c, false));
+  return mask;
+}
+/* the place in a line after `vis` of its shown characters, past any Markdown that follows them
+   (so a click at the start of a heading types into the heading, and one at the end of a bold
+   line types after the bold) */
+function leVisToOff(line, vis, mask = leMask(line)) {
+  let seen = 0, p = 0;
+  while (p < mask.length && (mask[p] || seen < vis)) { if (!mask[p]) seen++; p++; }
+  return p;
+}
+/* put the caret in a note's line where it was clicked in the formatted note */
+function leCaretAtShown(el, ln, vis) {
+  const t = leText(el), lines = t.split('\n');
+  if (lines[ln] == null) { leSetSel(el, t.length); return; }
+  let base = 0; for (let k = 0; k < ln; k++) base += lines[k].length + 1;
+  leSetSel(el, base + leVisToOff(lines[ln], vis));
+}
+
+/* ---- each editor's undo history ---- */
+const leStates = new WeakMap(), leByKey = new Map();
+function leState(el) {
+  const k = el.dataset.fkey;
+  let st = leStates.get(el) || (k && leByKey.get(k));
+  if (!st) st = { text: null, lines: null, hist: null, hi: 0, kind: null, at: 0, composing: false };
+  leStates.set(el, st); if (k) leByKey.set(k, st);
+  return st;
+}
+/* start from what's in it now, unless the history already ends there */
+function leFresh(el) {
+  const st = leState(el), text = leText(el);
+  if (st.text !== text || !st.hist) { st.hist = [{ t: text, s: text.length, e: text.length }]; st.hi = 0; st.kind = null; }
+  st.text = text; st.lines = text.split('\n');
+  return st;
+}
+function lePush(el, text, s, e, kind, fresh) {
+  const st = leState(el), now = Date.now();
+  if (!st.hist) { st.hist = [{ t: text, s, e }]; st.hi = 0; st.kind = kind; st.at = now; return; }
+  const top = st.hist[st.hi];
+  if (top && top.t === text) { top.s = s; top.e = e; return; }
+  st.hist.length = st.hi + 1;
+  // typing joins up into one step until a pause, or a few seconds of it
+  if (!fresh && (kind === 'type' || kind === 'del') && st.kind === kind && st.hi > 0 && now - st.at < 1500 && now - st.since < 4000) st.hist[st.hi] = { t: text, s, e };
+  else { st.hist.push({ t: text, s, e }); st.hi++; st.since = now; if (st.hist.length > 300) { st.hist.shift(); st.hi--; } }
+  st.kind = kind; st.at = now;
+}
+function leUndo(el, redo) {
+  const st = leState(el); if (!st.hist) leFresh(el);
+  const i = st.hi + (redo ? 1 : -1); if (i < 0 || i >= st.hist.length) return;
+  const from = leText(el), to = st.hist[i].t;
+  // the caret goes where the change was
+  let p = 0; while (p < from.length && p < to.length && from[p] === to[p]) p++;
+  let q = 0; while (q < from.length - p && q < to.length - p && from[from.length - 1 - q] === to[to.length - 1 - q]) q++;
+  st.hi = i; st.kind = null;
+  leRender(el, to, to.length - q, to.length - q);
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+/* ---- changing it ---- */
+function leRender(el, text, s = -1, e = s, back = false) {
+  const st = leState(el), on = s >= 0 && document.activeElement === el;
+  el.innerHTML = leHTML(text, on ? leLineAt(text, s) : -1, on ? leLineAt(text, e) : -1);
+  el.classList.toggle('le-empty', !text);
+  st.text = text; st.lines = text.split('\n');
+  if (on) leSetSel(el, s, e, back);
+}
+/* replace s..e with ins; the caret ends after it unless o.s / o.e say where */
+function leEdit(el, s, e, ins, o = {}) {
+  const t = leText(el), text = t.slice(0, s) + ins + t.slice(e);
+  const cs = o.s != null ? o.s : s + ins.length, ce = o.e != null ? o.e : cs;
+  leRender(el, text, cs, ce);
+  lePush(el, text, cs, ce, o.kind || 'edit', o.fresh);
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+/* after the browser typed something: redraw the lines whose formatting changed */
+const leTmp = document.createElement('div');
+function leSync(el) {
+  const st = leState(el), groups = leGroups(el), lines = groups.map(leGText), text = lines.join('\n');
+  const sel = leGetSel(el) || { s: text.length, e: text.length, back: false };
+  const tidy = st.lines && st.lines.length === lines.length && groups.every((g) => g.div && g.div.parentNode === el);
+  if (!tidy) leRender(el, text, sel.s, sel.e, sel.back);
+  else {
+    let moved = false;
+    lines.forEach((ln, i) => {
+      if (ln === st.lines[i]) return;
+      const r = leLine(ln), d = groups[i].div, on = d.classList.contains('le-on');
+      leTmp.innerHTML = r.html || '<br>';
+      if (d.innerHTML !== leTmp.innerHTML) { d.innerHTML = leTmp.innerHTML; moved = true; }
+      const cls = r.cls + (on ? ' le-on' : '');
+      if (d.className !== cls) d.className = cls;
+      if ((d.dataset.n || null) !== r.n) { if (r.n) d.dataset.n = r.n; else delete d.dataset.n; }
+    });
+    if (moved) leSetSel(el, sel.s, sel.e, sel.back);
+    st.text = text; st.lines = lines;
+    el.classList.toggle('le-empty', !text);
+  }
+  lePush(el, text, sel.s, sel.e, 'type');
+  // [] and a space at the start of a line: a checkbox
+  if (sel.s === sel.e) {
+    const ls = text.lastIndexOf('\n', sel.s - 1) + 1, m = text.slice(ls, sel.s).match(/^(\s*)\[ ?\] $/);
+    if (m) leEdit(el, ls, sel.s, m[1] + '- [ ] ', { kind: 'type' });
+  }
+}
+/* Return: a new line, carrying on the list you're in */
+function leNewline(el, s, e, carry) {
+  const text = leText(el), ls = text.lastIndexOf('\n', s - 1) + 1;
+  let lend = text.indexOf('\n', ls); if (lend < 0) lend = text.length;
+  const line = text.slice(ls, lend), m = carry && s === e ? line.match(LE_ITEM) : null;
+  if (!m || s - ls < m[0].length) { leEdit(el, s, e, '\n', { kind: 'line' }); return; }
+  if (!line.slice(m[0].length).trim()) { leEdit(el, ls, lend, '', { kind: 'line' }); return; } // Return on an empty item ends the list
+  let next;
+  if (m[2]) next = m[1] + m[2] + m[3] + '[ ] ';
+  else if (m[5]) next = m[1] + m[5] + m[6];
+  else if (m[7]) next = m[1] + (+m[7] + 1) + m[8] + m[9];
+  else next = m[1] + '>' + (m[10] || ' ');
+  leEdit(el, s, e, '\n' + next, { kind: 'line' });
+}
+/* ⌘B ⌘I ⌘E ⇧⌘X: wrap the selection (or the word you're in) in Markdown, or unwrap it */
+function leWrap(el, kind) {
+  const sel = leGetSel(el); if (!sel) return;
+  const t = leText(el);
+  let a = sel.s, b = sel.e;
+  if (a === b) {
+    // inside a word: the word; otherwise a pair to type into (or out of, when it's empty)
+    let wa = a, wb = a;
+    while (wa > 0 && /[\p{L}\p{N}'’-]/u.test(t[wa - 1])) wa--;
+    while (wb < t.length && /[\p{L}\p{N}'’-]/u.test(t[wb])) wb++;
+    if (wa < a && wb > a) { a = wa; b = wb; } else {
+      const mk = leMarkFor(t, a, a, kind);
+      if (t.slice(a - mk.length, a) === mk && t.slice(a, a + mk.length) === mk) { leEdit(el, a - mk.length, a + mk.length, '', { s: a - mk.length }); return; }
+      leEdit(el, a, a, mk + mk, { s: a + mk.length }); return;
+    }
+  }
+  while (a < b && /\s/.test(t[a])) a++;
+  while (b > a && /\s/.test(t[b - 1])) b--;
+  if (a === b) return;
+  if (t.slice(a, b).includes('\n')) { leWrapLines(el, t, a, b, kind); return; }
+  // already like that: take it off (the marks just outside the selection, or at its ends)
+  const off = leMarkAround(t, a, b, kind);
+  if (off) { const L = off.mk.length; leEdit(el, off.a, off.b, t.slice(off.a + L, off.b - L), { s: off.a, e: off.b - 2 * L }); return; }
+  const mk = leMarkFor(t, a, b, kind), L = mk.length;
+  leEdit(el, a, b, mk + t.slice(a, b) + mk, { s: a + L, e: b + L });
+}
+const leRun = (t, i, dir, c) => { let n = 0; while (t[i + (dir < 0 ? -1 - n : n)] === c) n++; return n; };
+/* the mark for a kind of formatting at a..b: bold right inside italic uses __, italic right
+   inside bold uses _, so the two don't run together into *** */
+function leMarkFor(t, a, b, kind) {
+  if (kind === 'c') return '`';
+  if (kind === 's') return '~~';
+  const sa = leRun(t, a, -1, '*'), sb = leRun(t, b, 1, '*');
+  if (kind === 'b') return sa === 1 && sb === 1 ? '__' : '**';
+  return sa === 2 && sb === 2 ? '_' : '*';
+}
+/* the marks of that kind around a..b (just outside it or at its ends), if there are any */
+function leMarkAround(t, a, b, kind) {
+  const marks = kind === 'c' ? ['`'] : kind === 's' ? ['~~'] : kind === 'b' ? ['**', '__'] : ['*', '_'];
+  for (const mk of marks) {
+    const L = mk.length;
+    const fits = (x, y) => {
+      if (t.slice(x, x + L) !== mk || t.slice(y - L, y) !== mk || y - x < 2 * L + 1) return false;
+      if (L === 1 && mk === '*') { const r1 = leRun(t, x, 1, '*'), r2 = leRun(t, y, -1, '*'); return r1 % 2 === 1 && r2 % 2 === 1; } // * of ***, not of **
+      if (L === 1) return t[x + 1] !== mk && t[y - 2] !== mk;
+      return true;
+    };
+    if (fits(a - L, b + L)) return { a: a - L, b: b + L, mk };
+    if (fits(a, b)) return { a, b, mk };
+  }
+  return null;
+}
+/* across lines: each line's text, inside its list marker */
+function leWrapLines(el, t, a, b, kind) {
+  const ls = t.lastIndexOf('\n', a - 1) + 1;
+  let le = t.indexOf('\n', b); if (le < 0) le = t.length;
+  const lines = t.slice(ls, le).split('\n');
+  let pos = ls;
+  const parts = lines.map((line) => {
+    const start = pos; pos += line.length + 1;
+    const pre = (line.match(LE_ITEM) || line.match(/^\s*#{1,3}\s+/) || [''])[0];
+    const x = Math.max(start + pre.length, a) - start, y = Math.min(start + line.length, b) - start;
+    if (y <= x) return line;
+    let i = x, j = y;
+    while (i < j && /\s/.test(line[i])) i++;
+    while (j > i && /\s/.test(line[j - 1])) j--;
+    if (i === j) return line;
+    const mk = leMarkFor(line, i, j, kind);
+    return line.slice(0, i) + mk + line.slice(i, j) + mk + line.slice(j);
+  });
+  const out = parts.join('\n');
+  leEdit(el, ls, le, out, { s: ls, e: ls + out.length });
+}
+/* ⌘K: a link of the selection (or a link to type) */
+function leLink(el) {
+  const sel = leGetSel(el); if (!sel) return;
+  const t = leText(el), picked = t.slice(sel.s, sel.e);
+  if (picked.includes('\n')) return;
+  if (!picked) { leEdit(el, sel.s, sel.e, '[]()', { s: sel.s + 1 }); return; }
+  if (/^(?:https?:\/\/|www\.)\S+$/i.test(picked.trim())) { leEdit(el, sel.s, sel.e, `[](${picked.trim()})`, { s: sel.s + 1 }); return; }
+  const ins = `[${picked}]()`; leEdit(el, sel.s, sel.e, ins, { s: sel.s + ins.length - 1 });
+}
+/* ⇧⌘L: the line a checkbox, or tick the one it is (several lines: all of them) */
+function leTask(el) {
+  const sel = leGetSel(el); if (!sel) return;
+  const t = leText(el), lines = t.split('\n'), la = leLineAt(t, sel.s), lb = leLineAt(t, sel.e);
+  const idx = []; for (let i = la; i <= lb; i++) if (la === lb || lines[i].trim()) idx.push(i);
+  if (!idx.length) return;
+  const tasks = idx.filter((i) => LE_TASK.test(lines[i]));
+  const allTasks = tasks.length === idx.length, tick = allTasks && tasks.some((i) => lines[i].match(LE_TASK)[2] === ' ');
+  const shift = new Map(); // line → [old prefix length, new prefix length]
+  idx.forEach((i) => {
+    const line = lines[i], m = line.match(LE_TASK);
+    if (allTasks) { lines[i] = m[1] + (tick ? '[x]' : '[ ]') + line.slice(m[0].length); return; }
+    if (m) return;
+    const pm = line.match(/^(\s*)(?:[-*•+]\s+|\d{1,4}[.)]\s+|#{1,3}\s+|>\s?)?/);
+    lines[i] = pm[1] + '- [ ] ' + line.slice(pm[0].length);
+    shift.set(i, [pm[0].length, pm[1].length + 6]);
+  });
+  const starts = []; let o = 0; t.split('\n').forEach((l) => { starts.push(o); o += l.length + 1; });
+  const map = (off) => {
+    const i = leLineAt(t, off), p = off - starts[i];
+    let base = 0; for (let k = 0; k < i; k++) base += lines[k].length + 1;
+    const sh = shift.get(i); if (!sh) return base + p;
+    return base + (p < sh[0] ? sh[1] : p - sh[0] + sh[1]);
+  };
+  const text = lines.join('\n'), s = map(sel.s), e = map(sel.e);
+  leRender(el, text, s, e, sel.back);
+  lePush(el, text, s, e, 'edit');
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+/* tick or untick the checkbox on line i */
+function leTick(el, i) {
+  const t = leText(el), lines = t.split('\n'), m = lines[i] != null && lines[i].match(LE_TASK); if (!m) return;
+  lines[i] = m[1] + (m[2] === ' ' ? '[x]' : '[ ]') + lines[i].slice(m[0].length);
+  const sel = document.activeElement === el ? leGetSel(el) : null, text = lines.join('\n');
+  leRender(el, text, sel ? sel.s : -1, sel ? sel.e : -1, sel && sel.back);
+  lePush(el, text, sel ? sel.s : 0, sel ? sel.e : 0, 'edit');
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+}
+function leOpenLink(href) {
+  const web = /^(https?|mailto):/i.test(href), a = document.createElement('a');
+  a.href = web ? href : appLinkHref(href);
+  if (web) { a.target = '_blank'; a.rel = 'noopener noreferrer'; } else a.className = 'app-link';
+  a.hidden = true; document.body.appendChild(a); a.click(); a.remove();
+}
+const leNorm = (s) => String(s || '').replace(/\r\n?/g, '\n');
+/* what a delete key takes when the browser doesn't say: a character (a whole emoji or accented
+   letter), a word, or to the start or end of the line */
+const leSeg = typeof Intl !== 'undefined' && Intl.Segmenter ? new Intl.Segmenter() : null;
+function leDelRange(t, at, type) {
+  const back = type.includes('Backward');
+  const ls = t.lastIndexOf('\n', at - 1) + 1; let le = t.indexOf('\n', at); if (le < 0) le = t.length;
+  if (/Line/.test(type)) return back ? [at > ls ? ls : Math.max(0, at - 1), at] : [at, at < le ? le : Math.min(t.length, at + 1)];
+  if (/Word/.test(type)) {
+    if (back) { let i = at; while (i > 0 && /\s/.test(t[i - 1]) && t[i - 1] !== '\n') i--; while (i > 0 && /[\p{L}\p{N}_]/u.test(t[i - 1])) i--; if (i === at && at > 0) i--; return [i, at]; }
+    let j = at; while (j < t.length && /\s/.test(t[j]) && t[j] !== '\n') j++; while (j < t.length && /[\p{L}\p{N}_]/u.test(t[j])) j++; if (j === at && at < t.length) j++; return [at, j];
+  }
+  if (back) {
+    if (at <= 0) return [0, 0];
+    if (leSeg) { let prev = 0; const from = Math.max(0, at - 32); for (const g of leSeg.segment(t.slice(from, at))) prev = g.index; return [from + prev, at]; }
+    return [at - (/[\uDC00-\uDFFF]/.test(t[at - 1]) && at > 1 ? 2 : 1), at];
+  }
+  if (at >= t.length) return [at, at];
+  if (leSeg) { const g = leSeg.segment(t.slice(at, at + 32))[Symbol.iterator]().next().value; return [at, at + (g ? g.segment.length : 1)]; }
+  return [at, at + (/[\uD800-\uDBFF]/.test(t[at]) ? 2 : 1)];
+}
+
+/* ---- the browser's edits: plain typing goes in; the rest is done here ---- */
+document.addEventListener('beforeinput', (e) => {
+  const el = leHost(e.target); if (!el) return;
+  const t = e.inputType || '';
+  if (e.isComposing || t === 'insertCompositionText' || t === 'insertFromComposition' || t === 'deleteCompositionText') return; // input methods type as usual
+  if (t === 'historyUndo' || t === 'historyRedo') { e.preventDefault(); leUndo(el, t === 'historyRedo'); return; }
+  const sel = leGetSel(el); if (!sel) return;
+  const text = leText(el);
+  let r = null;
+  const tr = e.getTargetRanges ? e.getTargetRanges() : [];
+  if (tr && tr.length && el.contains(tr[0].startContainer) && el.contains(tr[0].endContainer)) {
+    const x = leOffset(el, tr[0].startContainer, tr[0].startOffset), y = leOffset(el, tr[0].endContainer, tr[0].endOffset);
+    r = { s: Math.min(x, y), e: Math.max(x, y) };
+  }
+  if (t === 'insertParagraph' || t === 'insertLineBreak') { e.preventDefault(); leNewline(el, sel.s, sel.e, t === 'insertParagraph'); return; }
+  if (t === 'insertText' || t === 'insertReplacementText') {
+    const data = leNorm(e.data != null ? e.data : e.dataTransfer ? e.dataTransfer.getData('text/plain') : '');
+    const a = r ? r.s : sel.s, b = r ? r.e : sel.e;
+    if (a !== b || data.includes('\n')) { e.preventDefault(); leEdit(el, a, b, data, { kind: 'type', fresh: a !== b }); } // typing over a selection starts a step of its own
+    return;
+  }
+  if (t.startsWith('insertFrom')) { // pastes and drops normally come through their own events
+    e.preventDefault();
+    const data = leNorm(e.dataTransfer ? e.dataTransfer.getData('text/plain') : e.data);
+    if (data) leEdit(el, r ? r.s : sel.s, r ? r.e : sel.e, data, { kind: 'paste' });
+    return;
+  }
+  if (t.startsWith('delete')) {
+    if (t === 'deleteContentBackward' && sel.s === sel.e && sel.s > 0) {
+      // right after a list marker, Backspace takes the whole marker away
+      const ls = text.lastIndexOf('\n', sel.s - 1) + 1;
+      if (sel.s > ls && LE_MARKER_ONLY.test(text.slice(ls, sel.s))) { e.preventDefault(); leEdit(el, ls, sel.s, ''); return; }
+    }
+    e.preventDefault();
+    let a = r ? r.s : sel.s, b = r ? r.e : sel.e;
+    if (a === b) [a, b] = leDelRange(text, a, t);
+    // deleting back to the start of a line stops at its bullet, checkbox or number
+    const ls = text.lastIndexOf('\n', sel.s - 1) + 1, pre = leBlock(text.slice(ls, text.indexOf('\n', ls) < 0 ? text.length : text.indexOf('\n', ls))).pre.length;
+    if (t.includes('Backward') && a < ls + pre && a >= ls && sel.s > ls + pre) a = ls + pre;
+    if (b > a) leEdit(el, a, b, '', { kind: t === 'deleteContentBackward' || t === 'deleteContentForward' ? 'del' : 'edit' });
+    return;
+  }
+  e.preventDefault(); // bold, lists and the like from the browser itself: the Markdown keys do these
+}, true);
+document.addEventListener('input', (e) => {
+  const el = leHost(e.target); if (!el || !e.isTrusted) return;
+  if (e.isComposing || leState(el).composing) return;
+  leSync(el);
+}, true);
+document.addEventListener('compositionstart', (e) => { const el = leHost(e.target); if (el) leState(el).composing = true; }, true);
+document.addEventListener('compositionend', (e) => {
+  const el = leHost(e.target); if (!el) return;
+  leState(el).composing = false;
+  setTimeout(() => { if (el.isConnected && !leState(el).composing) leSync(el); }, 0);
+}, true);
+document.addEventListener('focusin', (e) => { const el = leHost(e.target); if (el && e.target === el) leFresh(el); }, true);
+document.addEventListener('keydown', (e) => {
+  const el = leHost(e.target); if (!el || e.isComposing) return;
+  const mod = e.metaKey || e.ctrlKey; if (!mod || e.altKey) return;
+  const k = (e.key || '').toLowerCase(), sh = e.shiftKey;
+  const act = k === 'z' ? () => leUndo(el, sh)
+    : k === 'y' && !sh ? () => leUndo(el, true)
+    : k === 'b' && !sh ? () => leWrap(el, 'b')
+    : k === 'i' && !sh ? () => leWrap(el, 'i')
+    : k === 'e' && !sh ? () => leWrap(el, 'c')
+    : k === 'x' && sh ? () => leWrap(el, 's')
+    : k === 'k' && !sh ? () => leLink(el)
+    : k === 'l' && sh ? () => leTask(el)
+    : k === 'u' && !sh ? () => {} // no underline in Markdown
+    : null;
+  if (!act) return;
+  e.preventDefault(); e.stopPropagation(); act();
+}, true);
+/* copying copies the Markdown; pasting pastes plain text (a link over selected text links it) */
+['copy', 'cut'].forEach((type) => document.addEventListener(type, (e) => {
+  const el = leHost(e.target); if (!el || !e.clipboardData) return;
+  const sel = leGetSel(el); if (!sel || sel.s === sel.e) return;
+  e.preventDefault();
+  e.clipboardData.setData('text/plain', leText(el).slice(sel.s, sel.e));
+  if (type === 'cut') leEdit(el, sel.s, sel.e, '');
+}, true));
+document.addEventListener('paste', (e) => {
+  const el = leHost(e.target); if (!el) return;
+  e.preventDefault(); e.stopPropagation();
+  const sel = leGetSel(el); if (!sel) return;
+  const data = leNorm(e.clipboardData && e.clipboardData.getData('text/plain')); if (!data) return;
+  const t = leText(el), picked = t.slice(sel.s, sel.e), url = data.trim();
+  if (picked.trim() && !picked.includes('\n') && /^(?:https?:\/\/|www\.)\S+$/i.test(url) && !/^(?:https?:\/\/|www\.)/i.test(picked.trim())) {
+    leEdit(el, sel.s, sel.e, `[${picked}](${url})`, { kind: 'paste' }); return;
+  }
+  leEdit(el, sel.s, sel.e, data, { kind: 'paste' });
+}, true);
+document.addEventListener('drop', (e) => {
+  const el = leHost(e.target); if (!el) return;
+  e.preventDefault(); e.stopPropagation();
+  const data = leNorm(e.dataTransfer && e.dataTransfer.getData('text/plain')); if (!data) return;
+  const p = lePointAt(e.clientX, e.clientY), off = p && el.contains(p.node) ? leOffset(el, p.node, p.offset) : leText(el).length;
+  el.focus({ preventScroll: true });
+  leEdit(el, off, off, data, { kind: 'paste' });
+}, true);
+/* a checkbox ticks; a link opens (on the line you're typing in, with ⌘ held) */
+let leClick = null, leMouse = false;
+document.addEventListener('mouseup', () => { leMouse = false; }, true);
+document.addEventListener('mousedown', (e) => {
+  leClick = null; leMouse = e.button === 0 && !!leHost(e.target);
+  if (e.button !== 0) return;
+  const el = leHost(e.target); if (!el || el.hidden) return;
+  const link = e.target.closest('.le-a'), line = e.target.closest('.le-ln');
+  const on = !!line && line.classList.contains('le-on') && document.activeElement === el;
+  if (line && line.classList.contains('le-task') && e.target === line && e.clientX < line.getBoundingClientRect().left + parseFloat(getComputedStyle(line).paddingLeft)) {
+    e.preventDefault(); leTick(el, [...el.children].indexOf(line)); return;
+  }
+  if (link && (e.metaKey || e.ctrlKey || !on)) { e.preventDefault(); leOpenLink(link.dataset.href); return; }
+  if (!e.shiftKey && e.detail < 2) leClick = { el, was: on };
+}, true);
+/* a click lands past Markdown it couldn't see (on a line that was showing formatted), and never
+   inside a line's bullet, checkbox or number */
+document.addEventListener('mouseup', () => {
+  const c = leClick; leClick = null; if (!c) return;
+  setTimeout(() => {
+    const el = c.el; if (document.activeElement !== el) return;
+    const sel = leGetSel(el); if (!sel || sel.s !== sel.e) return;
+    const t = leText(el), ls = t.lastIndexOf('\n', sel.s - 1) + 1;
+    let lend = t.indexOf('\n', sel.s); if (lend < 0) lend = t.length;
+    const line = t.slice(ls, lend), pre = leBlock(line).pre.length;
+    let p = sel.s;
+    if (!c.was) { const mask = leMask(line); let vis = 0; for (let k = 0; k < sel.s - ls; k++) if (!mask[k]) vis++; p = ls + leVisToOff(line, vis, mask); }
+    if (p - ls < pre) p = ls + pre;
+    if (p !== sel.s) leSetSel(el, p);
+  }, 0);
+}, true);
+/* the line you're on (or the lines you've selected) show their Markdown */
+let leOnEl = null;
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection(), el = sel && sel.rangeCount ? leHost(sel.anchorNode) : null;
+  if (leOnEl && leOnEl !== el) { $$('.le-on', leOnEl).forEach((d) => d.classList.remove('le-on')); leOnEl = null; }
+  if (!el || !el.contains(sel.focusNode)) return;
+  const kids = [...el.children];
+  const at = (node, off) => {
+    if (node === el) return Math.min(off, kids.length - 1);
+    let x = node; while (x && x.parentNode !== el) x = x.parentNode;
+    return Math.max(0, kids.indexOf(x));
+  };
+  const a = at(sel.anchorNode, sel.anchorOffset), b = at(sel.focusNode, sel.focusOffset), lo = Math.min(a, b), hi = Math.max(a, b);
+  if (sel.isCollapsed && !leMouse && kids[a]) {
+    // the caret never sits inside a bullet, checkbox, number, # or > (they show as themselves)
+    const pre = leBlock(leNodeText(kids[a])).pre.length;
+    if (pre) { const r = leGetSel(el), t = leText(el), ls = t.lastIndexOf('\n', r.s - 1) + 1; if (r.s - ls < pre) { leSetSel(el, ls + pre); return; } }
+  }
+  kids.forEach((d, i) => { const on = i >= lo && i <= hi; if (d.classList.contains('le-on') !== on) d.classList.toggle('le-on', on); });
+  leOnEl = el;
 });
 
 /* ===================== Automatic backups =====================
@@ -9301,9 +9973,10 @@ function timelineExport(B, f) {
 
 /* ---- the Board's Timeline: a band across the top of a Board, for what's on that Board ----
    One row per project on it (a project column, or a project in an area column), with its
-   deadline bar and its to-dos' deadlines as flags on the same row; an area's own to-dos; and a
-   list, tag or smart-list column's to-dos with deadlines. Same span, paging, dragging and
-   menus as the Timeline. Each Board remembers whether it shows one (the Timeline button). */
+   deadline bar and its to-dos' deadlines and start dates, each named; an area's own to-dos; and
+   a list, tag or smart-list column's to-dos with deadlines. Things on the same days get lines
+   of their own in the row, so none hides another. Same span, paging, dragging and menus as the
+   Timeline. Each Board remembers whether it shows one (the Timeline button). */
 function toggleBoardTimeline() { const b = curBoard(); b.tl = !b.tl; saveBoard(); render(); }
 function boardTimelineRows(r) {
   const rows = [], seen = new Set();
@@ -9328,6 +10001,41 @@ function boardTimelineRows(r) {
   });
   return rows;
 }
+/* a Board row holds a project and all its to-dos, so things on the same days would sit on top of
+   each other: each goes on the first line of the row where it (and its name) has room, and the
+   row grows a line for each one that doesn't fit */
+let tlCtx = null;
+function tlTextW(s) {
+  if (!tlCtx) tlCtx = document.createElement('canvas').getContext('2d');
+  tlCtx.font = `11.5px ${getComputedStyle(document.body).fontFamily}`;
+  return Math.ceil(tlCtx.measureText(s).width);
+}
+function tlLanes(list, r, L) {
+  const dw = L.dw, W = dw * r.days, last = r.days - 1, half = L.stack ? 11 : 9, idx = (d) => diffDays(r.from, d);
+  const items = list.map((e, k) => {
+    const own = k === 0 && e.x.type === 'project'; // the project's own bar is named by its row, so it shows its date
+    const name = e.x.title || 'New To-Do', text = own ? (ui.tl.zoom === 'quarter' ? '' : tlDateText(e)) : name.length > 34 ? name.slice(0, 33).trimEnd() + '…' : name;
+    let x1, x2;
+    if (e.overdue) { x1 = 2; x2 = 2 + tlTextW(fmtDate(e.dl, { weekday: false })) + 26; }
+    else if (e.a < e.b) { x1 = Math.max(0, idx(e.a)) * dw; x2 = (Math.min(last, idx(e.b)) + 1) * dw; }
+    else { const c = (idx(e.b) + 0.5) * dw; x1 = c - half; x2 = c + half; }
+    const w = text ? tlTextW(text) : 0;
+    const side = !w ? '' : x2 + 5 + w <= W ? 'r' : x1 - 5 - w >= 0 ? 'l' : '';
+    return { e, text, own, x1, x2, w, side, lo: side === 'l' ? x1 - 5 - w : x1, hi: side === 'r' ? x2 + 5 + w : x2 };
+  });
+  const ends = [];
+  items.slice().sort((p, q) => (q.own - p.own) || (p.lo - q.lo) || tlSort(p.e, q.e)).forEach((it) => {
+    let l = ends.findIndex((end) => end + 8 <= it.lo);
+    if (l < 0) { l = ends.length; ends.push(0); }
+    ends[l] = it.hi; it.lane = l;
+  });
+  const html = items.map((it) => {
+    const x = it.e.x, done = x.status !== 'open';
+    const label = it.side ? `<span class="tl-dt tl-nm${it.own ? '' : ' nm'}${done ? ' done' : ''}${it.e.late ? ' late' : ''}" style="left:${Math.round(it.side === 'r' ? it.x2 + 5 : it.lo)}px">${esc(it.text)}</span>` : '';
+    return `<div class="tl-lane" style="--i:${it.lane}">${tlTrackHTML(it.e, r, { nolabel: true })}${label}</div>`;
+  }).join('');
+  return { html, n: Math.max(1, ends.length) };
+}
 function boardTimelineHTML() {
   const r = tlRange(), L = tlLayout(r), rows = boardTimelineRows(r);
   const T = T0(), ws = (S && S.settings.weekStart) || 0, days = Array.from({ length: r.days }, (_, i) => addDays(r.from, i)), cy = pd(T).getFullYear();
@@ -9342,8 +10050,8 @@ function boardTimelineHTML() {
   });
   const ti = diffDays(r.from, T); if (ti >= 0 && ti < r.days) bg += `<i class="tl-now" style="left:${tlAt(ti)}"></i>`;
   const body = rows.map((row) => {
-    const track = (row.main ? tlTrackHTML(row.main, r) : '') + row.kids.map((e) => tlTrackHTML(e, r, { nolabel: true })).join('');
-    return `<div class="tl-row tl-proj"${row.x ? ` data-tlid="${row.x.id}"` : ''}><div class="tl-lab">${row.icon}<button class="tl-name" ${row.open} title="${esc(row.label)}">${esc(row.label)}</button></div><div class="tl-track">${track}</div></div>`;
+    const lanes = tlLanes((row.main ? [row.main] : []).concat(row.kids), r, L);
+    return `<div class="tl-row tl-proj tl-laned"${row.x ? ` data-tlid="${row.x.id}"` : ''}><div class="tl-lab">${row.icon}<button class="tl-name" ${row.open} title="${esc(row.label)}">${esc(row.label)}</button></div><div class="tl-track tl-lanes" style="--lanes:${lanes.n}">${lanes.html}</div></div>`;
   }).join('');
   const zoomSeg = `<div class="seg tl-zoom" role="group" aria-label="Time span">${Object.entries(TL_ZOOM).map(([k, z]) => `<button data-tlzoom="${k}" class="${ui.tl.zoom === k ? 'on' : ''}" aria-pressed="${ui.tl.zoom === k}">${z.label}</button>`).join('')}</div>`;
   const nav = `<div class="tl-nav"><button class="ib" data-tlnav="-1" aria-label="Earlier" title="Earlier">${ic('chevL')}</button><button class="btn tl-today${ui.tl.off ? '' : ' at'}" data-tlnav="0">Today</button><button class="ib" data-tlnav="1" aria-label="Later" title="Later">${ic('chevR')}</button></div>`;
@@ -9360,8 +10068,9 @@ function boardTimelineHTML() {
    becomes a note; empty notes aren't kept. Each note remembers the list, project or area it
    was written on (This Page shows only those, and its chip goes back there). A page with notes
    shows a notepad badge with their count in its header; it opens the Notepad on This Page.
-   Notes read formatted, like a to-do's notes (links you can click, **bold**, bullets…), and
-   turn back into plain text when you click into them. The things you keep notes for (serial
+   Notes read formatted, like a to-do's notes (links you can click, **bold**, bullets,
+   checkboxes you can tick), and stay formatted while you type in one (14-liveedit.js: the line
+   you're on shows its Markdown). The things you keep notes for (serial
    numbers, IP and MAC addresses, license keys, phone numbers…) get a one-click copy button,
    and phone numbers call. A long note shows its first lines, with Show More.
    ••• on a note: Pin to Top, Make To-Do (the selected text, or the note: first line as the
@@ -9384,7 +10093,7 @@ function boardTimelineHTML() {
    own width, where and how big the floating Notepad was, and where its stickies are. */
 ui.np = {
   open: lsGet('sectis.np') === '1', q: '', page: false, focus: null, float: lsGet('sectis.npFloat') === '1',
-  editing: null, // the note being typed in (plain text); the rest read formatted
+  editing: null, // the note being typed in (the live editor); the rest read formatted
   expanded: new Set(), // long notes opened with Show More
   arch: false, // showing Archived Notes
   group: lsGet('sectis.npGroup') === '1', // Group by Page
@@ -9392,7 +10101,7 @@ ui.np = {
 const NP_DOCK_AT = 1100;
 const NP_W_MIN = 260, NP_W_MAX = 720, NP_H_MIN = 220, NP_PAD = 6, NP_SNAP = 28;
 const NP_FOLD_AT = 150; // how much of a long note shows before Show More
-const NP_MD = { values: true };
+const NP_MD = { values: true, tasks: true };
 const NP_ST = { w: 240, h: 190, minW: 170, minH: 110 };
 let npW = +lsGet('sectis.npw') || 0; // its width at the side (0: the usual 340)
 let npRect = (() => { try { const r = JSON.parse(lsGet('sectis.npRect') || 'null'); return r && r.w > 0 && r.h > 0 ? r : null; } catch (e) { return null; } })(); // where it floats
@@ -9520,12 +10229,14 @@ function noteCardHTML(n, o = {}) {
   const editing = ui.np.editing === n.id, c = o.noCtx ? null : noteCtx(n.ctx);
   return `<div class="np-card${n.pinned && !n.archived ? ' pinned' : ''}${n.archived ? ' archived' : ''}" data-note="${n.id}">`
     + `<div class="np-view md" data-np-view="${n.id}"${editing ? ' hidden' : ''}>${editing ? '' : renderMarkdown(n.text, NP_MD)}</div>`
-    + `<textarea class="np-text" data-np-text="${n.id}" data-fkey="note-${n.id}" data-autosize rows="1" aria-label="Note" spellcheck="true"${editing ? '' : ' hidden'}>${esc(n.text)}</textarea>`
+    + npEditorHTML(n.id, 'note-' + n.id, 'Note', editing ? n.text : null)
     + `<button class="np-more" data-np-fold="${n.id}" hidden>${ui.np.expanded.has(n.id) ? 'Show Less' : 'Show More'}</button>`
     + `<div class="np-meta">${n.pinned && !n.archived ? `<span class="np-pin" title="Pinned">${ic('pin')}</span>` : ''}${n.archived && o.archTag ? `<span class="np-arch" title="Archived">${ic('archive')}</span>` : ''}${stickyOf(n.id) && !isMobile() ? `<span class="np-pin" title="Showing as a sticky">${ic('popout')}</span>` : ''}${c ? `<button class="np-ctx" data-nav="${esc(n.ctx)}" title="Written on ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : ''}<span class="np-time" title="${esc(new Date(n.modifiedAt || n.createdAt).toLocaleString())}">${esc(noteWhen(n.modifiedAt || n.createdAt))}</span><span class="spacer"></span>`
     + `<button class="np-todo" data-np-todo="${n.id}" title="Make a to-do of this note, or of the text you've selected in it">${ic('plus')}<span>To-Do</span></button><button class="ib" data-np-more="${n.id}" aria-label="More" title="More">${ic('more')}</button></div></div>`;
 }
-const draftHTML = () => `<div class="np-card np-draft"><textarea class="np-text" data-np-text="draft" data-fkey="note-draft" data-autosize rows="2" placeholder="Jot something down…" aria-label="New note"></textarea></div>`;
+/* a note's live editor; text null: hidden and empty until you click into the note */
+const npEditorHTML = (id, fkey, label, text, ph) => `<div class="np-text le${text ? '' : ' le-empty'}" contenteditable="true" role="textbox" aria-multiline="true" data-np-text="${id}" data-fkey="${fkey}" aria-label="${label}" spellcheck="true"${ph ? ` data-placeholder="${esc(ph)}"` : ''}${text == null ? ' hidden' : ''}>${text == null ? '' : leHTML(text)}</div>`;
+const draftHTML = () => `<div class="np-card np-draft">${npEditorHTML('draft', 'note-draft', 'New note', '', 'Jot something down…')}</div>`;
 function notepadHTML() {
   const here = viewKeyNow(), herectx = noteCtx(here), arch = ui.np.arch;
   const words = ui.np.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -9573,11 +10284,18 @@ function renderNotepad() {
   // keep typing where you were (the search box, or a note) across a redraw
   const a = document.activeElement, fk = a && np.contains(a) && a.dataset ? a.dataset.fkey : null;
   const ss = fk && 'selectionStart' in a ? a.selectionStart : null, se = fk && 'selectionEnd' in a ? a.selectionEnd : null;
+  const lsel = fk && a.classList.contains('le') ? leGetSel(a) : null;
   np.innerHTML = notepadHTML();
   const nb = $('#np-list', np); if (nb) nb.scrollTop = st;
   $$('textarea[data-autosize]', np).forEach((t) => { if (!t.hidden) autosize(t); });
   npMeasureFolds(np);
-  if (fk) { const el = $(`[data-fkey="${CSS.escape(fk)}"]`, np); if (el && !el.hidden) { el.focus({ preventScroll: true }); try { el.setSelectionRange(ss, se); } catch (e) { /* ignore */ } } }
+  if (fk) {
+    const el = $(`[data-fkey="${CSS.escape(fk)}"]`, np);
+    if (el && !el.hidden) {
+      el.focus({ preventScroll: true });
+      if (el.classList.contains('le')) { if (lsel) leSetSel(el, lsel.s, lsel.e, lsel.back); } else try { el.setSelectionRange(ss, se); } catch (e) { /* ignore */ }
+    }
+  }
   if (ui.np.focus) {
     const f = ui.np.focus; ui.np.focus = null;
     if (f === 'draft') { const el = $('[data-np-text="draft"]', np); if (el) { el.focus({ preventScroll: true }); el.closest('.np-card').scrollIntoView({ block: 'nearest' }); } }
@@ -9612,18 +10330,29 @@ function noteBadge() {
   if (btn) btn.insertAdjacentHTML('beforebegin', html); else lh.insertAdjacentHTML('beforeend', html);
 }
 
-/* ---- reading and typing: formatted until you click in, plain text while you type ---- */
+/* ---- reading and typing: formatted either way; a click puts you in the live editor ---- */
 const noteBox = (el) => el && el.closest('.np-card, .np-sticky');
-function npEditNote(id, box) {
-  const ta = box && $(`textarea[data-np-text="${CSS.escape(id)}"]`, box), v = box && $('[data-np-view]', box); if (!ta) return;
+/* at: where in the formatted note it was clicked (its line and how far along), or the end */
+function npEditNote(id, box, at) {
+  const ed = box && $(`[data-np-text="${CSS.escape(id)}"]`, box), v = box && $('[data-np-view]', box); if (!ed) return;
+  const n = getNote(id);
   if (box.closest('#notepad')) ui.np.editing = id; else box.classList.add('editing');
   if (v) v.hidden = true;
   box.classList.remove('folded'); const more = $('.np-more', box); if (more) more.hidden = true;
-  ta.hidden = false; if (ta.dataset.autosize != null) autosize(ta);
-  ta.focus({ preventScroll: true }); const e = ta.value.length; try { ta.setSelectionRange(e, e); } catch (err) { /* ignore */ }
+  ed.hidden = false; leRender(ed, n ? n.text : leText(ed));
+  ed.focus({ preventScroll: true });
+  if (at && at.ln != null) leCaretAtShown(ed, at.ln, at.vis); else leSetSel(ed, leText(ed).length);
+}
+/* where in a formatted note a click landed: the line it's on and how many characters along */
+function npShownAt(v, x, y) {
+  const p = lePointAt(x, y); if (!p || !v.contains(p.node)) return null;
+  const host = p.node.nodeType === 1 ? p.node : p.node.parentElement, blk = host && host.closest('[data-ln]');
+  if (!blk || !v.contains(blk)) return null;
+  const st = { n: 0, done: false }; leCount(blk, p.node, p.offset, st);
+  return { ln: +blk.dataset.ln, vis: st.n };
 }
 function npShowView(box, n) {
-  const ta = $('textarea[data-np-text]', box), v = $('[data-np-view]', box);
+  const ta = $('[data-np-text]', box), v = $('[data-np-view]', box);
   box.classList.remove('editing');
   if (!v) { // a note just started in the box at the top: draw it as a note, with a fresh box above
     if (!box.closest('#notepad')) return;
@@ -9638,7 +10367,7 @@ function npShowView(box, n) {
 /* the same note shown twice (in the Notepad and as a sticky) stays the same in both */
 function npMirror(n, from) {
   const src = noteBox(from);
-  $$(`textarea[data-np-text="${CSS.escape(n.id)}"]`).forEach((ta) => { if (ta === from) return; ta.value = n.text; if (!ta.hidden && ta.dataset.autosize != null) autosize(ta); });
+  $$(`[data-np-text="${CSS.escape(n.id)}"]`).forEach((ed) => { if (ed !== from && !ed.hidden) leRender(ed, n.text); });
   $$(`[data-np-view="${CSS.escape(n.id)}"]`).forEach((v) => { if (noteBox(v) !== src) v.innerHTML = renderMarkdown(n.text, NP_MD); });
   $$(`.np-sticky[data-sticky="${CSS.escape(n.id)}"]`).forEach((st) => { st.dataset.v = n.modifiedAt; });
 }
@@ -9646,26 +10375,39 @@ document.addEventListener('input', (e) => {
   const el = e.target; if (!el.closest || !el.closest('#notepad, #np-stickies')) return;
   if (el.id === 'np-q') { ui.np.q = el.value; renderNotepad(); return; }
   const id = el.dataset.npText; if (!id) return;
+  const text = leText(el);
   if (id === 'draft') {
-    if (!el.value.trim()) return;
+    if (!text.trim()) return;
     // the box at the top becomes a note as soon as there's something in it
-    const now = Date.now(), n = normalizeNote({ id: uid(), text: el.value, ctx: viewKeyNow(), createdAt: now, modifiedAt: now });
+    const now = Date.now(), n = normalizeNote({ id: uid(), text, ctx: viewKeyNow(), createdAt: now, modifiedAt: now });
     S.notes.unshift(n); saveSoon(); ui.np.editing = n.id;
-    el.dataset.npText = n.id; el.dataset.fkey = 'note-' + n.id; el.removeAttribute('placeholder');
+    el.dataset.npText = n.id; el.dataset.fkey = 'note-' + n.id; el.removeAttribute('data-placeholder'); el.setAttribute('aria-label', 'Note');
+    leState(el); // its undo history goes with it under its new name
     el.closest('.np-card').classList.remove('np-draft'); el.closest('.np-card').dataset.note = n.id;
     const hint = $('#notepad .np-empty'); if (hint) hint.remove();
     noteBadge();
     return;
   }
-  const n = getNote(id); if (!n) return;
-  n.text = el.value; touch(n); saveSoon(); npMirror(n, el);
+  const n = getNote(id); if (!n || n.text === text) return;
+  n.text = text; touch(n); saveSoon(); npMirror(n, el);
 });
 document.addEventListener('click', (e) => {
   const v = e.target.closest && e.target.closest('[data-np-view]'); if (!v) return;
   if (e.target.closest('a, button')) return;
   const sel = window.getSelection(); if (sel && !sel.isCollapsed && v.contains(sel.anchorNode)) return; // selecting text to copy or make a to-do of
-  npEditNote(v.dataset.npView, noteBox(v));
+  npEditNote(v.dataset.npView, noteBox(v), npShownAt(v, e.clientX, e.clientY));
 });
+/* a checkbox in a formatted note ticks without opening the note (⌘Z undoes it) */
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('#notepad [data-tick], #np-stickies [data-tick]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const v = b.closest('[data-np-view]'), n = v && getNote(v.dataset.npView); if (!n) return;
+  const lines = n.text.replace(/\r\n?/g, '\n').split('\n'), i = +b.dataset.tick, m = lines[i] != null && lines[i].match(LE_TASK); if (!m) return;
+  lines[i] = m[1] + (m[2] === ' ' ? '[x]' : '[ ]') + lines[i].slice(m[0].length);
+  commit(m[2] === ' ' ? 'Check Off' : 'Uncheck', () => { n.text = lines.join('\n'); touch(n); }, { render: false });
+  npMirror(n, null);
+  const card = noteBox(v); if (card && card.classList.contains('np-card')) npMeasureFolds(card.parentElement);
+}, true);
 /* changes to the layout wait until a click that's under way has landed, so what you clicked
    doesn't move out from under the pointer */
 let npPtrDown = false;
@@ -9770,7 +10512,7 @@ function archiveNote(id, on) {
 /* the text selected in a note: in its text box while typing, or in the formatted note */
 function npSelected(id) {
   const a = document.activeElement;
-  if (a && a.dataset && a.dataset.npText === id && a.selectionStart !== a.selectionEnd) return a.value.slice(a.selectionStart, a.selectionEnd);
+  if (a && a.dataset && a.dataset.npText === id && a.classList.contains('le')) { const r = leGetSel(a); if (r && r.s !== r.e) return leText(a).slice(r.s, r.e); }
   const sel = window.getSelection();
   if (sel && !sel.isCollapsed && sel.anchorNode) {
     const node = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement, v = node && node.closest('[data-np-view]');
@@ -9828,7 +10570,7 @@ function hideSticky(id) {
 }
 function stickyHTML(n) {
   return `<div class="np-st-h" title="Drag to move"><span class="np-st-t"></span><button class="ib" data-st="open" title="Show in the Notepad" aria-label="Show in the Notepad">${ic('notepad')}</button><button class="ib" data-st="close" title="Put it away (it stays in the Notepad)" aria-label="Close sticky">${ic('x')}</button></div>`
-    + `<div class="np-st-b"><div class="np-view md" data-np-view="${n.id}">${renderMarkdown(n.text, NP_MD)}</div><textarea class="np-text" data-np-text="${n.id}" data-fkey="sticky-${n.id}" aria-label="Sticky note" spellcheck="true" hidden>${esc(n.text)}</textarea></div>`
+    + `<div class="np-st-b"><div class="np-view md" data-np-view="${n.id}">${renderMarkdown(n.text, NP_MD)}</div>${npEditorHTML(n.id, 'sticky-' + n.id, 'Sticky note', null)}</div>`
     + ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'].map((d) => `<div class="np-rs ${d}" data-st-rs="${d}" aria-hidden="true"></div>`).join('');
 }
 function renderStickies() {
@@ -9843,7 +10585,7 @@ function renderStickies() {
     if (!el) { el = document.createElement('div'); el.className = 'np-sticky'; el.dataset.sticky = n.id; el.innerHTML = stickyHTML(n); el.dataset.v = n.modifiedAt; box.appendChild(el); }
     else if (+el.dataset.v !== n.modifiedAt && !el.classList.contains('editing')) {
       // changed somewhere else (the Notepad, another device)
-      $('[data-np-view]', el).innerHTML = renderMarkdown(n.text, NP_MD); $('textarea', el).value = n.text; el.dataset.v = n.modifiedAt;
+      $('[data-np-view]', el).innerHTML = renderMarkdown(n.text, NP_MD); el.dataset.v = n.modifiedAt;
     }
     if (!el.classList.contains('moving')) setGeom(el, npFit(s, NP_ST.minW, NP_ST.minH));
   });

@@ -646,6 +646,14 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .md li.md-task::before { content: "☐"; position: absolute; left: -1.25em; color: var(--muted); }
 .md li.md-task.done::before { content: "☑"; color: var(--accent); }
 .md li.md-task.done { color: var(--muted); text-decoration: line-through; }
+/* checkboxes you can tick (the Notepad) */
+.md li.md-tick::before { content: none; }
+.md .md-box, .le-task::before { position: absolute; box-sizing: border-box; width: 1em; height: 1em; border: 1.5px solid var(--muted); border-radius: .28em; background: none; }
+.md .md-box { left: -1.23em; top: .23em; padding: 0; cursor: pointer; -webkit-appearance: none; appearance: none; }
+.md .md-box:hover { border-color: var(--accent); }
+.md li.md-task.done .md-box, .le-task.le-done::before { background: var(--accent); border-color: var(--accent); }
+.md li.md-task.done .md-box::after, .le-task.le-done::after { content: ""; position: absolute; width: .28em; height: .52em; border: solid #fff; border-width: 0 .13em .13em 0; transform: rotate(45deg); }
+.md li.md-task.done .md-box::after { left: .3em; top: .1em; }
 .md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; cursor: pointer; overflow-wrap: anywhere; }
 .md code { font: .9em var(--mono); background: var(--hover); padding: 1px 4px; border-radius: 4px; }
 .md strong { font-weight: 650; }
@@ -1234,6 +1242,29 @@ body.np-sizing, body.np-sizing * { cursor: var(--np-cur) !important; user-select
 /* archived notes, and notes grouped by page */
 .np-card.archived { background: transparent; }
 .np-card.archived .np-view { color: var(--muted); }
+/* ---- live notes: formatted while you type; the line you're on shows its inline Markdown ---- */
+.le { position: relative; cursor: text; overflow-wrap: anywhere; white-space: pre-wrap; -webkit-user-select: text; user-select: text; }
+.le-ln { position: relative; min-height: 1.45em; }
+.le.le-empty::before { content: attr(data-placeholder); position: absolute; left: 0; top: 0; color: var(--faint); pointer-events: none; }
+.np-draft .le { min-height: 2.9em; }
+.le .lb { display: none !important; }
+.le .lm { color: var(--faint); font-weight: 400; font-style: normal; text-decoration: none; }
+.le-ln:not(.le-on) .lm, .le:not(:focus) .lm { display: none; }
+.le-h1 { font-size: 1.2em; font-weight: 700; }
+.le-h2 { font-size: 1.08em; font-weight: 700; }
+.le-h3 { font-weight: 700; }
+.le-li, .le-ol, .le-task { padding-left: 1.35em; }
+.le-li::before { content: "•"; position: absolute; left: .45em; top: 0; color: var(--muted); pointer-events: none; }
+.le-ol::before { content: attr(data-n); position: absolute; left: -.6em; width: 1.6em; text-align: right; top: 0; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+.le-task::before { content: ""; left: .12em; top: .23em; cursor: pointer; }
+.le-done::after { left: .42em; top: .33em; pointer-events: none; }
+.le-done { color: var(--muted); text-decoration: line-through; }
+.le-q { border-left: 3px solid var(--line-strong); padding-left: 10px; color: var(--muted); }
+.le code { font: .9em var(--mono); background: var(--hover); padding: 1px 4px; border-radius: 4px; }
+.le strong { font-weight: 650; }
+.le del { color: var(--muted); }
+.le .le-a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; cursor: pointer; }
+.le:focus .le-on .le-a { cursor: text; }
 .np-arch .ic { width: 12px; height: 12px; color: var(--faint); }
 .np-group { display: flex; flex-direction: column; gap: 8px; }
 .np-group + .np-group { margin-top: 6px; }
@@ -1276,7 +1307,7 @@ button.np-gl:hover { color: var(--fg); }
 .tl-band-h > .ic { width: 16px; height: 16px; }
 .tl-band-h .spacer { flex: 1; }
 .tl-band-r { color: var(--muted); }
-.tl-band .tl-wrap { margin-top: 0; max-height: min(320px, 42vh); overflow: auto; }
+.tl-band .tl-wrap { margin-top: 0; max-height: min(420px, 50vh); overflow: auto; }
 .tl-band .tl-wrap .tl-head { position: sticky; top: 0; }
 .tl-band .tl-lab, .tl-band .tl-head { background: var(--card, var(--bg)); }
 .tl-band .tl-row:hover .tl-lab { background: color-mix(in srgb, var(--hover) 55%, var(--card, var(--bg))); }
@@ -1286,4 +1317,19 @@ button.np-gl:hover { color: var(--fg); }
   .tl-band-ctl { order: 2; flex-basis: 100%; justify-content: space-between; }
 }
 .tl-band-empty { margin: 4px 4px 10px; font-size: 13px; color: var(--muted); }
+/* a Board row's lines: things on the same days each get their own, with their names */
+.tl-lanes { --lane: 24px; min-height: calc(var(--lanes) * var(--lane) + 6px); }
+.tl-laned > .tl-lab { align-items: flex-start; padding-top: 5px; }
+.tl.stack .tl-laned > .tl-lab { padding-top: 6px; }
+.tl.stack .tl-track.tl-lanes { height: auto; }
+.tl-lane { position: absolute; left: 0; right: 0; top: calc(var(--i) * var(--lane)); height: 30px; pointer-events: none; }
+.tl-lane > .tl-bar, .tl-lane > .tl-mk, .tl-lane > .tl-od { pointer-events: auto; }
+.tl-lane > .tl-nm { margin: 0; }
+.tl-nm.nm { color: color-mix(in srgb, var(--fg) 80%, transparent); }
+.tl-nm.late { color: var(--red); }
+.tl-nm.done { text-decoration: line-through; opacity: .6; }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
+  .tl-lanes { --lane: 30px; }
+  .tl-lane { height: 36px; }
+}
 .board-tl.on { color: var(--c-timeline); background: color-mix(in srgb, var(--c-timeline) 12%, transparent); }

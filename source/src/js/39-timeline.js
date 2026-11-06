@@ -279,9 +279,10 @@ function timelineExport(B, f) {
 
 /* ---- the Board's Timeline: a band across the top of a Board, for what's on that Board ----
    One row per project on it (a project column, or a project in an area column), with its
-   deadline bar and its to-dos' deadlines as flags on the same row; an area's own to-dos; and a
-   list, tag or smart-list column's to-dos with deadlines. Same span, paging, dragging and
-   menus as the Timeline. Each Board remembers whether it shows one (the Timeline button). */
+   deadline bar and its to-dos' deadlines and start dates, each named; an area's own to-dos; and
+   a list, tag or smart-list column's to-dos with deadlines. Things on the same days get lines
+   of their own in the row, so none hides another. Same span, paging, dragging and menus as the
+   Timeline. Each Board remembers whether it shows one (the Timeline button). */
 function toggleBoardTimeline() { const b = curBoard(); b.tl = !b.tl; saveBoard(); render(); }
 function boardTimelineRows(r) {
   const rows = [], seen = new Set();
@@ -306,6 +307,41 @@ function boardTimelineRows(r) {
   });
   return rows;
 }
+/* a Board row holds a project and all its to-dos, so things on the same days would sit on top of
+   each other: each goes on the first line of the row where it (and its name) has room, and the
+   row grows a line for each one that doesn't fit */
+let tlCtx = null;
+function tlTextW(s) {
+  if (!tlCtx) tlCtx = document.createElement('canvas').getContext('2d');
+  tlCtx.font = `11.5px ${getComputedStyle(document.body).fontFamily}`;
+  return Math.ceil(tlCtx.measureText(s).width);
+}
+function tlLanes(list, r, L) {
+  const dw = L.dw, W = dw * r.days, last = r.days - 1, half = L.stack ? 11 : 9, idx = (d) => diffDays(r.from, d);
+  const items = list.map((e, k) => {
+    const own = k === 0 && e.x.type === 'project'; // the project's own bar is named by its row, so it shows its date
+    const name = e.x.title || 'New To-Do', text = own ? (ui.tl.zoom === 'quarter' ? '' : tlDateText(e)) : name.length > 34 ? name.slice(0, 33).trimEnd() + '…' : name;
+    let x1, x2;
+    if (e.overdue) { x1 = 2; x2 = 2 + tlTextW(fmtDate(e.dl, { weekday: false })) + 26; }
+    else if (e.a < e.b) { x1 = Math.max(0, idx(e.a)) * dw; x2 = (Math.min(last, idx(e.b)) + 1) * dw; }
+    else { const c = (idx(e.b) + 0.5) * dw; x1 = c - half; x2 = c + half; }
+    const w = text ? tlTextW(text) : 0;
+    const side = !w ? '' : x2 + 5 + w <= W ? 'r' : x1 - 5 - w >= 0 ? 'l' : '';
+    return { e, text, own, x1, x2, w, side, lo: side === 'l' ? x1 - 5 - w : x1, hi: side === 'r' ? x2 + 5 + w : x2 };
+  });
+  const ends = [];
+  items.slice().sort((p, q) => (q.own - p.own) || (p.lo - q.lo) || tlSort(p.e, q.e)).forEach((it) => {
+    let l = ends.findIndex((end) => end + 8 <= it.lo);
+    if (l < 0) { l = ends.length; ends.push(0); }
+    ends[l] = it.hi; it.lane = l;
+  });
+  const html = items.map((it) => {
+    const x = it.e.x, done = x.status !== 'open';
+    const label = it.side ? `<span class="tl-dt tl-nm${it.own ? '' : ' nm'}${done ? ' done' : ''}${it.e.late ? ' late' : ''}" style="left:${Math.round(it.side === 'r' ? it.x2 + 5 : it.lo)}px">${esc(it.text)}</span>` : '';
+    return `<div class="tl-lane" style="--i:${it.lane}">${tlTrackHTML(it.e, r, { nolabel: true })}${label}</div>`;
+  }).join('');
+  return { html, n: Math.max(1, ends.length) };
+}
 function boardTimelineHTML() {
   const r = tlRange(), L = tlLayout(r), rows = boardTimelineRows(r);
   const T = T0(), ws = (S && S.settings.weekStart) || 0, days = Array.from({ length: r.days }, (_, i) => addDays(r.from, i)), cy = pd(T).getFullYear();
@@ -320,8 +356,8 @@ function boardTimelineHTML() {
   });
   const ti = diffDays(r.from, T); if (ti >= 0 && ti < r.days) bg += `<i class="tl-now" style="left:${tlAt(ti)}"></i>`;
   const body = rows.map((row) => {
-    const track = (row.main ? tlTrackHTML(row.main, r) : '') + row.kids.map((e) => tlTrackHTML(e, r, { nolabel: true })).join('');
-    return `<div class="tl-row tl-proj"${row.x ? ` data-tlid="${row.x.id}"` : ''}><div class="tl-lab">${row.icon}<button class="tl-name" ${row.open} title="${esc(row.label)}">${esc(row.label)}</button></div><div class="tl-track">${track}</div></div>`;
+    const lanes = tlLanes((row.main ? [row.main] : []).concat(row.kids), r, L);
+    return `<div class="tl-row tl-proj tl-laned"${row.x ? ` data-tlid="${row.x.id}"` : ''}><div class="tl-lab">${row.icon}<button class="tl-name" ${row.open} title="${esc(row.label)}">${esc(row.label)}</button></div><div class="tl-track tl-lanes" style="--lanes:${lanes.n}">${lanes.html}</div></div>`;
   }).join('');
   const zoomSeg = `<div class="seg tl-zoom" role="group" aria-label="Time span">${Object.entries(TL_ZOOM).map(([k, z]) => `<button data-tlzoom="${k}" class="${ui.tl.zoom === k ? 'on' : ''}" aria-pressed="${ui.tl.zoom === k}">${z.label}</button>`).join('')}</div>`;
   const nav = `<div class="tl-nav"><button class="ib" data-tlnav="-1" aria-label="Earlier" title="Earlier">${ic('chevL')}</button><button class="btn tl-today${ui.tl.off ? '' : ' at'}" data-tlnav="0">Today</button><button class="ib" data-tlnav="1" aria-label="Later" title="Later">${ic('chevR')}</button></div>`;

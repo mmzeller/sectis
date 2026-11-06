@@ -39,13 +39,16 @@ function render() {
 function captureFocus() {
   const a = document.activeElement;
   if (!a || !a.dataset || !a.dataset.fkey) return null;
+  if (a.classList.contains('le')) { const r = leGetSel(a); return { key: a.dataset.fkey, le: r }; } // a Notepad note being typed in
   return { key: a.dataset.fkey, s: a.selectionStart, e: a.selectionEnd };
 }
 function restoreFocus(f) {
   if (ui.focusAfter) { const el = $(ui.focusAfter); ui.focusAfter = null; if (el) { el.focus({ preventScroll: false }); if (el.select && !el.value) el.select(); return; } }
   if (!f) return;
   const el = document.querySelector(`[data-fkey="${CSS.escape(f.key)}"]`);
-  if (el) { el.focus({ preventScroll: true }); try { el.setSelectionRange(f.s, f.e); } catch (e) { /* not a text field */ } }
+  if (!el) return;
+  if (f.le !== undefined) { if (document.activeElement !== el) { el.focus({ preventScroll: true }); if (f.le) leSetSel(el, f.le.s, f.le.e, f.le.back); } return; }
+  el.focus({ preventScroll: true }); try { el.setSelectionRange(f.s, f.e); } catch (e) { /* not a text field */ }
 }
 function afterRender() {
   fitBoardName($('#content .board-name'));

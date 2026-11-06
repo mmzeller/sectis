@@ -5,8 +5,9 @@
    becomes a note; empty notes aren't kept. Each note remembers the list, project or area it
    was written on (This Page shows only those, and its chip goes back there). A page with notes
    shows a notepad badge with their count in its header; it opens the Notepad on This Page.
-   Notes read formatted, like a to-do's notes (links you can click, **bold**, bullets…), and
-   turn back into plain text when you click into them. The things you keep notes for (serial
+   Notes read formatted, like a to-do's notes (links you can click, **bold**, bullets,
+   checkboxes you can tick), and stay formatted while you type in one (14-liveedit.js: the line
+   you're on shows its Markdown). The things you keep notes for (serial
    numbers, IP and MAC addresses, license keys, phone numbers…) get a one-click copy button,
    and phone numbers call. A long note shows its first lines, with Show More.
    ••• on a note: Pin to Top, Make To-Do (the selected text, or the note: first line as the
@@ -29,7 +30,7 @@
    own width, where and how big the floating Notepad was, and where its stickies are. */
 ui.np = {
   open: lsGet('sectis.np') === '1', q: '', page: false, focus: null, float: lsGet('sectis.npFloat') === '1',
-  editing: null, // the note being typed in (plain text); the rest read formatted
+  editing: null, // the note being typed in (the live editor); the rest read formatted
   expanded: new Set(), // long notes opened with Show More
   arch: false, // showing Archived Notes
   group: lsGet('sectis.npGroup') === '1', // Group by Page
@@ -37,7 +38,7 @@ ui.np = {
 const NP_DOCK_AT = 1100;
 const NP_W_MIN = 260, NP_W_MAX = 720, NP_H_MIN = 220, NP_PAD = 6, NP_SNAP = 28;
 const NP_FOLD_AT = 150; // how much of a long note shows before Show More
-const NP_MD = { values: true };
+const NP_MD = { values: true, tasks: true };
 const NP_ST = { w: 240, h: 190, minW: 170, minH: 110 };
 let npW = +lsGet('sectis.npw') || 0; // its width at the side (0: the usual 340)
 let npRect = (() => { try { const r = JSON.parse(lsGet('sectis.npRect') || 'null'); return r && r.w > 0 && r.h > 0 ? r : null; } catch (e) { return null; } })(); // where it floats
@@ -165,12 +166,14 @@ function noteCardHTML(n, o = {}) {
   const editing = ui.np.editing === n.id, c = o.noCtx ? null : noteCtx(n.ctx);
   return `<div class="np-card${n.pinned && !n.archived ? ' pinned' : ''}${n.archived ? ' archived' : ''}" data-note="${n.id}">`
     + `<div class="np-view md" data-np-view="${n.id}"${editing ? ' hidden' : ''}>${editing ? '' : renderMarkdown(n.text, NP_MD)}</div>`
-    + `<textarea class="np-text" data-np-text="${n.id}" data-fkey="note-${n.id}" data-autosize rows="1" aria-label="Note" spellcheck="true"${editing ? '' : ' hidden'}>${esc(n.text)}</textarea>`
+    + npEditorHTML(n.id, 'note-' + n.id, 'Note', editing ? n.text : null)
     + `<button class="np-more" data-np-fold="${n.id}" hidden>${ui.np.expanded.has(n.id) ? 'Show Less' : 'Show More'}</button>`
     + `<div class="np-meta">${n.pinned && !n.archived ? `<span class="np-pin" title="Pinned">${ic('pin')}</span>` : ''}${n.archived && o.archTag ? `<span class="np-arch" title="Archived">${ic('archive')}</span>` : ''}${stickyOf(n.id) && !isMobile() ? `<span class="np-pin" title="Showing as a sticky">${ic('popout')}</span>` : ''}${c ? `<button class="np-ctx" data-nav="${esc(n.ctx)}" title="Written on ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : ''}<span class="np-time" title="${esc(new Date(n.modifiedAt || n.createdAt).toLocaleString())}">${esc(noteWhen(n.modifiedAt || n.createdAt))}</span><span class="spacer"></span>`
     + `<button class="np-todo" data-np-todo="${n.id}" title="Make a to-do of this note, or of the text you've selected in it">${ic('plus')}<span>To-Do</span></button><button class="ib" data-np-more="${n.id}" aria-label="More" title="More">${ic('more')}</button></div></div>`;
 }
-const draftHTML = () => `<div class="np-card np-draft"><textarea class="np-text" data-np-text="draft" data-fkey="note-draft" data-autosize rows="2" placeholder="Jot something down…" aria-label="New note"></textarea></div>`;
+/* a note's live editor; text null: hidden and empty until you click into the note */
+const npEditorHTML = (id, fkey, label, text, ph) => `<div class="np-text le${text ? '' : ' le-empty'}" contenteditable="true" role="textbox" aria-multiline="true" data-np-text="${id}" data-fkey="${fkey}" aria-label="${label}" spellcheck="true"${ph ? ` data-placeholder="${esc(ph)}"` : ''}${text == null ? ' hidden' : ''}>${text == null ? '' : leHTML(text)}</div>`;
+const draftHTML = () => `<div class="np-card np-draft">${npEditorHTML('draft', 'note-draft', 'New note', '', 'Jot something down…')}</div>`;
 function notepadHTML() {
   const here = viewKeyNow(), herectx = noteCtx(here), arch = ui.np.arch;
   const words = ui.np.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -218,11 +221,18 @@ function renderNotepad() {
   // keep typing where you were (the search box, or a note) across a redraw
   const a = document.activeElement, fk = a && np.contains(a) && a.dataset ? a.dataset.fkey : null;
   const ss = fk && 'selectionStart' in a ? a.selectionStart : null, se = fk && 'selectionEnd' in a ? a.selectionEnd : null;
+  const lsel = fk && a.classList.contains('le') ? leGetSel(a) : null;
   np.innerHTML = notepadHTML();
   const nb = $('#np-list', np); if (nb) nb.scrollTop = st;
   $$('textarea[data-autosize]', np).forEach((t) => { if (!t.hidden) autosize(t); });
   npMeasureFolds(np);
-  if (fk) { const el = $(`[data-fkey="${CSS.escape(fk)}"]`, np); if (el && !el.hidden) { el.focus({ preventScroll: true }); try { el.setSelectionRange(ss, se); } catch (e) { /* ignore */ } } }
+  if (fk) {
+    const el = $(`[data-fkey="${CSS.escape(fk)}"]`, np);
+    if (el && !el.hidden) {
+      el.focus({ preventScroll: true });
+      if (el.classList.contains('le')) { if (lsel) leSetSel(el, lsel.s, lsel.e, lsel.back); } else try { el.setSelectionRange(ss, se); } catch (e) { /* ignore */ }
+    }
+  }
   if (ui.np.focus) {
     const f = ui.np.focus; ui.np.focus = null;
     if (f === 'draft') { const el = $('[data-np-text="draft"]', np); if (el) { el.focus({ preventScroll: true }); el.closest('.np-card').scrollIntoView({ block: 'nearest' }); } }
@@ -257,18 +267,29 @@ function noteBadge() {
   if (btn) btn.insertAdjacentHTML('beforebegin', html); else lh.insertAdjacentHTML('beforeend', html);
 }
 
-/* ---- reading and typing: formatted until you click in, plain text while you type ---- */
+/* ---- reading and typing: formatted either way; a click puts you in the live editor ---- */
 const noteBox = (el) => el && el.closest('.np-card, .np-sticky');
-function npEditNote(id, box) {
-  const ta = box && $(`textarea[data-np-text="${CSS.escape(id)}"]`, box), v = box && $('[data-np-view]', box); if (!ta) return;
+/* at: where in the formatted note it was clicked (its line and how far along), or the end */
+function npEditNote(id, box, at) {
+  const ed = box && $(`[data-np-text="${CSS.escape(id)}"]`, box), v = box && $('[data-np-view]', box); if (!ed) return;
+  const n = getNote(id);
   if (box.closest('#notepad')) ui.np.editing = id; else box.classList.add('editing');
   if (v) v.hidden = true;
   box.classList.remove('folded'); const more = $('.np-more', box); if (more) more.hidden = true;
-  ta.hidden = false; if (ta.dataset.autosize != null) autosize(ta);
-  ta.focus({ preventScroll: true }); const e = ta.value.length; try { ta.setSelectionRange(e, e); } catch (err) { /* ignore */ }
+  ed.hidden = false; leRender(ed, n ? n.text : leText(ed));
+  ed.focus({ preventScroll: true });
+  if (at && at.ln != null) leCaretAtShown(ed, at.ln, at.vis); else leSetSel(ed, leText(ed).length);
+}
+/* where in a formatted note a click landed: the line it's on and how many characters along */
+function npShownAt(v, x, y) {
+  const p = lePointAt(x, y); if (!p || !v.contains(p.node)) return null;
+  const host = p.node.nodeType === 1 ? p.node : p.node.parentElement, blk = host && host.closest('[data-ln]');
+  if (!blk || !v.contains(blk)) return null;
+  const st = { n: 0, done: false }; leCount(blk, p.node, p.offset, st);
+  return { ln: +blk.dataset.ln, vis: st.n };
 }
 function npShowView(box, n) {
-  const ta = $('textarea[data-np-text]', box), v = $('[data-np-view]', box);
+  const ta = $('[data-np-text]', box), v = $('[data-np-view]', box);
   box.classList.remove('editing');
   if (!v) { // a note just started in the box at the top: draw it as a note, with a fresh box above
     if (!box.closest('#notepad')) return;
@@ -283,7 +304,7 @@ function npShowView(box, n) {
 /* the same note shown twice (in the Notepad and as a sticky) stays the same in both */
 function npMirror(n, from) {
   const src = noteBox(from);
-  $$(`textarea[data-np-text="${CSS.escape(n.id)}"]`).forEach((ta) => { if (ta === from) return; ta.value = n.text; if (!ta.hidden && ta.dataset.autosize != null) autosize(ta); });
+  $$(`[data-np-text="${CSS.escape(n.id)}"]`).forEach((ed) => { if (ed !== from && !ed.hidden) leRender(ed, n.text); });
   $$(`[data-np-view="${CSS.escape(n.id)}"]`).forEach((v) => { if (noteBox(v) !== src) v.innerHTML = renderMarkdown(n.text, NP_MD); });
   $$(`.np-sticky[data-sticky="${CSS.escape(n.id)}"]`).forEach((st) => { st.dataset.v = n.modifiedAt; });
 }
@@ -291,26 +312,39 @@ document.addEventListener('input', (e) => {
   const el = e.target; if (!el.closest || !el.closest('#notepad, #np-stickies')) return;
   if (el.id === 'np-q') { ui.np.q = el.value; renderNotepad(); return; }
   const id = el.dataset.npText; if (!id) return;
+  const text = leText(el);
   if (id === 'draft') {
-    if (!el.value.trim()) return;
+    if (!text.trim()) return;
     // the box at the top becomes a note as soon as there's something in it
-    const now = Date.now(), n = normalizeNote({ id: uid(), text: el.value, ctx: viewKeyNow(), createdAt: now, modifiedAt: now });
+    const now = Date.now(), n = normalizeNote({ id: uid(), text, ctx: viewKeyNow(), createdAt: now, modifiedAt: now });
     S.notes.unshift(n); saveSoon(); ui.np.editing = n.id;
-    el.dataset.npText = n.id; el.dataset.fkey = 'note-' + n.id; el.removeAttribute('placeholder');
+    el.dataset.npText = n.id; el.dataset.fkey = 'note-' + n.id; el.removeAttribute('data-placeholder'); el.setAttribute('aria-label', 'Note');
+    leState(el); // its undo history goes with it under its new name
     el.closest('.np-card').classList.remove('np-draft'); el.closest('.np-card').dataset.note = n.id;
     const hint = $('#notepad .np-empty'); if (hint) hint.remove();
     noteBadge();
     return;
   }
-  const n = getNote(id); if (!n) return;
-  n.text = el.value; touch(n); saveSoon(); npMirror(n, el);
+  const n = getNote(id); if (!n || n.text === text) return;
+  n.text = text; touch(n); saveSoon(); npMirror(n, el);
 });
 document.addEventListener('click', (e) => {
   const v = e.target.closest && e.target.closest('[data-np-view]'); if (!v) return;
   if (e.target.closest('a, button')) return;
   const sel = window.getSelection(); if (sel && !sel.isCollapsed && v.contains(sel.anchorNode)) return; // selecting text to copy or make a to-do of
-  npEditNote(v.dataset.npView, noteBox(v));
+  npEditNote(v.dataset.npView, noteBox(v), npShownAt(v, e.clientX, e.clientY));
 });
+/* a checkbox in a formatted note ticks without opening the note (⌘Z undoes it) */
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('#notepad [data-tick], #np-stickies [data-tick]'); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  const v = b.closest('[data-np-view]'), n = v && getNote(v.dataset.npView); if (!n) return;
+  const lines = n.text.replace(/\r\n?/g, '\n').split('\n'), i = +b.dataset.tick, m = lines[i] != null && lines[i].match(LE_TASK); if (!m) return;
+  lines[i] = m[1] + (m[2] === ' ' ? '[x]' : '[ ]') + lines[i].slice(m[0].length);
+  commit(m[2] === ' ' ? 'Check Off' : 'Uncheck', () => { n.text = lines.join('\n'); touch(n); }, { render: false });
+  npMirror(n, null);
+  const card = noteBox(v); if (card && card.classList.contains('np-card')) npMeasureFolds(card.parentElement);
+}, true);
 /* changes to the layout wait until a click that's under way has landed, so what you clicked
    doesn't move out from under the pointer */
 let npPtrDown = false;
@@ -415,7 +449,7 @@ function archiveNote(id, on) {
 /* the text selected in a note: in its text box while typing, or in the formatted note */
 function npSelected(id) {
   const a = document.activeElement;
-  if (a && a.dataset && a.dataset.npText === id && a.selectionStart !== a.selectionEnd) return a.value.slice(a.selectionStart, a.selectionEnd);
+  if (a && a.dataset && a.dataset.npText === id && a.classList.contains('le')) { const r = leGetSel(a); if (r && r.s !== r.e) return leText(a).slice(r.s, r.e); }
   const sel = window.getSelection();
   if (sel && !sel.isCollapsed && sel.anchorNode) {
     const node = sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement, v = node && node.closest('[data-np-view]');
@@ -473,7 +507,7 @@ function hideSticky(id) {
 }
 function stickyHTML(n) {
   return `<div class="np-st-h" title="Drag to move"><span class="np-st-t"></span><button class="ib" data-st="open" title="Show in the Notepad" aria-label="Show in the Notepad">${ic('notepad')}</button><button class="ib" data-st="close" title="Put it away (it stays in the Notepad)" aria-label="Close sticky">${ic('x')}</button></div>`
-    + `<div class="np-st-b"><div class="np-view md" data-np-view="${n.id}">${renderMarkdown(n.text, NP_MD)}</div><textarea class="np-text" data-np-text="${n.id}" data-fkey="sticky-${n.id}" aria-label="Sticky note" spellcheck="true" hidden>${esc(n.text)}</textarea></div>`
+    + `<div class="np-st-b"><div class="np-view md" data-np-view="${n.id}">${renderMarkdown(n.text, NP_MD)}</div>${npEditorHTML(n.id, 'sticky-' + n.id, 'Sticky note', null)}</div>`
     + ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'].map((d) => `<div class="np-rs ${d}" data-st-rs="${d}" aria-hidden="true"></div>`).join('');
 }
 function renderStickies() {
@@ -488,7 +522,7 @@ function renderStickies() {
     if (!el) { el = document.createElement('div'); el.className = 'np-sticky'; el.dataset.sticky = n.id; el.innerHTML = stickyHTML(n); el.dataset.v = n.modifiedAt; box.appendChild(el); }
     else if (+el.dataset.v !== n.modifiedAt && !el.classList.contains('editing')) {
       // changed somewhere else (the Notepad, another device)
-      $('[data-np-view]', el).innerHTML = renderMarkdown(n.text, NP_MD); $('textarea', el).value = n.text; el.dataset.v = n.modifiedAt;
+      $('[data-np-view]', el).innerHTML = renderMarkdown(n.text, NP_MD); el.dataset.v = n.modifiedAt;
     }
     if (!el.classList.contains('moving')) setGeom(el, npFit(s, NP_ST.minW, NP_ST.minH));
   });
