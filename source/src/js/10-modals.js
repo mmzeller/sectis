@@ -496,13 +496,20 @@ function openTagColor(tag, anchor, done) {
 }
 
 /* ---- Keyboard shortcuts ---- */
+/* one key to a chip, modifiers in the Mac's order (⌃ ⌥ ⇧ ⌘), each named when you point at it */
+const KEY_NAMES = { '⌘': 'Command', '⇧': 'Shift', '⌥': 'Option', '⌃': 'Control', '↑': 'Up Arrow', '↓': 'Down Arrow', '/': 'Slash', '#': 'Number Sign (⇧3)' };
 function openShortcuts() {
-  const k = (...keys) => keys.map((x) => `<kbd>${esc(x)}</kbd>`).join(' ');
+  const M = IS_MAC ? '⌘' : 'Ctrl', SH = IS_MAC ? '⇧' : 'Shift', OPT = IS_MAC ? '⌥' : 'Alt', CTL = IS_MAC ? '⌃' : 'Ctrl';
+  const chip = (x) => { const n = KEY_NAMES[x], sym = x.length === 1 && /[^A-Z0-9]/.test(x); return `<kbd${sym ? ' class="sym"' : ''}${n ? ` title="${n}" aria-label="${n}"` : ''}>${esc(x)}</kbd>`; };
+  const k = (...keys) => `<span class="sc-k">${keys.map(chip).join('')}</span>`;
+  const or = (...ks) => ks.join('<span class="sc-or">or</span>');
+  const pair = (a, b) => a + '<span class="sc-or">/</span>' + b;
   const rows = [
-    ['Create', [['New to-do', k('N') + ' or ' + k('Space')], ['New heading (in a project)', k('⇧', 'N')], ['Quick Entry', k('Q')], ['Quick Find', k('/') + ' or ' + k(MODK + 'F')]]],
-    ['Selected to-dos', [['Open', k('Return')], ['Complete', k('K') + ' or ' + k(MODK + 'K')], ['Cancel', k('⌥', 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Copy', k(MODK + 'C')], ['Paste after it', k(MODK + 'V')], ['Duplicate', k(MODK + 'D')], ['Move up / down', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Delete', k('⌫')]]],
-    ['Navigate', [['Next / previous to-do', k('↓') + ' ' + k('↑')], ['Extend selection', k('⇧', '↓')], ['Inbox … Trash, Board', k('1') + '–' + k('8')], ['Show or hide the sidebar', IS_MAC ? k('⌃', '⌘', 'S') : k('Ctrl', 'Alt', 'S')], ['Notepad', k('J')], ['Undo', k(MODK + 'Z')], ['Close / deselect', k('Esc')]]],
-    ['While editing', [['Save and close', k('Return') + ' or ' + k(MODK + '↩')], ['Complete', k(MODK + 'K')], ['When…', k(MODK + 'S')], ['Deadline…', k(MODK + '⇧', 'D')], ['Add checklist', k(MODK + '⇧', 'C')], ['Move checklist item', k(MODK + '↑') + ' ' + k(MODK + '↓')], ['Paste several lines', 'one to-do per line']]],
+    ['Create', [['New to-do', or(k('N'), k('Space'))], ['New heading (in a project)', k(SH, 'N')], ['Quick Entry', k('Q')], ['Quick Find', or(k('/'), k(M, 'F'))]]],
+    ['Selected to-dos', [['Open', k('Return')], ['Complete', or(k('K'), k(M, 'K'))], ['Cancel', k(OPT, 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Copy', k(M, 'C')], ['Paste after it', k(M, 'V')], ['Duplicate', k(M, 'D')], ['Move up / down', pair(k(M, '↑'), k(M, '↓'))], ['Delete', k('Delete')]]],
+    ['Navigate', [['Next / previous to-do', pair(k('↓'), k('↑'))], ['Extend selection', pair(k(SH, '↓'), k(SH, '↑'))], ['Inbox … Trash, Board', k('1') + '<span class="sc-or">to</span>' + k('8')], ['Show or hide the sidebar', IS_MAC ? k(CTL, M, 'S') : k('Ctrl', 'Alt', 'S')], ['Notepad', k('J')], ['Undo', k(M, 'Z')], ['Close / deselect', k('Esc')]]],
+    ['While editing a to-do', [['Save and close', or(k('Return'), k(M, 'Return'))], ['Complete', k(M, 'K')], ['When…', k(M, 'S')], ['Deadline…', k(SH, M, 'D')], ['Add checklist', k(SH, M, 'C')], ['Move checklist item', pair(k(M, '↑'), k(M, '↓'))], ['Paste lines as to-dos (one each)', k(M, 'V')]]],
+    ['In a note', [['Bold', k(M, 'B')], ['Italic', k(M, 'I')], ['Strikethrough', k(SH, M, 'X')], ['Code', k(M, 'E')], ['Link', k(M, 'K')], ['Checkbox, or tick it', k(SH, M, 'L')], ['Done, start a new note', k(M, 'Return')], ['Undo / redo', pair(k(M, 'Z'), k(SH, M, 'Z'))]]],
   ];
   openLayer({ modal: true, html: `<div class="modal-h"><h2>Keyboard Shortcuts</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b"><div class="sc-grid">${rows.map(([h, list]) => `<h4>${h}</h4>${list.map(([l, keys]) => `<div class="sc"><span>${l}</span><span>${keys}</span></div>`).join('')}`).join('')}</div></div>` });
 }
