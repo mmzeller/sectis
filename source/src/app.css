@@ -1059,6 +1059,20 @@ button.ucal-d:hover { border-color: var(--line-strong); }
 .tl-nav { display: inline-flex; align-items: center; gap: 2px; }
 .tl-today { padding: 4px 10px; font-size: 13px; }
 .tl-today.at { opacity: .55; }
+/* Custom: its start and end (buttons), and a slider that stretches the span as you drag it */
+.tl-custom { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; flex-basis: 100%; justify-content: flex-end; }
+.tl-custom.in-band { justify-content: flex-start; margin: 0 2px 8px 26px; }
+.tl-date { height: 28px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--card); color: var(--fg); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tl-date:hover { border-color: var(--accent); color: var(--accent); }
+.tl-dash { color: var(--muted); }
+.tl-slider { width: clamp(140px, 22vw, 260px); margin: 0 4px 0 10px; accent-color: var(--accent); cursor: ew-resize; }
+.tl-span-n { min-width: 64px; font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
+  .tl-custom { justify-content: flex-start; }
+  .tl-slider { flex: 1 1 80px; min-width: 0; width: auto; height: 28px; margin: 0 2px 0 6px; }
+  .tl-span-n { min-width: 0; }
+  .tl-date { height: 34px; padding: 0 9px; font-size: 14px; }
+}
 .tl-wrap { margin-top: 14px; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
 .tl-wrap.fits { overflow: visible; }
 .tl { position: relative; width: calc(var(--lw) + var(--dw) * var(--days)); font-size: 13px; }
