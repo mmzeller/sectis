@@ -47,9 +47,13 @@ let npStZ = 1;
 const getNote = (id) => (S.notes || []).find((n) => n.id === id);
 function normalizeNote(n) { return Object.assign({ type: 'note', text: '', ctx: null, pinned: false, archived: false, createdAt: 0, modifiedAt: 0 }, n); }
 const noteTitle = (n) => { const l = (n.text || '').split('\n').map((s) => s.trim()).find(Boolean); return l ? l.replace(/^(?:#{1,6}\s+|(?:[-*•+]|\d+[.)])\s+(?:\[[ xX]\]\s*)?)/, '').replace(/\*\*|__|`/g, '') : 'Empty Note'; };
-const viewKeyNow = () => (ui.view.id ? `${ui.view.type}:${ui.view.id}` : ui.view.type);
+/* the page you're on, as a note remembers it (a Board: which Board) */
+const viewKeyNow = () => (ui.view.type === 'board' && ui.boardId ? `board:${ui.boardId}` : ui.view.id ? `${ui.view.type}:${ui.view.id}` : ui.view.type);
+/* the page a note was written on. One written on a Board before notes knew which Board counts as
+   the Board you're on now */
+const noteKey = (n) => (n.ctx === 'board' && ui.boardId ? `board:${ui.boardId}` : n.ctx);
 const liveNotes = () => (S.notes || []).filter((n) => n.text.trim());
-const pageNoteCount = (key) => liveNotes().filter((n) => n.ctx === key && !n.archived).length;
+const pageNoteCount = (key) => liveNotes().filter((n) => noteKey(n) === key && !n.archived).length;
 /* the page a note was written on, as a label and icon (null once it's gone) */
 function noteCtx(key) {
   if (!key) return null;
@@ -58,6 +62,10 @@ function noteCtx(key) {
   if (type === 'area') { const a = getA(id); return a ? { label: aTitle(a), icon: placeColor(a) ? areaIc(a) : ic('area') } : null; }
   if (type === 'tag') { const t = getTag(id); return t ? { label: t.title, icon: ic('tag', 'tc-ic ' + tcls(t)) } : null; }
   if (type === 'smart') { const s = getSmart(id); return s ? { label: smartTitle(s), icon: `<span class="ic" style="color:var(--c-smart)">${I.funnel}</span>` } : null; }
+  if (type === 'board') { // by its name now; a Board on another Mac (Boards are each device's own) is just "Board"
+    const b = (ui.boards || []).find((x) => x.id === (id || ui.boardId));
+    return { label: (b && b.name) || 'Board', icon: `<span class="ic" style="color:var(--c-board)">${I.columns}</span>` };
+  }
   const L = LISTS[type]; return L ? { label: L.title, icon: `<span class="ic" style="color:${L.color}">${I[L.icon]}</span>` } : null;
 }
 function noteWhen(ms) {
@@ -137,7 +145,7 @@ function openNotepad(opts = {}) {
   ui.np.open = true; lsSet('sectis.np', '1');
   if (opts.focus) {
     ui.np.q = ''; const n = getNote(opts.focus);
-    if (n) { ui.np.arch = !!n.archived; if (ui.np.page && n.ctx !== viewKeyNow()) ui.np.page = false; }
+    if (n) { ui.np.arch = !!n.archived; if (ui.np.page && noteKey(n) !== viewKeyNow()) ui.np.page = false; }
   }
   ui.np.focus = opts.focus || (opts.write === false || ui.np.arch ? null : 'draft');
   applyNotepadMode(); renderNotepad();
@@ -163,12 +171,12 @@ function dropEmptyNotes(except) {
 
 /* ---- drawing it ---- */
 function noteCardHTML(n, o = {}) {
-  const editing = ui.np.editing === n.id, c = o.noCtx ? null : noteCtx(n.ctx);
+  const editing = ui.np.editing === n.id, key = noteKey(n), c = o.noCtx ? null : noteCtx(key);
   return `<div class="np-card${n.pinned && !n.archived ? ' pinned' : ''}${n.archived ? ' archived' : ''}" data-note="${n.id}">`
     + `<div class="np-view md" data-np-view="${n.id}"${editing ? ' hidden' : ''}>${editing ? '' : renderMarkdown(n.text, NP_MD)}</div>`
     + npEditorHTML(n.id, 'note-' + n.id, 'Note', editing ? n.text : null)
     + `<button class="np-more" data-np-fold="${n.id}" hidden>${ui.np.expanded.has(n.id) ? 'Show Less' : 'Show More'}</button>`
-    + `<div class="np-meta">${n.pinned && !n.archived ? `<span class="np-pin" title="Pinned">${ic('pin')}</span>` : ''}${n.archived && o.archTag ? `<span class="np-arch" title="Archived">${ic('archive')}</span>` : ''}${stickyOf(n.id) && !isMobile() ? `<span class="np-pin" title="Showing as a sticky">${ic('popout')}</span>` : ''}${c ? `<button class="np-ctx" data-nav="${esc(n.ctx)}" title="Written on ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : ''}<span class="np-time" title="${esc(new Date(n.modifiedAt || n.createdAt).toLocaleString())}">${esc(noteWhen(n.modifiedAt || n.createdAt))}</span><span class="spacer"></span>`
+    + `<div class="np-meta">${n.pinned && !n.archived ? `<span class="np-pin" title="Pinned">${ic('pin')}</span>` : ''}${n.archived && o.archTag ? `<span class="np-arch" title="Archived">${ic('archive')}</span>` : ''}${stickyOf(n.id) && !isMobile() ? `<span class="np-pin" title="Showing as a sticky">${ic('popout')}</span>` : ''}${c ? `<button class="np-ctx" data-nav="${esc(key)}" title="Written on ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : ''}<span class="np-time" title="${esc(new Date(n.modifiedAt || n.createdAt).toLocaleString())}">${esc(noteWhen(n.modifiedAt || n.createdAt))}</span><span class="spacer"></span>`
     + `<button class="np-todo" data-np-todo="${n.id}" title="Make a to-do of this note, or of the text you've selected in it">${ic('plus')}<span>To-Do</span></button><button class="ib" data-np-more="${n.id}" aria-label="More" title="More">${ic('more')}</button></div></div>`;
 }
 /* a note's live editor; text null: hidden and empty until you click into the note */
@@ -178,9 +186,9 @@ function notepadHTML() {
   const here = viewKeyNow(), herectx = noteCtx(here), arch = ui.np.arch;
   const words = ui.np.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const all = liveNotes(), match = (n) => words.every((w) => n.text.toLowerCase().includes(w));
-  const pageCount = all.filter((n) => n.ctx === here && !n.archived).length;
+  const pageCount = all.filter((n) => noteKey(n) === here && !n.archived).length;
   const newest = (a, b) => b.modifiedAt - a.modifiedAt, pinFirst = (a, b) => (b.pinned - a.pinned) || newest(a, b);
-  const onPage = (n) => !ui.np.page || n.ctx === here;
+  const onPage = (n) => !ui.np.page || noteKey(n) === here;
   let list, archHits = [];
   if (arch) list = all.filter((n) => n.archived && match(n)).sort(newest);
   else {
@@ -191,7 +199,7 @@ function notepadHTML() {
   if (ui.np.group && !ui.np.page && !arch && list.length) {
     // under the page each was written on: this page first, then the most recently written in
     const groups = new Map();
-    list.forEach((n) => { const k = noteCtx(n.ctx) ? n.ctx : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(n); });
+    list.forEach((n) => { const k = noteCtx(noteKey(n)) ? noteKey(n) : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(n); });
     const latest = (k) => Math.max(...groups.get(k).map((n) => n.modifiedAt));
     const keys = [...groups.keys()].sort((a, b) => (b === here) - (a === here) || (a === '') - (b === '') || latest(b) - latest(a));
     body = keys.map((k) => {
@@ -430,7 +438,7 @@ function noteMenu(n, el) {
     ...(lines > 1 ? [{ label: picked ? 'One To-Do per Selected Line' : 'One To-Do per Line', icon: 'checklist', hint: String(lines), fn: () => noteToTodos(n.id, picked) }] : []),
     { label: 'Copy Text', icon: 'copy', fn: () => { copyText(n.text).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy')); } },
     ...(isMobile() || n.archived ? [] : [stickyOf(n.id) ? { label: 'Hide Sticky', icon: 'popout', fn: () => hideSticky(n.id) } : { label: 'Show as Sticky', icon: 'popout', fn: () => showSticky(n.id) }]),
-    ...(hc && n.ctx !== here ? [{ label: `Move to ${hc.label}`, icon: 'move', fn: () => { commit('Move Note', () => { n.ctx = here; touch(n); }); renderNotepad(); } }] : []),
+    ...(hc && noteKey(n) !== here ? [{ label: `Move to ${hc.label}`, icon: 'move', fn: () => { commit('Move Note', () => { n.ctx = here; touch(n); }); renderNotepad(); } }] : []),
     { sep: 1 },
     n.archived
       ? { label: 'Move Out of Archive', icon: 'archive', fn: () => archiveNote(n.id, false) }
