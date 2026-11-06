@@ -211,41 +211,44 @@ function openTagPicker(ids, anchor, kind = 'item') {
   return L;
 }
 
-/* ---- Move picker ---- */
+/* ---- Move picker ----
+   To-dos go to the Inbox, an area or a project (sub-projects listed under theirs). Projects go to
+   an area, to no area, or inside another project; opts.areasOnly leaves the projects out. */
 function openMove(ids, anchor, opts = {}) {
   const items = itemsFor(ids);
   const projectsOnly = items.length && items.every((x) => x.type === 'project');
-  const headingMode = opts.heading;
   const cur = items[0] || {};
+  const check = `<span class="check">${ic('check')}</span>`;
   const build = (q = '') => {
     const ql = q.trim().toLowerCase(); const m = (s) => !ql || (s || '').toLowerCase().includes(ql);
     let out = '';
+    const prow = ({ p, depth }, extra) => `<button class="pick-i p${extra}"${depth && !ql ? ` style="--d:${Math.min(depth, 6)}"` : ''} data-to="project:${p.id}">${projIc(p, '', projectProgress(p).frac)}<span>${esc(pTitle(p))}${depth && ql ? `<small class="pick-in">${esc(projPath(parentOf(p)))}</small>` : ''}</span>`;
     if (projectsOnly) {
-      if (m('no area')) out += `<button class="pick-i" data-to="none">${ic('x')}<span>No Area</span>${!cur.areaId ? `<span class="check">${ic('check')}</span>` : ''}</button>`;
-      S.areas.slice().sort(byOrder).forEach((a) => { if (m(aTitle(a))) out += `<button class="pick-i a" data-to="area:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span>${cur.areaId === a.id ? `<span class="check">${ic('check')}</span>` : ''}</button>`; });
-      return out;
+      const curParent = parentOf(cur) ? cur.parentId : null;
+      const can = (p) => items.every((x) => canNestIn(x, p));
+      const rows = (areaId) => (opts.areasOnly ? [] : projTree(areaId)).filter((r) => can(r.p) && m(pTitle(r.p))).map((r) => prow(r, ' in') + (curParent === r.p.id ? check : '') + '</button>').join('');
+      if (m('no area')) out += `<button class="pick-i" data-to="none">${ic('x')}<span>No Area</span>${!curParent && !cur.areaId ? check : ''}</button>`;
+      out += rows(null);
+      S.areas.slice().sort(byOrder).forEach((a) => {
+        const pr = rows(a.id);
+        if (m(aTitle(a))) out += `<button class="pick-i a" data-to="area:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span>${!curParent && cur.areaId === a.id ? check : ''}</button>`;
+        else if (pr) out += `<div class="menu-h">${esc(aTitle(a))}</div>`;
+        out += pr;
+      });
+      return out || '<p class="note" style="padding:6px 10px">No matching places.</p>';
     }
-    const projRows = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.id !== opts.exclude && (p.areaId || null) === areaId).sort(byOrder).map((p) => {
-      let r = '';
-      const hs = opts.noHeadings ? [] : S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder);
-      const pm = m(pTitle(p)); const hm = hs.filter((h) => m(h.title) || pm);
-      if (pm || hm.length) {
-        r += `<button class="pick-i p${cur.projectId === p.id && !cur.headingId ? ' cur' : ''}" data-to="project:${p.id}">${projIc(p, '', projectProgress(p).frac)}<span>${esc(pTitle(p))}</span></button>`;
-        hm.forEach((h) => { r += `<button class="pick-i h${cur.headingId === h.id ? ' cur' : ''}" data-to="project:${p.id}:${h.id}"><span>${esc(h.title || 'New Heading')}</span></button>`; });
-      }
-      return r;
-    }).join('');
-    if (!headingMode && !opts.noInbox && m('inbox')) out += `<button class="pick-i inbox" data-to="inbox">${ic('inbox')}<span>Inbox</span></button>`;
+    const projRows = (areaId) => projTree(areaId).filter((r) => r.p.id !== opts.exclude && m(pTitle(r.p))).map((r) => prow(r, cur.projectId === r.p.id ? ' cur' : '') + '</button>').join('');
+    if (!opts.noInbox && m('inbox')) out += `<button class="pick-i inbox" data-to="inbox">${ic('inbox')}<span>Inbox</span></button>`;
     out += projRows(null);
     S.areas.slice().sort(byOrder).forEach((a) => {
       const pr = projRows(a.id);
-      if (!headingMode && m(aTitle(a))) out += `<button class="pick-i a" data-to="area:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span></button>`;
+      if (m(aTitle(a))) out += `<button class="pick-i a" data-to="area:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span></button>`;
       else if (pr) out += `<div class="menu-h">${esc(aTitle(a))}</div>`;
       out += pr;
     });
     return out || '<p class="note" style="padding:6px 10px">No matching lists.</p>';
   };
-  const L = openLayer({ anchor, cls: 'move-pop', html: `<div class="pk-h">${esc(opts.title || (headingMode ? 'Move Heading' : 'Move'))}</div><input class="pk-in" id="mv-in" placeholder="Find a list" autocomplete="off" aria-label="Find a list"><div class="pick-list" id="mv-list">${build()}</div>`,
+  const L = openLayer({ anchor, cls: 'move-pop', html: `<div class="pk-h">${esc(opts.title || 'Move')}</div><input class="pk-in" id="mv-in" placeholder="Find a list" autocomplete="off" aria-label="Find a list"><div class="pick-list" id="mv-list">${build()}</div>`,
     onMount: (el) => {
       const inp = $('#mv-in', el), list = $('#mv-list', el);
       const nav = listKeys(el, '.pick-i', inp);
@@ -253,9 +256,9 @@ function openMove(ids, anchor, opts = {}) {
       el.addEventListener('click', (e) => {
         const b = e.target.closest('[data-to]'); if (!b) return;
         closeLayer(L);
-        const [type, id, hid] = b.dataset.to.split(':');
-        if (opts.onPick) { opts.onPick({ type, id, headingId: hid || null }); return; }
-        moveItems(ids, { type, id, headingId: hid || null });
+        const [type, id] = b.dataset.to.split(':');
+        if (opts.onPick) { opts.onPick({ type, id }); return; }
+        moveItems(ids, { type, id });
       });
       if (!isCoarse()) inp.focus({ preventScroll: true });
     } });
@@ -287,7 +290,7 @@ function openRepeat(id, anchor) {
     <div class="rp-row"><span>Reminder</span><input type="time" id="rp-rem" value="${r.reminder || ''}" aria-label="Reminder time">${r.reminder ? `<button class="link-btn" data-rp-clear-rem="1">Remove</button>` : ''}<label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="rp-eve" ${r.evening ? 'checked' : ''}>This Evening</label></div>
     <div class="rp-row"><span>Ends</span><select id="rp-ends" aria-label="Ends"><option value="never" ${r.ends.type === 'never' ? 'selected' : ''}>Never</option><option value="on" ${r.ends.type === 'on' ? 'selected' : ''}>On date</option><option value="after" ${r.ends.type === 'after' ? 'selected' : ''}>After</option></select>
       ${r.ends.type === 'on' ? `<input type="date" id="rp-end-date" value="${r.ends.date || addDays(r.anchor, 90)}" aria-label="End date">` : ''}${r.ends.type === 'after' ? `<input type="number" id="rp-end-count" min="1" max="999" value="${r.ends.count || 10}" aria-label="Number of times"><span>times</span>` : ''}</div>
-    ${t.type === 'project' ? '<p class="note" style="margin:8px 0 0">Each copy is a new project with this project’s to-dos and headings, scheduled for its start date.</p>' : ''}
+    ${t.type === 'project' ? '<p class="note" style="margin:8px 0 0">Each copy is a new project with this project’s to-dos and sub-projects, scheduled for its start date.</p>' : ''}
     <div class="rp-prev"><b>${esc(ruleSummary(r))}</b><br>${prev.length ? (r.mode === 'after' ? 'First copy ' : 'Next: ') + prev.map((d) => esc(fmtDate(d, { weekday: true }))).join(' · ') : 'No dates match these settings.'}</div>`;
   };
   const L = openLayer({ modal: true, cls: 'narrow', html: `<div class="modal-h"><h2>Repeat</h2></div><div class="modal-b" id="rp-body">${body()}</div><div class="modal-f">${tpl ? `<button class="btn" data-rp="stop" style="margin-right:auto">Stop Repeating</button>` : ''}<button class="btn" data-rp="cancel">Cancel</button><button class="btn primary" data-rp="save">${tpl ? 'Save' : 'Repeat'}</button></div>`,

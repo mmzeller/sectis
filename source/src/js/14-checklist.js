@@ -16,7 +16,7 @@ function ckToTodo(todoId, ckId) {
     t.checklist.splice(i, 1); touch(t);
     const nt = makeTodo({
       title: c.title.trim(), start: t.start, when: t.when, evening: t.evening,
-      projectId: t.projectId, areaId: t.areaId, headingId: t.headingId, tags: t.tags.slice(),
+      projectId: t.projectId, areaId: t.areaId, tags: t.tags.slice(),
       status: c.done ? 'done' : 'open', completedAt: c.done ? Date.now() : null,
     });
     const after = S.todos.filter((x) => x !== t && !x.trashed && containerKey(x) === containerKey(t) && x.order > t.order);

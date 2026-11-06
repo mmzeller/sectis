@@ -1,7 +1,7 @@
 /* ===================== Menus wherever you'd look for one =====================
    Right-click (or Control-click) gives the menu that belongs to what's under the pointer:
    - a list's, project's or area's header → that list's, project's or area's menu
-   - a heading (in a list, or on the Board) → the heading's menu
+   - a project's sub-project (its row or its column) → that sub-project's menu, like any project's
    - a project or area named anywhere (Anytime's groups, the Timeline, a note's chip) → its menu
    - a repeating to-do's preview in Upcoming → its repeat menu
    - a day in Upcoming, or This Evening → New To-Do there, or Paste
@@ -10,16 +10,8 @@
    - a note in the Notepad → the note's menu; a tag in the tag bar → the tag's menu
    A text field that's being edited, or has text selected, keeps the system's menu (Copy, Paste,
    Spelling). Also: the circle by a project's name completes it, double-clicking a project, area
-   or smart list in the sidebar renames or edits it, and a heading can copy its to-dos. */
+   or smart list in the sidebar renames or edits it. */
 const LIST_SECS = { inbox: 'inbox', today: 'today', anytime: 'anytime:loose', someday: 'someday:loose' };
-/* the heading's open to-dos to copy, and Paste into it */
-function headingClipItems(h) {
-  const ids = S.todos.filter((t) => t.headingId === h.id && !t.trashed && !t.isTemplate && t.status === 'open').sort(byOrder).map((t) => t.id);
-  return [
-    ...(ids.length ? [{ label: ids.length > 1 ? `Copy ${ids.length} To-Dos` : 'Copy To-Do', icon: 'copy', fn: () => copyTodos(ids) }] : []),
-    ...pasteIntoItems(`project:${h.projectId}:${h.id}`),
-  ];
-}
 /* a built-in list in the sidebar */
 function listMenu(key, at) {
   const L = LISTS[key]; if (!L) return;
@@ -86,10 +78,8 @@ document.addEventListener('contextmenu', (e) => {
   if (note) return take(() => noteMenu(getNote(note.dataset.note), at));
   const tchip = t.closest('#content .tagbar .tchip[data-tag]');
   if (tchip && getTag(tchip.dataset.tag)) return take(() => tagChipMenu(getTag(tchip.dataset.tag), at));
-  const hr = t.closest('#content .hrow[data-heading]');
-  if (hr && getH(hr.dataset.heading)) return take(() => headingMenu(getH(hr.dataset.heading), at));
-  const sh = t.closest('#content .sub-h[data-zone^="project:"]');
-  if (sh) { const h = getH(sh.dataset.zone.split(':')[2]); if (h) return take(() => headingMenu(h, at)); }
+  const hc = t.closest('#content .hcol[data-hcol^="h:"] .bcol-h'); // a sub-project's column on its project's board
+  if (hc) { const b = hc.querySelector('[data-action="hcol-menu"]'); if (b) return take(() => hcolMenu(b)); }
   const ghost = t.closest('#content [data-tpl]');
   if (ghost && getT(ghost.dataset.tpl)) return take(() => todoMenu(ghost.dataset.tpl, at));
   const day = t.closest('#content .day-h[data-zone^="upcoming:"]:not(.month)');

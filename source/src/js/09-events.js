@@ -46,6 +46,8 @@ document.addEventListener('click', (e) => {
   }
   const sbt = e.target.closest('[data-sbtoggle]');
   if (sbt) { e.preventDefault(); toggleSidebarArea(sbt.dataset.sbtoggle, e.altKey); return; }
+  const sbp = e.target.closest('[data-sbptoggle]');
+  if (sbp) { e.preventDefault(); toggleSidebarProject(sbp.dataset.sbptoggle, e.altKey); return; }
   const nv = e.target.closest('.notes-view');
   if (nv) { if (!e.target.closest('a')) { e.preventDefault(); showNotesEditor(nv.dataset.notesFor, true); } return; }
   if (a) { if (!(inLayer && !a.closest('.tpl-modal'))) handleAction(a.dataset.action, a, e); else if (a.dataset.action === 'close-layer') closeLayer(); return; }
@@ -94,13 +96,16 @@ function handleAction(act, el, e) {
     case 'todo-menu': todoMenu(id, el); return;
     case 'proj-menu': projectMenu(getP(id), el, batchMenuItems(el)); return;
     case 'area-menu': areaMenu(getA(id), el, batchMenuItems(el)); return;
-    case 'heading-menu': headingMenu(getH(id), el); return;
     case 'view-menu': viewMenu(el); return;
     case 'reopen-project': reopenProject(getP(id)); return;
     case 'completed-date': openCompletedDate(ui.sel.has(id) && ui.sel.size > 1 ? selectedIds() : [id], el); return;
     case 'toggle-expand': {
-      const on = !ui.expanded.has(id);
-      if (e.altKey && ui.view.type === 'area') setExpanded(areaProjectIds(ui.view.id), on); else setExpanded([id], on);
+      const p = getP(id); if (!p) return;
+      const on = !isExpanded(p);
+      // ⌥-click: every project beside it (an area's, or the sub-projects of the project it's in)
+      if (e.altKey && parentOf(p)) setExpanded(childProjects(parentOf(p)).map((q) => q.id), on);
+      else if (e.altKey && ui.view.type === 'area') setExpanded(areaProjectIds(ui.view.id), on);
+      else setExpanded([id], on);
       return;
     }
     case 'ck-expand': {
@@ -121,9 +126,8 @@ function handleAction(act, el, e) {
     case 'stop-waiting': stopWaiting([id]); return;
     case 'proj-board': setProjectBoard(id, !ui.projBoard.has(id)); return;
     case 'hcol-menu': hcolMenu(el); return;
-    case 'hcol-new': newHeading(id); return;
-    case 'hcol-new-below': newHeading(el.dataset.pid, { after: el.dataset.col }); return;
-    case 'heading-add': { const h = getH(id); if (h) newTodo({ sec: `project:${h.projectId}:${h.id}` }); return; }
+    case 'hcol-new': newSubProject(id); return;
+    case 'hcol-new-below': { const c = el.dataset.col || ''; newSubProject(el.dataset.pid, c.startsWith('h:') ? { after: c.slice(2), stack: true } : { first: true, stack: true }); return; }
     case 'use-ptemplate': newProjectFromTemplate(id); return;
     case 'use-ttemplate': openAddTodoTemplateTo(id, el); return;
     case 'delete-template': deleteTemplate(id); return;
@@ -132,6 +136,8 @@ function handleAction(act, el, e) {
     case 'bcol-menu': boardColMenu(el.dataset.col, el); return;
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
     case 'collapse-all': setExpanded(areaProjectIds(id), false); return;
+    case 'expand-subs': setExpanded(subProjectIds(getP(id)), true); return;
+    case 'collapse-subs': setExpanded(subProjectIds(getP(id)), false); return;
     case 'reveal': revealTodo(id); return;
     case 'toggle-logged': toggleLogged(id); return;
     case 'toggle-later': ui.laterOpen[id] = !ui.laterOpen[id]; render(); return;
@@ -204,8 +210,7 @@ function todoMenu(id, el) {
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
     items.push(...checklistMenuItems([id]));
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
-    items.push({ label: 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
-    if (canBeHeading(t)) items.push({ label: 'Convert to Heading', icon: 'heading', fn: () => convertToHeading([id]) });
+    items.push({ label: t.projectId && getP(t.projectId) ? 'Convert to Sub-Project' : 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
     items.push({ label: 'Save as Template', icon: 'template', fn: () => saveTodoAsTemplate(t) });
     items.push({ sep: 1 });
     if (!t.logged && !t.trashed) items.push({ label: t.status === 'open' ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', fn: () => logItems([id]) });
@@ -223,8 +228,8 @@ function projectMenu(p, el, extra = []) {
   if (p.blueprint && !p.trashed) {
     items.push({ label: 'New Project from Template', icon: 'project', fn: () => newProjectFromTemplate(p.id) });
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
-    items.push({ label: 'Default Area…', icon: 'area', fn: () => openMove([p.id], el, { title: 'Default Area', onPick: (tg) => commit('Default Area', () => { p.bpAreaId = tg.type === 'area' ? tg.id : null; touch(p); }) }) });
-    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id) && !$(`#content .bcol[data-col="p:${p.id}"]`)) navigate('project:' + p.id); newHeading(p.id); } }); // on a Board with the project's column, it's added there
+    items.push({ label: 'Default Area…', icon: 'area', fn: () => openMove([p.id], el, { title: 'Default Area', areasOnly: true, onPick: (tg) => commit('Default Area', () => { p.bpAreaId = tg.type === 'area' ? tg.id : null; touch(p); }) }) });
+    items.push({ label: 'New Sub-Project', icon: 'project', hint: '⇧N', fn: () => newSubProject(p.id) });
     items.push({ label: 'All Templates', icon: 'template', fn: () => navigate('templates') });
     items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(p.id) });
     openMenu(el, items); return;
@@ -232,8 +237,8 @@ function projectMenu(p, el, extra = []) {
   if (p.isTemplate && !p.trashed) {
     items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
-    items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
-    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => newHeading(p.id) });
+    items.push({ label: 'Move…', icon: 'move', fn: () => openMove([p.id], el) });
+    items.push({ label: 'New Sub-Project', icon: 'project', hint: '⇧N', fn: () => newSubProject(p.id) });
     items.push({ sep: 1 }, { label: 'Stop Repeating', icon: 'x', fn: () => stopRepeating(p.id) });
     items.push({ label: 'Delete Project', icon: 'trash', danger: true, fn: () => trashItems([p.id]) });
     openMenu(el, items); return;
@@ -246,11 +251,11 @@ function projectMenu(p, el, extra = []) {
     items.push(priorityMenuItem([p.id], el, ''));
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
     items.push(colorMenuItem('p', p, el));
-    items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
-    items.push({ label: 'Move Into Project…', icon: 'heading', fn: () => openMove([], el, { heading: true, noHeadings: true, exclude: p.id, title: `Make “${pTitle(p)}” a Heading In`, onPick: (t) => { if (t.type === 'project') projectToHeading(p, t.id); } }) });
-    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id) && !$(`#content .bcol[data-col="p:${p.id}"]`)) navigate('project:' + p.id); newHeading(p.id); } }); // on a Board with the project's column, it's added there
+    items.push({ label: 'Move…', icon: 'move', hint: isColMenu(extra) ? '' : 'M', fn: () => openMove([p.id], el) });
+    if (parentOf(p)) items.push({ label: `Move Out of “${pTitle(parentOf(p))}”`, icon: 'chevL', fn: () => moveProjectOut(p) });
+    items.push({ label: 'New Sub-Project', icon: 'project', hint: '⇧N', fn: () => newSubProject(p.id) });
     items.push(...boardMenuItems('p', p.id, isColMenu(extra), el));
-    if (!isMobile()) items.push({ label: ui.projBoard.has(p.id) ? 'Show as List' : 'Show Headings as Board', icon: 'columns', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); setProjectBoard(p.id, !ui.projBoard.has(p.id)); } });
+    if (!isMobile()) items.push({ label: ui.projBoard.has(p.id) ? 'Show as List' : 'Show Sub-Projects as Board', icon: 'columns', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); setProjectBoard(p.id, !ui.projBoard.has(p.id)); } });
     if (ui.view.type === 'project' && ui.view.id === p.id && !isColMenu(extra)) items.push(sortMenuItem(el));
     items.push({ label: 'Add To-Do from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['todo'], sec: `project:${p.id}:` }) });
     items.push({ label: 'Save as Template', icon: 'template', fn: () => saveProjectAsTemplate(p) });
@@ -295,25 +300,6 @@ function areaMenu(a, el, extra = []) {
     { sep: 1 }, { label: 'Delete Area…', icon: 'trash', danger: true, fn: () => deleteArea(a) },
   ]);
 }
-function headingMenu(h, el, extra = []) {
-  if (!h) return;
-  const hs = S.headings.filter((x) => x.projectId === h.projectId && !x.archived).sort(byOrder), i = hs.indexOf(h);
-  const moves = extra.length ? [] : [ // the list's own; the board's column menu has its own moves
-    { label: 'Move Up', icon: 'chevU', hint: MODK + '↑', disabled: i <= 0, fn: () => moveHeadingCol(h, -1) },
-    { label: 'Move Down', icon: 'chevD', hint: MODK + '↓', disabled: i < 0 || i >= hs.length - 1, fn: () => moveHeadingCol(h, 1) },
-    { sep: 1 },
-  ];
-  openMenu(el, [
-    ...moves,
-    ...extra,
-    ...headingClipItems(h),
-    { label: 'New To-Do Here', icon: 'plus', fn: () => { const sec = `project:${h.projectId}:${h.id}`; const first = S.todos.filter((t) => t.headingId === h.id && !t.trashed).sort(byOrder)[0]; newTodo({ sec, place: { order: first ? first.order - 1 : 0 } }); } },
-    { label: 'Move to Project…', icon: 'move', fn: () => openMove([], el, { heading: true, onPick: (t) => { if (t.type === 'project') moveHeading(h, t.id); } }) },
-    { label: 'Convert to Project', icon: 'project', fn: () => headingToProject(h) },
-    { label: 'Archive', icon: 'archive', fn: () => archiveHeading(h) },
-    { sep: 1 }, { label: 'Delete Heading', icon: 'trash', danger: true, fn: () => deleteHeading(h) },
-  ]);
-}
 function selectModeItem() { return { label: 'Select To-Dos', icon: 'select', fn: () => { closeEditor({ noRender: true }); ui.selectMode = true; ui.sel.clear(); render(); } }; }
 /* actions for several selected to-dos: the bar at the bottom, the ••• menu and right-click all offer them */
 function batchMenuItems(anchor) {
@@ -336,7 +322,6 @@ function batchMenuItems(anchor) {
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: loggable.some((x) => x.status === 'open') ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', disabled: !loggable.length, fn: () => { logItems(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: 'Delete', icon: 'trash', danger: true, fn: () => { trashItems(ids); ui.selectMode = false; render(); } },
-    ...(todos.length === n && todos.every((x) => canBeHeading(getT(x))) ? [{ label: 'Convert to Headings', icon: 'heading', fn: () => { convertToHeading(ids); close(); } }] : []),
     ...checklistMenuItems(ids).map((it) => Object.assign(it, { fn: ((f) => () => { f(); close(); })(it.fn) })),
     { label: 'Share…', icon: 'share', fn: () => openShare({ type: 'items', ids }) },
     { label: 'Clear Selection', icon: 'x', fn: () => { ui.sel.clear(); ui.selectMode = false; render(); } },
@@ -445,8 +430,6 @@ document.addEventListener('input', (e) => {
     if (f === 'project-notes') autosize(el); else { renderSidebar(); renderShell(); }
   } else if (f === 'area-title') {
     const a = getA(id); if (!a) return; editSnap(f + id); a.title = el.value; renderSidebar(); renderShell();
-  } else if (f === 'heading-title') {
-    const h = getH(id); if (!h) return; editSnap(f + id); h.title = el.value;
   } else if (f === 'board-name') { renameBoardTo(el.value); fitBoardName(el); autosize(el); return; // a Board's name lives on this device, not in the synced data
   } else return;
   saveSoon();
@@ -491,17 +474,6 @@ function fieldKeys(e) {
     if (e.key === 'Backspace' && !el.value) { const t = getT(id); if (!t.checklist.length) { e.preventDefault(); ui.ckOpen = null; ui.focusAfter = `[data-fkey="notes-${id}"]`; render(); } return true; }
   }
   if (f === 'project-title' && e.key === 'Enter') { e.preventDefault(); if ($('[data-fkey="pnotes"]')) showNotesEditor('pnotes', false); return true; }
-  if (f === 'heading-title') {
-    const h = getH(id); if (!h) return false;
-    if (mod && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) { e.preventDefault(); ui.focusAfter = `[data-fkey="h-${id}"]`; moveHeadingCol(h, e.key === 'ArrowUp' ? -1 : 1); return true; }
-    if (e.key === 'Enter') {
-      e.preventDefault(); el.blur();
-      // a heading just named, with nothing under it yet: carry straight on with its first to-do
-      const p = getP(h.projectId), empty = !S.todos.some((t) => t.headingId === h.id && !t.trashed && t.status === 'open');
-      if (empty && h.title.trim() && p && p.status === 'open' && !p.trashed) newTodo({ sec: `project:${h.projectId}:${h.id}` });
-      return true;
-    }
-  }
   if ((f === 'area-title' || f === 'board-name') && e.key === 'Enter') { e.preventDefault(); el.blur(); return true; }
   return false;
 }
@@ -535,7 +507,12 @@ document.addEventListener('keydown', (e) => {
   if (mod && e.code === 'KeyK') { e.preventDefault(); if (one.length) completeOrToggle(one, e.altKey); return; }
   if (mod && e.code === 'KeyS') { e.preventDefault(); if (one.length) openWhen(one, anchorFor(one[0])); return; }
   if (mod && e.code === 'KeyD') { e.preventDefault(); if (todosSel.length) duplicateItems(todosSel); return; }
-  if ((mod || e.altKey) && (k === 'ArrowUp' || k === 'ArrowDown')) { e.preventDefault(); nudge(todosSel, k === 'ArrowUp' ? -1 : 1); return; }
+  if ((mod || e.altKey) && (k === 'ArrowUp' || k === 'ArrowDown')) {
+    e.preventDefault();
+    const sp = one.length === 1 && getP(one[0]);
+    if (sp && parentOf(sp)) moveSubProject(sp, k === 'ArrowUp' ? -1 : 1); else nudge(todosSel, k === 'ArrowUp' ? -1 : 1);
+    return;
+  }
   if (e.altKey && !mod && /^Digit[1-8]$/.test(e.code)) { e.preventDefault(); navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+e.code.slice(5) - 1]); return; }
   if (e.altKey && !mod && e.code === 'KeyK') { e.preventDefault(); if (one.length) completeOrToggle(one, true); return; }
   if (mod || e.altKey) return;
@@ -547,7 +524,10 @@ document.addEventListener('keydown', (e) => {
     case '?': e.preventDefault(); openShortcuts(); return;
     case ' ': case 'n':
       e.preventDefault();
-      if (e.shiftKey && ui.view.type === 'project') { newHeading(ui.view.id); return; }
+      if (e.shiftKey) { // ⇧N: a sub-project in the project you're in (or the one selected)
+        const pid = ui.view.type === 'project' ? ui.view.id : sel.length === 1 && getP(sel[0]) ? sel[0] : null;
+        if (pid) { newSubProject(pid); return; }
+      }
       newTodo(); return;
     case 'Enter': if (sel.length === 1 && getT(sel[0])) { e.preventDefault(); openEditor(sel[0], { focus: 'title' }); } else if (sel.length === 1 && getP(sel[0])) navigate('project:' + sel[0]); return;
     case 'ArrowDown': case 'ArrowUp': e.preventDefault(); moveSelection(k === 'ArrowDown' ? 1 : -1, e.shiftKey); return;

@@ -76,12 +76,18 @@ function timelineData(r, tagged = true) {
   [null, ...S.areas.slice().sort(byOrder)].forEach((a) => {
     const aid = a ? a.id : null;
     const own = todos.filter((e) => !e.x.projectId && (e.x.areaId || null) === aid).sort(tlSort);
-    const projs = S.projects.filter((p) => liveProject(p) && (p.areaId || null) === aid && inFocus(p)).map((p) => {
+    // each project in date order, with its sub-projects right after it (also in date order)
+    const group = (p) => {
       const kids = todos.filter((e) => e.x.projectId === p.id).sort(tlSort);
       const pe = keep(p) ? tlEntry(p, r) : null;
-      if (!pe && !kids.length) return null;
-      return { p, pe, kids, key: pe ? pe.b : kids[0].b };
-    }).filter(Boolean).sort((x, y) => (x.key < y.key ? -1 : x.key > y.key ? 1 : byOrder(x.p, y.p)));
+      const subs = childProjects(p).filter(liveProject).map(group).filter(Boolean);
+      if (!pe && !kids.length && !subs.length) return null;
+      const key = pe ? pe.b : kids.length ? kids[0].b : subs[0].key;
+      return { p, pe, kids, key, subs, label: isSub(p) ? projPath(p) : pTitle(p) };
+    };
+    const order = (list) => list.sort((x, y) => (x.key < y.key ? -1 : x.key > y.key ? 1 : byOrder(x.p, y.p)));
+    const flat = (list) => [].concat(...order(list).map((g) => [g, ...flat(g.subs)]));
+    const projs = flat(S.projects.filter((p) => liveProject(p) && inArea(p, aid) && inFocus(p)).map(group).filter(Boolean)).filter((g) => g.pe || g.kids.length);
     if (own.length || projs.length) groups.push({ a, own, projs });
   });
   return groups;
@@ -245,7 +251,7 @@ function viewTimeline() {
     g.projs.forEach((pg) => {
       const pk = 'p:' + pg.p.id, canFold = ui.tl.kids && pg.kids.length > 0, pFold = canFold && ui.tl.fold.has(pk);
       const t = (pg.pe ? track(pg.pe) : '') + (pFold ? tlTicksHTML(pg.kids, r, L, 'to-do') : '');
-      rows += `<div class="tl-row tl-proj${pg.p.status !== 'open' ? ' done' : ''}${pFold ? ' folded' : ''}" data-tlid="${pg.p.id}"><div class="tl-lab">${tlFoldHTML(pk, pTitle(pg.p), canFold)}${projIc(pg.p, 'tl-ic')}<button class="tl-name" data-tl-open="${pg.p.id}" title="${esc(pTitle(pg.p))}">${esc(pTitle(pg.p))}</button></div><div class="tl-track">${t}</div></div>`;
+      rows += `<div class="tl-row tl-proj${pg.p.status !== 'open' ? ' done' : ''}${pFold ? ' folded' : ''}" data-tlid="${pg.p.id}"><div class="tl-lab">${tlFoldHTML(pk, pg.label, canFold)}${projIc(pg.p, 'tl-ic')}<button class="tl-name" data-tl-open="${pg.p.id}" title="${esc(pg.label)}">${esc(pg.label)}</button></div><div class="tl-track">${t}</div></div>`;
       if (ui.tl.kids && !pFold) pg.kids.forEach((e) => { rows += row(e, 'tl-todo kid', 1); });
     });
   });
@@ -412,7 +418,7 @@ function tlDayMenu(tr, e) {
   } else if (x) {
     items.push({ header: tlShort(tlName(x), 40) });
     if (x.status === 'open' && x.deadline !== day) items.push({ label: x.deadline ? `Move Its Deadline to ${d}` : `Deadline ${d}`, icon: 'flag', fn: () => tlSetDeadline(x, day) });
-    items.push(newDue(x.projectId ? { projectId: x.projectId, headingId: x.headingId || null, start: 'anytime' } : x.areaId ? { areaId: x.areaId, start: 'anytime' } : { start: 'inbox' })); // beside it, in the same place
+    items.push(newDue(x.projectId ? { projectId: x.projectId, start: 'anytime' } : x.areaId ? { areaId: x.areaId, start: 'anytime' } : { start: 'inbox' })); // beside it, in the same place
   } else {
     const [t, a, b] = add.split(':');
     if (t === 'a') { const ar = a && getA(a); items.push({ header: ar ? aTitle(ar) : 'No Area' }, newDue(ar ? { areaId: a, start: 'anytime' } : { start: 'inbox' })); }
@@ -540,7 +546,9 @@ function boardTimelineRows(r) {
   const entries = (list) => list.map((t) => tlEntry(t, r)).filter(Boolean).sort(tlSort);
   const addProject = (p) => {
     if (!p || seen.has(p.id) || !liveProject(p)) return; seen.add(p.id);
-    const pe = tlEntry(p, r), kids = entries(S.todos.filter((t) => t.projectId === p.id && live(t)));
+    // a Board column holds the project and everything in it, its sub-projects' to-dos and dates too
+    const subs = projDescendants(p).filter(liveProject), inside = new Set([p.id, ...subs.map((q) => q.id)]);
+    const pe = tlEntry(p, r), kids = entries(S.todos.filter((t) => inside.has(t.projectId) && live(t)).concat(subs));
     if (pe || kids.length) rows.push({ x: p, k: 'p:' + p.id, label: pTitle(p), icon: projIc(p, 'tl-ic'), open: `data-tl-open="${p.id}"`, main: pe, kids, key: pe ? pe.b : kids[0].b });
   };
   boardCols().forEach((c) => {
@@ -549,7 +557,7 @@ function boardTimelineRows(r) {
       const a = getA(c.id); if (!a) return;
       const own = entries(S.todos.filter((t) => t.areaId === a.id && !t.projectId && live(t)));
       if (own.length) rows.push({ x: null, k: 'ba:' + a.id, add: 'a:' + a.id, label: aTitle(a), icon: placeColor(a) ? areaIc(a, 'tl-ic') : ic('area', 'tl-ic'), open: `data-nav="area:${a.id}"`, main: null, kids: own, key: own[0].b });
-      S.projects.filter((p) => p.areaId === a.id && liveProject(p)).sort(byOrder).forEach(addProject);
+      S.projects.filter((p) => inArea(p, a.id) && liveProject(p)).sort(byOrder).forEach(addProject);
     } else {
       const items = entries(S.todos.filter((t) => live(t) && t.deadline && colHas(c, t)));
       if (items.length) rows.push({ x: null, k: `bc:${c.t}:${c.id}`, add: `c:${c.t}:${c.id}`, label: colName(c.t, c.id), icon: c.t === 'l' ? `<span class="ic tl-ic" style="color:${LISTS[c.id].color}">${I[LISTS[c.id].icon]}</span>` : c.t === 't' ? ic('tag', 'tl-ic tc-ic ' + tcls(getTag(c.id))) : `<span class="ic tl-ic" style="color:var(--c-smart)">${I.funnel}</span>`, open: `data-nav="${c.t === 'l' ? c.id : (c.t === 't' ? 'tag:' : 'smart:') + c.id}"`, main: null, kids: items, key: items[0].b });

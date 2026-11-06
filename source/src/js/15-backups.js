@@ -3,7 +3,7 @@
    plus a copy before big changes such as importing or restoring. */
 const BK_INDEX = 'backups:index';
 const bk = { lastDay: null, running: false };
-const BK_LABELS = { daily: 'Daily', import: 'Before import', erase: 'Before erasing', restore: 'Before restoring a backup', join: 'Before joining sync' };
+const BK_LABELS = { daily: 'Daily', import: 'Before import', erase: 'Before erasing', restore: 'Before restoring a backup', join: 'Before joining sync', convert: 'Before headings became sub-projects' };
 function backupsSupported() { return 'indexedDB' in window; }
 function hasRealData() { return S.todos.some((t) => !t.sample && !t.isDraft) || S.projects.some((p) => !p.sample) || S.areas.some((a) => !a.sample); }
 function backupCounts(data) {
@@ -12,12 +12,12 @@ function backupCounts(data) {
     projects: (data.projects || []).filter((p) => !p.trashed && !p.isTemplate && p.status === 'open').length,
   };
 }
-async function makeBackup(reason = 'daily') {
+async function makeBackup(reason = 'daily', raw = null) {
   if (!backupsSupported()) return false;
   try {
     const list = (await idbGet(BK_INDEX)) || [];
-    const snap = { schema: S.schema, savedAt: S.savedAt, todos: S.todos.filter((t) => !t.isDraft), projects: S.projects, headings: S.headings, areas: S.areas, tags: S.tags };
-    const data = JSON.stringify(snap);
+    const snap = raw ? JSON.parse(raw) : { schema: S.schema, savedAt: S.savedAt, todos: S.todos.filter((t) => !t.isDraft), projects: S.projects, headings: S.headings, areas: S.areas, tags: S.tags };
+    const data = raw || JSON.stringify(snap);
     const key = 'backup:' + Date.now();
     await idbSet(key, data);
     list.unshift({ key, at: Date.now(), day: T0(), reason, counts: backupCounts(snap), size: data.length });
@@ -29,6 +29,8 @@ async function makeBackup(reason = 'daily') {
     return true;
   } catch (e) { return false; }
 }
+/* a copy of data as it was stored (before it was changed on loading) */
+function backupRaw(raw, reason) { try { JSON.parse(raw); } catch (e) { return Promise.resolve(false); } return makeBackup(reason, raw); }
 async function dailyBackup() {
   if (bk.running || bk.lastDay === T0() || !backupsSupported() || !S || !hasRealData()) return;
   bk.running = true;

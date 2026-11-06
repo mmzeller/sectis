@@ -1,24 +1,23 @@
 /* ===================== Moving board columns (Mac) =====================
-   Drag a column by its title bar, or by the grip along its top edge; a heading column's name
-   drags too, until you click into it to rename it. Drop it in a stack, above, between or below
-   the columns there (the empty space under a short stack counts as its bottom), or near a
-   stack's left or right edge for a new stack there. On the Board that changes the layout; on a
-   project's headings board it also puts the heading in its new place in the project. */
+   Drag a column by its title bar, or by the grip along its top edge. Drop it in a stack, above,
+   between or below the columns there (the empty space under a short stack counts as its
+   bottom), or near a stack's left or right edge for a new stack there. On the Board that changes
+   the layout; on a project's sub-projects board it also puts the sub-project in its new place in
+   the project. */
 const CD = { st: null };
 function colDragFrom(target) {
   if (!target.closest || layers.length || D.st || CD.st || isCoarse() || ui.selectMode) return null;
   const grip = target.closest('#content .bcol-grip');
   const head = !grip && target.closest('#content .bcol-h');
   if (!grip && !head) return null;
-  let soft = false; // pressing a heading's name: let the press focus it as usual, unless it turns into a drag
+  let soft = false;
   if (head) {
     if (head.querySelector('.rename-in') || target.closest('.ib, input, select')) return null; // buttons, a rename in progress
-    const ta = target.closest('textarea');
-    if (ta) { if (!ta.matches('.bcol-htitle') || document.activeElement === ta) return null; soft = true; }
+    if (target.closest('textarea')) return null;
   }
   const col = (grip || head).closest('.bcol'), board = col && col.closest('.bstacks');
   const key = col && (col.dataset.col || col.dataset.hcol);
-  if (!board || !key || key.startsWith('n:')) return null; // No Heading stays put
+  if (!board || !key || key.startsWith('n:')) return null; // a project's own to-dos stay first
   return { kind: board.dataset.kind, key, soft };
 }
 document.addEventListener('pointerdown', (e) => {
@@ -42,14 +41,13 @@ const boardSel = (st) => `#content .bstacks[data-kind="${st.kind}"]`;
 const colSel = (st) => `${boardSel(st)} .bcol[data-col="${CSS.escape(st.key)}"], ${boardSel(st)} .bcol[data-hcol="${CSS.escape(st.key)}"]`;
 function colDragLabel(st) {
   if (st.kind === 'board') { const [t, id] = st.key.split(':'); return colName(t, id); }
-  const h = getH(st.key.slice(2)); return (h && h.title) || 'Untitled heading';
+  return pTitle(getP(st.key.slice(2)));
 }
 function colDragStart() {
   const st = CD.st; st.active = true;
-  const a = document.activeElement; if (a && a.matches && a.matches('.bcol-htitle')) a.blur(); // the press focused the name; this is a drag
   document.body.classList.add('col-dragging');
   const g = document.createElement('div'); g.className = 'drag-ghost';
-  g.innerHTML = `${ic(st.kind === 'board' ? 'columns' : 'heading')}<span>${esc(colDragLabel(st))}</span>`;
+  g.innerHTML = `${ic(st.kind === 'board' ? 'columns' : 'project')}<span>${esc(colDragLabel(st))}</span>`;
   document.body.append(g); st.ghost = g;
   const m = document.createElement('div'); m.className = 'col-drop'; m.hidden = true; document.body.append(m); st.mark = m;
   if (window.getSelection) window.getSelection().removeAllRanges();

@@ -1,5 +1,5 @@
 /* ===================== Templates =====================
-   A template is a hidden project (with its headings and to-dos) or a hidden to-do (with its
+   A template is a hidden project (with its to-dos and sub-projects) or a hidden to-do (with its
    checklist) that you copy whenever you need a fresh one. They're stored like repeating
    templates (isTemplate) with blueprint: true and no repeat rule, so they sync like anything
    else and stay out of every list. A project template remembers a default area (bpAreaId). */
@@ -8,21 +8,21 @@ function projectBlueprints() { return S.projects.filter((p) => isBlueprint(p) &&
 function todoBlueprints() { return S.todos.filter((t) => isBlueprint(t) && !t.trashed).sort((a, b) => (a.title || 'New To-Do').localeCompare(b.title || 'New To-Do')); }
 const freshChecklist = (list) => (list || []).map((c) => ({ id: uid(), title: c.title, done: false }));
 
-/* copy a project's headings and to-dos into another project */
-function copyProjectContents(from, to, opts = {}) {
-  const hmap = {};
-  S.headings.filter((h) => h.projectId === from.id && !h.archived).sort(byOrder).forEach((h) => {
-    const nh = { id: uid(), projectId: to.id, title: h.title, order: h.order, archived: false };
-    hmap[h.id] = nh.id; S.headings.push(nh); idx.heading.set(nh.id, nh);
-  });
+/* copy a project's to-dos and sub-projects (with theirs) into another project */
+function copyProjectContents(from, to, opts = {}, seen = new Set([from.id])) {
   S.todos.filter((c) => c.projectId === from.id && !c.trashed && !c.isTemplate && !c.isDraft && (opts.all || c.status === 'open')).sort(byOrder).forEach((c) => {
     const t = makeTodo({
       title: c.title, notes: c.notes, tags: c.tags.slice(), priority: c.priority || 0, checklist: freshChecklist(c.checklist),
-      projectId: to.id, headingId: c.headingId ? hmap[c.headingId] || null : null,
-      start: c.start === 'someday' ? 'someday' : 'anytime', order: c.order, todayOrder: todayTop(),
+      projectId: to.id, start: c.start === 'someday' ? 'someday' : 'anytime', order: c.order, todayOrder: todayTop(),
     });
     S.todos.push(t); idx.todo.set(t.id, t);
-    if (!to.isTemplate) retag(t, new Set());
+    if (!to.isTemplate && !isTplChild(t)) retag(t, new Set());
+  });
+  childProjects(from).filter((q) => !q.trashed && !q.isTemplate && !seen.has(q.id) && (opts.all || q.status === 'open')).sort(byOrder).forEach((q) => {
+    seen.add(q.id);
+    const c = makeProject({ title: q.title, notes: q.notes, tags: q.tags.slice(), priority: q.priority || 0, parentId: to.id, start: q.start === 'someday' ? 'someday' : 'anytime', order: q.order });
+    S.projects.push(c); idx.project.set(c.id, c);
+    copyProjectContents(q, c, opts, seen);
   });
 }
 function saveProjectAsTemplate(p) {
@@ -68,12 +68,12 @@ function newProjectFromTemplate(id, areaId) {
   toast(`Made a project from “${pTitle(bp)}”. Give it a new name if you like.`, { undo: true });
   return p;
 }
-/* target: a Move-picker target ({type, id, headingId}), or { sec } for a section, or nothing for the current list */
+/* target: a Move-picker target ({type, id}), or { sec } for a section, or nothing for the current list */
 function newTodoFromTemplate(id, target) {
   const bp = getT(id); if (!bp) return;
   let props;
   if (target && target.type) {
-    props = target.type === 'project' ? { start: 'anytime', projectId: target.id, headingId: target.headingId || null }
+    props = target.type === 'project' ? { start: 'anytime', projectId: target.id }
       : target.type === 'area' ? { start: 'anytime', areaId: target.id } : { start: 'inbox' };
   } else {
     let sec = target && target.sec;
@@ -130,10 +130,10 @@ function viewTemplates() {
   if (projs.length) {
     html += `<div class="sec-h"><span>Projects</span></div>`;
     html += projs.map((p) => {
-      const hs = S.headings.filter((h) => h.projectId === p.id && !h.archived).length;
-      const n = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft).length;
+      const subs = projDescendants(p).filter((q) => !q.trashed && !q.isTemplate), inside = new Set([p.id, ...subs.map((q) => q.id)]);
+      const n = S.todos.filter((t) => inside.has(t.projectId) && !t.trashed && !t.isTemplate && !t.isDraft).length;
       const area = p.bpAreaId && getA(p.bpAreaId);
-      const sub = [hs ? plural(hs, 'heading') : '', plural(n, 'to-do'), area ? 'Goes in ' + aTitle(area) : ''].filter(Boolean).join(' · ');
+      const sub = [plural(n, 'to-do'), subs.length ? plural(subs.length, 'sub-project') : '', area ? 'Goes in ' + aTitle(area) : ''].filter(Boolean).join(' · ');
       return `<div class="row tpl-row" data-nav="project:${p.id}" title="Edit this template">${ic('project', 'r-ic tpl-ic')}<div class="r-main"><div class="r-line"><span class="r-title${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${tagPills(p)}</div><div class="r-sub">${esc(sub)}</div></div><div class="r-right"><button class="btn tpl-use" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div></div>`;
     }).join('');
   }

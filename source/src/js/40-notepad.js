@@ -481,11 +481,12 @@ function openNotePlaces(id, anchor) {
     // what it's on now that the lists below don't offer (a tag, a smart list, a finished project…)
     const offered = (k) => /^(inbox|today|upcoming|anytime|someday|waiting|deadlines|timeline|logbook)$/.test(k) || /^area:/.test(k) || (/^project:/.test(k) && (getP(k.slice(8)) || {}).status === 'open') || /^board:/.test(k);
     [...on].filter((k) => !offered(k)).forEach((k) => { const c = noteCtx(k); if (c && m(c.label)) out += `<button class="pick-i" data-key="${esc(k)}" role="menuitemcheckbox" aria-checked="true">${c.icon}<span>${esc(c.label)}</span><span class="check">${ic('check')}</span></button>`; });
-    const projs = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === areaId).sort(byOrder);
-    let places = projs(null).filter((p) => m(pTitle(p))).map((p) => row('project:' + p.id, projIc(p, '', projectProgress(p).frac), pTitle(p), ' p')).join('');
+    const projs = (areaId) => projTree(areaId).map((r) => r.p);
+    const prow = (p, cls) => row('project:' + p.id, projIc(p, '', projectProgress(p).frac), isSub(p) ? projPath(p) : pTitle(p), cls);
+    let places = projs(null).filter((p) => m(pTitle(p))).map((p) => prow(p, ' p')).join('');
     S.areas.slice().sort(byOrder).forEach((a) => {
       const ps = projs(a.id).filter((p) => m(pTitle(p)) || m(aTitle(a)));
-      if (m(aTitle(a)) || ps.length) places += row('area:' + a.id, placeColor(a) ? areaIc(a) : ic('area'), aTitle(a), ' a') + ps.map((p) => row('project:' + p.id, projIc(p, '', projectProgress(p).frac), pTitle(p), ' p in')).join('');
+      if (m(aTitle(a)) || ps.length) places += row('area:' + a.id, placeColor(a) ? areaIc(a) : ic('area'), aTitle(a), ' a') + ps.map((p) => prow(p, ' p in')).join('');
     });
     if (places) out += '<div class="menu-h">Areas &amp; Projects</div>' + places;
     const lists = ['inbox', 'today', 'upcoming', 'anytime', 'someday', 'waiting', 'deadlines', 'timeline', 'logbook'].filter((k) => m(LISTS[k].title));

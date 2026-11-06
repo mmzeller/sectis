@@ -1397,3 +1397,29 @@ button.np-gl:hover { color: var(--fg); }
   .tl-lane { height: 36px; }
 }
 .board-tl.on { color: var(--c-timeline); background: color-mix(in srgb, var(--c-timeline) 12%, transparent); }
+
+/* ---- sub-projects ---- */
+/* where a sub-project is: its area and the projects it's in, above its title */
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; padding: 0 10px 4px 46px; margin-top: -6px; font-size: 13px; color: var(--muted); }
+.crumb { display: inline-flex; align-items: center; gap: 5px; padding: 2px 6px; border-radius: 6px; color: var(--muted); max-width: 260px; }
+.crumb span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crumb:hover { background: var(--hover); color: var(--fg); }
+.crumb .crumb-ic { width: 13px; height: 13px; flex: none; }
+.crumb .pie-ic, .crumb .crumb-ic:not([style]) { color: var(--accent); }
+.crumb-sep { color: var(--faint); padding: 0 1px; }
+/* sidebar: sub-projects indented under their project */
+.sb-proj.sb-sub { padding-left: calc(8px + var(--d, 1) * 15px); font-size: 13px; min-height: 28px; }
+.sb-proj.sb-sub .ic { width: 15px; height: 15px; }
+.sb-proj .sb-disc { margin-left: -2px; }
+/* pickers: sub-projects indented under theirs */
+.pick-i[style*="--d"] { padding-left: calc(10px + var(--d) * 18px); }
+.pick-i.in[style*="--d"], .board-pop .pick-i.in-area[style*="--d"] { padding-left: calc(30px + var(--d) * 18px); }
+.pick-in { display: block; font-size: 11.5px; color: var(--muted); font-weight: 400; }
+/* a project's sub-projects: a little room above them */
+.sub-bar { margin-top: 22px; }
+.pchildren .subprojs .prow { min-height: 0; }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
+  .crumbs { padding-left: 6px; margin-top: 0; font-size: 14px; }
+  .crumb { padding: 6px 8px; }
+  .sb-proj.sb-sub { font-size: 16px; min-height: 40px; padding-left: calc(4px + var(--d, 1) * 18px); }
+}

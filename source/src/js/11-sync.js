@@ -1,7 +1,8 @@
 /* ===================== Sync (Firebase Firestore) =====================
    No accounts. A random sync key decides where the data lives in Firestore
    (a hash of it) and encrypts every record (AES-GCM) before upload.
-   Each to-do, project, heading, area and tag is its own document; the most
+   Each to-do, project, area and tag is its own document (headings still arrive from a device on
+   an older version, and become sub-projects here); the most
    recent edit of an item wins. Deletions leave a small marker.
    Two rules keep an old copy from coming back over a newer one:
    - When Sectis opens, the other devices' changes come in before anything here is sent. What
@@ -239,6 +240,7 @@ function tsAfter(t, cur) { return t.seconds > cur[0] || (t.seconds === cur[0] &&
 /* opts.theirs: copies the server kept over ours (as new or newer): they win even on a tie */
 async function syncApplyRemote(docs, opts = {}) {
   const updates = [];
+  let converted = false;
   let cursor = Y.cursor;
   for (const d of docs) {
     if (d.t && typeof d.t.seconds === 'number' && tsAfter(d.t, cursor)) cursor = [d.t.seconds, d.t.nanoseconds];
@@ -259,6 +261,7 @@ async function syncApplyRemote(docs, opts = {}) {
         else { const rec = normalizeRecord(u.k, u.rec); if (i >= 0) list[i] = rec; else list.push(rec); Y.base[u.id] = { h: recHash(rec), m: u.m, k: u.k }; }
         delete Y.pending[u.id];
       }
+      converted = convertHeadings(); // a heading from a device on an older version becomes a sub-project
       reindex();
       for (const id of [...ui.sel]) if (!itemById(id)) ui.sel.delete(id);
       if (ui.editing && !getT(ui.editing)) ui.editing = null;
@@ -268,6 +271,7 @@ async function syncApplyRemote(docs, opts = {}) {
     } finally { Y.applying = false; }
     if (!opts.theirs) Y.cursor = cursor; // (copies read while sending don't move it: changes before them may still be on the way)
     syncSaveState();
+    if (converted) saveSoon(); // send the sub-projects back out
     render();
   } else if (!opts.theirs) Y.cursor = cursor;
   Y.lastSync = Date.now(); syncSaveSoon();

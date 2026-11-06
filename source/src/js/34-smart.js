@@ -22,7 +22,7 @@ function smartMatcher(sl) {
       const eff = new Set(effectiveTags(t)), hit = (set) => [...set].some((id) => eff.has(id));
       if (f.tagMode === 'all' ? !tagSets.every(hit) : !tagSets.some(hit)) return false;
     }
-    if (places.length && !places.some((k) => (k[0] === 'p' ? t.projectId === k.slice(2) : (areaOf(t) || {}).id === k.slice(2)))) return false;
+    if (places.length && !places.some((k) => (k[0] === 'p' ? inProjectTree(t, k.slice(2)) : (areaOf(t) || {}).id === k.slice(2)))) return false;
     const dated = t.start === 'anytime' && !!t.when;
     if (f.when === 'today' && !isTodayItem(t)) return false;
     if (f.when === 'week' && !(isTodayItem(t) || (dated && t.when <= wk))) return false;
@@ -48,7 +48,7 @@ function smartSummary(sl) {
   const f = smartFilter(sl), bits = [], lab = (opts, v) => (opts.find((o) => String(o[0]) === String(v)) || [0, ''])[1];
   const tags = f.tags.map(getTag).filter(Boolean).map((t) => '#' + t.title);
   if (tags.length) bits.push(tags.join(f.tagMode === 'all' ? ' and ' : ' or '));
-  const places = f.places.map((k) => (k[0] === 'p' ? getP(k.slice(2)) && pTitle(getP(k.slice(2))) : getA(k.slice(2)) && aTitle(getA(k.slice(2))))).filter(Boolean);
+  const places = f.places.map((k) => (k[0] === 'p' ? getP(k.slice(2)) && projPath(getP(k.slice(2))) : getA(k.slice(2)) && aTitle(getA(k.slice(2))))).filter(Boolean);
   if (places.length) bits.push('in ' + places.join(', '));
   if (f.when !== 'any') bits.push(lab(SMART_WHEN, f.when));
   if (f.deadline !== 'any') bits.push(f.deadline === 'none' ? 'No deadline' : 'Deadline: ' + lab(SMART_DL, f.deadline).toLowerCase());
@@ -71,15 +71,19 @@ function smartGroups(sl, items) {
     ].filter((x) => x[1].length).map(([label, list]) => ({ head: `<div class="sec-h"><span>${label}</span></div>`, items: list, ctx: { parent: true, when: true } }));
   }
   const out = [], ctx = { when: true, star: true };
-  const sortT = (a, b) => { const ha = a.headingId && getH(a.headingId), hb = b.headingId && getH(b.headingId); return ((ha ? ha.order + 1 : 0) - (hb ? hb.order + 1 : 0)) || byOrder(a, b); };
   const loose = items.filter((t) => !t.projectId && !t.areaId).sort(byOrder);
   if (loose.length) out.push({ head: '', items: loose, ctx: { when: true, star: true } });
-  const projGroup = (p) => { const ts = items.filter((t) => t.projectId === p.id).sort(sortT); if (ts.length) out.push({ head: `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>`, items: ts, ctx }); };
-  const projectsIn = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && (p.areaId || null) === areaId).sort(byOrder);
+  // each project's to-dos under its name, then each of its sub-projects' under theirs
+  const projGroup = (p) => {
+    const ts = items.filter((t) => t.projectId === p.id).sort(byOrder);
+    if (ts.length) out.push({ head: `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(isSub(p) ? projPath(p) : pTitle(p))}</button></div>`, items: ts, ctx });
+    childProjects(p).filter((q) => !q.trashed && !q.isTemplate).sort(byOrder).forEach(projGroup);
+  };
+  const projectsIn = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && inArea(p, areaId)).sort(byOrder);
   projectsIn(null).forEach(projGroup);
   S.areas.slice().sort(byOrder).forEach((a) => {
     const at = items.filter((t) => t.areaId === a.id && !t.projectId).sort(byOrder), ps = projectsIn(a.id);
-    if (!at.length && !ps.some((p) => items.some((t) => t.projectId === p.id))) return;
+    if (!at.length && !ps.some((p) => items.some((t) => inProjectTree(t, p.id)))) return;
     out.push({ head: `<div class="grp-h area-h">${placeColor(a) ? areaIc(a) : ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>`, items: at, ctx });
     ps.forEach(projGroup);
   });
@@ -130,11 +134,13 @@ function openSmartEditor(sl = null) {
   const placeChips = () => {
     const ql = st.q.trim().toLowerCase(), m = (s) => !ql || s.toLowerCase().includes(ql);
     const chip = (k, label, icon) => `<button type="button" class="sm-chip${st.f.places.includes(k) ? ' on' : ''}" data-place="${k}" aria-pressed="${st.f.places.includes(k)}">${icon}<span>${esc(label)}</span></button>`;
-    const projs = (aid) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === aid).sort(byOrder);
-    let out = projs(null).filter((p) => m(pTitle(p)) || st.f.places.includes('p:' + p.id)).map((p) => chip('p:' + p.id, pTitle(p), projIc(p))).join('');
+    // sub-projects are named with the projects they're in
+    const projs = (aid) => projTree(aid).map((r) => r.p);
+    const pchip = (p) => chip('p:' + p.id, isSub(p) ? projPath(p) : pTitle(p), projIc(p));
+    let out = projs(null).filter((p) => m(pTitle(p)) || st.f.places.includes('p:' + p.id)).map(pchip).join('');
     S.areas.slice().sort(byOrder).forEach((a) => {
       if (m(aTitle(a)) || st.f.places.includes('a:' + a.id)) out += chip('a:' + a.id, aTitle(a), areaIc(a));
-      out += projs(a.id).filter((p) => m(pTitle(p)) || st.f.places.includes('p:' + p.id)).map((p) => chip('p:' + p.id, pTitle(p), projIc(p))).join('');
+      out += projs(a.id).filter((p) => m(pTitle(p)) || st.f.places.includes('p:' + p.id)).map(pchip).join('');
     });
     return out || '<span class="note">No matching projects or areas.</span>';
   };

@@ -8,7 +8,7 @@ function findResults(q, includeLog) {
   Object.entries(LISTS).forEach(([key, L]) => { if (!words.length || m(L.title)) out.push({ g: 'Lists', kind: 'list', key, title: L.title, icon: L.icon, color: L.color }); });
   S.areas.slice().sort(byOrder).forEach((a) => { if (words.length && m(aTitle(a))) out.push({ g: 'Areas', kind: 'area', key: 'area:' + a.id, title: aTitle(a), icon: 'area', color: 'var(--c-area)' }); });
   S.projects.filter((p) => !p.trashed && (p.status === 'open' || includeLog)).sort(byOrder).forEach((p) => {
-    if (!words.length ? p.status === 'open' && p.start !== 'someday' && !p.isTemplate : m(pTitle(p), p.notes)) out.push({ g: 'Projects', kind: 'project', key: 'project:' + p.id, title: pTitle(p), pie: projectProgress(p).frac, sub: [areaOf(p) ? aTitle(areaOf(p)) : '', p.blueprint ? 'Template' : p.isTemplate ? 'Repeating' : '', p.status !== 'open' ? 'Completed' : ''].filter(Boolean).join(' · ') });
+    if (!words.length ? p.status === 'open' && p.start !== 'someday' && !p.isTemplate : m(pTitle(p), p.notes)) out.push({ g: 'Projects', kind: 'project', key: 'project:' + p.id, title: pTitle(p), pie: projectProgress(p).frac, sub: [isSub(p) ? projPath(parentOf(p)) : areaOf(p) ? aTitle(areaOf(p)) : '', p.blueprint ? 'Template' : p.isTemplate ? 'Repeating' : '', p.status !== 'open' ? 'Completed' : ''].filter(Boolean).join(' · ') });
   });
   if (words.length) {
     tagTree().forEach(({ tag }) => { if (!tag.group && m(tag.title)) out.push({ g: 'Tags', kind: 'tag', key: 'tag:' + tag.id, title: tag.title, icon: 'tag', color: `var(--t-${tagColor(tag)})` }); });
@@ -82,7 +82,7 @@ function inlineDateOK(phrase) {
 }
 function parseEntry(raw) {
   const out = { title: raw, tags: [], when: null, deadline: null, whenText: '', deadlineText: '', priority: 0, place: null, placeText: '' };
-  const pl = parsePlace(raw); // @Project, @Area or @Project/Heading
+  const pl = parsePlace(raw); // @Project, @Area or @Project/Sub-Project
   if (pl) { out.place = pl.place; out.placeText = pl.text; raw = raw.slice(0, pl.start) + ' ' + raw.slice(pl.end); }
   let s = ' ' + raw + ' ';
   s = s.replace(/\s(!{1,3})(?=\s)/, (m, b) => { out.priority = b.length; return ' '; }); // ! low, !! medium, !!! high
@@ -140,8 +140,8 @@ function openQuickEntry(prefill = '', preset = null) {
         $('#qe-parsed', el).innerHTML = chips.join('');
         $('#qe-chips', el).innerHTML = whenChipHTML(x).replace(/data-action="(when|clear-when)"/g, 'data-qe="$1"') + deadlineChipHTML(x).replace(/data-action="(deadline|clear-deadline)"/g, 'data-qe="$1"') + x.tags.map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="tg ${tcls(g)}">${esc(g.title)}</span>`).join('');
         const pp = placeOK ? parsed.place : null;
-        const p = pp ? (pp.type === 'project' && getP(pp.id)) : x.projectId && getP(x.projectId), a = pp ? (pp.type === 'area' && getA(pp.id)) : x.areaId && getA(x.areaId), h = pp ? pp.headingId && getH(pp.headingId) : x.headingId && getH(x.headingId);
-        $('#qe-dest', el).innerHTML = `${p ? projIc(p) : a ? (placeColor(a) ? areaIc(a) : ic('area')) : ic('inbox')}<span>${esc(p ? pTitle(p) + (h ? ' › ' + (h.title || 'New Heading') : '') : a ? aTitle(a) : x.start === 'inbox' ? 'Inbox' : 'No list')}</span>`;
+        const p = pp ? (pp.type === 'project' && getP(pp.id)) : x.projectId && getP(x.projectId), a = pp ? (pp.type === 'area' && getA(pp.id)) : x.areaId && getA(x.areaId);
+        $('#qe-dest', el).innerHTML = `${p ? projIc(p) : a ? (placeColor(a) ? areaIc(a) : ic('area')) : ic('inbox')}<span>${esc(p ? projPath(p) : a ? aTitle(a) : x.start === 'inbox' ? 'Inbox' : 'No list')}</span>`;
       };
       const save = () => {
         const x = d(); const raw = ti.value;
@@ -155,7 +155,7 @@ function openQuickEntry(prefill = '', preset = null) {
           if (pz && pz.deadline && !ignore.deadline && !x.deadline) x.deadline = pz.deadline;
           if (pz && pz.priority && !ignore.priority && !prio(x)) x.priority = pz.priority;
           if (pz && pz.tags.length && !ignore.tags) pz.tags.forEach((n) => { const tg = findOrCreateTag(n); if (tg && !x.tags.includes(tg.id)) x.tags.push(tg.id); });
-          if (placeOK) moveItems([x.id], { type: pz.place.type, id: pz.place.id, headingId: pz.place.headingId }, { noCommit: true, silent: true });
+          if (placeOK) moveItems([x.id], { type: pz.place.type, id: pz.place.id }, { noCommit: true, silent: true });
           delete x.isDraft;
           x.order = topOrder(S.todos.filter((y) => y !== x && !y.trashed && containerKey(y) === containerKey(x)));
           x.todayOrder = todayTop();
@@ -213,7 +213,7 @@ function openSettings() {
       <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
       <div class="set-row"><span class="lbl">Keep higher priorities on top<small>Lists you haven’t sorted another way show High, then Medium, then Low, then the rest. Drag or use ⌘↑ / ⌘↓ to arrange them within each priority. Each list’s Sort By… still changes it.</small></span>${sw('prioTop')}</div>
       <div class="set-row"><span class="lbl">Completed to-dos<small>Move to Bottom puts checked to-dos below the rest of their list. Unchecking one puts it back where it was.</small></span>${seg('doneSink', [['bottom', 'Move to Bottom'], ['stay', 'Stay in Place']])}</div>
-      <div class="set-row"><span class="lbl">Logged to-dos in projects and areas<small>At the Bottom keeps them in one list at the end, behind Show logged items. Under Their Heading shows each one where it was, just below the completed to-dos, with the day it was done.</small></span>${seg('loggedPlace', [['bottom', 'At the Bottom'], ['inline', 'Under Their Heading']])}</div>
+      <div class="set-row"><span class="lbl">Logged to-dos in projects and areas<small>At the Bottom keeps them in one list at the end, behind Show logged items. Where They Were shows each one in its project or sub-project, just below the completed to-dos, with the day it was done.</small></span>${seg('loggedPlace', [['bottom', 'At the Bottom'], ['inline', 'Where They Were']])}</div>
       <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
       <div class="set-row"><span class="lbl">To-dos take on the tags of their project and area<small>When you add or move a to-do into a project or area, it gets that place’s tags. Moving it elsewhere swaps them.</small></span>${sw('inheritTags')}</div>
       <div class="set-row"><span class="lbl">Tags shown in lists<small>Own Only hides the tags a to-do already gets from its project or area, so lists stay clean. Open a to-do to see all of its tags.</small></span>${seg('rowTags', [['own', 'Own Only'], ['all', 'All'], ['none', 'None']])}</div>
@@ -294,9 +294,9 @@ function openSettings() {
 }
 function dropSampleData() {
   const sampleProjects = new Set(S.projects.filter((p) => p.sample).map((p) => p.id));
+  S.projects.filter((p) => p.sample).forEach((p) => projDescendants(p).forEach((q) => sampleProjects.add(q.id))); // and anything you put inside them
   S.todos = S.todos.filter((t) => !t.sample && !sampleProjects.has(t.projectId));
-  S.projects = S.projects.filter((p) => !p.sample);
-  S.headings = S.headings.filter((h) => !sampleProjects.has(h.projectId));
+  S.projects = S.projects.filter((p) => !sampleProjects.has(p.id));
   const keepAreas = new Set(S.projects.map((p) => p.areaId).concat(S.todos.map((t) => t.areaId)));
   S.areas = S.areas.filter((a) => !a.sample || keepAreas.has(a.id));
   reindex();
@@ -505,7 +505,7 @@ function openShortcuts() {
   const or = (...ks) => ks.join('<span class="sc-or">or</span>');
   const pair = (a, b) => a + '<span class="sc-or">/</span>' + b;
   const rows = [
-    ['Create', [['New to-do', or(k('N'), k('Space'))], ['New heading (in a project)', k(SH, 'N')], ['Quick Entry', k('Q')], ['Quick Find', or(k('/'), k(M, 'F'))]]],
+    ['Create', [['New to-do', or(k('N'), k('Space'))], ['New sub-project (in a project)', k(SH, 'N')], ['Quick Entry', k('Q')], ['Quick Find', or(k('/'), k(M, 'F'))]]],
     ['Selected to-dos', [['Open', k('Return')], ['Complete', or(k('K'), k(M, 'K'))], ['Cancel', k(OPT, 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Copy', k(M, 'C')], ['Paste after it', k(M, 'V')], ['Duplicate', k(M, 'D')], ['Move up / down', pair(k(M, '↑'), k(M, '↓'))], ['Delete', k('Delete')]]],
     ['Navigate', [['Next / previous to-do', pair(k('↓'), k('↑'))], ['Extend selection', pair(k(SH, '↓'), k(SH, '↑'))], ['Inbox … Trash, Board', k('1') + '<span class="sc-or">to</span>' + k('8')], ['Show or hide the sidebar', IS_MAC ? k(CTL, M, 'S') : k('Ctrl', 'Alt', 'S')], ['Notepad', k('J')], ['Undo', k(M, 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing a to-do', [['Save and close', or(k('Return'), k(M, 'Return'))], ['Complete', k(M, 'K')], ['When…', k(M, 'S')], ['Deadline…', k(SH, M, 'D')], ['Add checklist', k(SH, M, 'C')], ['Move checklist item', pair(k(M, '↑'), k(M, '↓'))], ['Paste lines as to-dos (one each)', k(M, 'V')]]],

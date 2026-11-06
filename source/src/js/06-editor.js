@@ -36,7 +36,7 @@ function sectionProps(sec) {
       if (p[1] === 'area') return { start, areaId: p[2], projectId: null, headingId: null };
       return null;
     }
-    case 'project': return { projectId: p[1], headingId: p[2] || null, areaId: null, _fromInbox: 'anytime' };
+    case 'project': return { projectId: p[1], headingId: null, areaId: null, _fromInbox: 'anytime' };
     case 'area': return { areaId: p[1], projectId: null, headingId: null, _fromInbox: 'anytime' };
     default: return null;
   }
@@ -52,7 +52,6 @@ function applySectionProps(x, props) {
   }
   if (props._fromInbox && x.start === 'inbox') x.start = props._fromInbox;
   if (props.start === 'someday') { x.when = null; x.evening = false; x.reminder = null; }
-  if (x.headingId && x.projectId && getH(x.headingId) && getH(x.headingId).projectId !== x.projectId) x.headingId = null;
   if (!x.when) x.reminder = null;
   retag(x, before);
   touch(x);
@@ -99,7 +98,7 @@ function newTodoSpot(opts = {}, n = 1) {
   if (selP) {
     const { p, row } = selP;
     if (p.trashed || p.status !== 'open') return { closed: true };
-    if (row.dataset.expandable && !ui.expanded.has(p.id)) { ui.expanded.add(p.id); lsSet('sectis.expanded', JSON.stringify([...ui.expanded])); }
+    if (row.dataset.expandable && !isExpanded(p)) markExpanded([p.id], true);
     opts = Object.assign({}, opts, { sec: `project:${p.id}:` });
   }
   if (ui.view.type === 'board' && !opts.sec && !opts.place) {
@@ -166,7 +165,7 @@ function pasteManyTodos(t, lines, el) {
   commit('Paste To-Dos', () => {
     t.title = (before + lines[0] + after).trim(); touch(t);
     lines.slice(1).forEach((line) => {
-      const c = makeTodo({ title: line, start: t.start, when: t.when, evening: t.evening, projectId: t.projectId, areaId: t.areaId, headingId: t.headingId, tags: t.tags.slice(), deadline: t.deadline });
+      const c = makeTodo({ title: line, start: t.start, when: t.when, evening: t.evening, projectId: t.projectId, areaId: t.areaId, tags: t.tags.slice(), deadline: t.deadline });
       c.order = orderBetween(prev.order, prev.order + 1)[0]; c.todayOrder = orderBetween(prev.todayOrder, prev.todayOrder + 1)[0];
       S.todos.push(c); prev = c;
     });

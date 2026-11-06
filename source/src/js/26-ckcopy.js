@@ -2,7 +2,7 @@
    One clipboard for to-dos and checklists, each device its own:
    - Copy To-Do / Copy N To-Dos (⌘C) keeps the selected to-dos: title, notes, tags, checklist,
      deadline and priority. Paste (⌘V) puts copies after the selected to-do, in its project,
-     heading or list, or into the list you're in when nothing is selected. Paste as Checklist
+     sub-project or list, or into the list you're in when nothing is selected. Paste as Checklist
      turns them into checklist items on the selected to-dos instead.
    - Copy Checklist keeps a to-do's checklist; Paste Checklist adds it, unchecked, to the
      selected to-dos, skipping items a to-do already has. Paste (⌘V) makes to-dos of it.
@@ -86,7 +86,7 @@ function pasteClipHere(opts = {}) {
   if (ui.clip.kind === 'todos') pasteTodos(ui.clip.items, opts);
   else pasteTodos(ui.clip.items.slice(), opts);
 }
-/* Paste into a named place (a project, area, heading or day), for its menus */
+/* Paste into a named place (a project, sub-project, area or day), for its menus */
 function pasteIntoItems(sec) {
   if (!ui.clip) return [];
   const n = ui.clip.items.length;

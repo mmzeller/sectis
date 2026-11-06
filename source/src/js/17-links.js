@@ -9,7 +9,7 @@ function linkSiblings(t) {
 }
 function placeLabel(t) {
   const p = projectOf(t);
-  if (p) { const h = t.headingId && getH(t.headingId); return pTitle(p) + (h && h.title ? ` › ${h.title}` : ''); }
+  if (p) return projPath(p);
   const a = areaOf(t); if (a) return aTitle(a);
   return isInbox(t) ? 'Inbox' : 'No list';
 }
@@ -54,7 +54,7 @@ function alsoAddTo(ids, target) {
       title: t.title, notes: t.notes, tags: t.tags.slice(), linkId: t.linkId,
       checklist: t.checklist.map((k) => ({ id: k.id, title: k.title, done: false })),
       start: t.start === 'inbox' ? 'anytime' : t.start, when: t.when, evening: t.evening, deadline: t.deadline, reminder: t.reminder,
-      projectId: target.type === 'project' ? target.id : null, headingId: target.type === 'project' ? target.headingId || null : null,
+      projectId: target.type === 'project' ? target.id : null,
       areaId: target.type === 'area' ? target.id : null, modifiedAt: t.modifiedAt,
     });
     c.order = endOrder(S.todos.filter((x) => !x.trashed && containerKey(x) === containerKey(c)));
@@ -93,10 +93,34 @@ function afterLinkedComplete(items) {
   toast(`Done in ${placeLabel(t)}. Still open in ${open.length > 1 ? plural(open.length, 'other place') : placeLabel(open[0])}.`, { action: 'Complete Everywhere', fn: () => completeEverywhere(t.id), ms: 7000 });
 }
 
-/* ---- expandable projects inside an area ---- */
+/* ---- expandable projects inside an area, and sub-projects inside a project ----
+   A project's row opens to show what's in it, right there. Projects in an area start closed;
+   sub-projects inside a project start open, since they're its sections (ui.subCollapsed holds
+   the ones you closed). In the sidebar, a project's sub-projects stay folded away until you
+   open them (ui.sbOpen), except around the project you have open. Each device remembers. */
 function loadExpanded() {
-  try { ui.expanded = new Set(JSON.parse(lsGet('sectis.expanded') || '[]')); } catch (e) { ui.expanded = new Set(); }
-  try { ui.sbCollapsed = new Set(JSON.parse(lsGet('sectis.sbCollapsed') || '[]')); } catch (e) { ui.sbCollapsed = new Set(); }
+  const set = (k) => { try { return new Set(JSON.parse(lsGet(k) || '[]')); } catch (e) { return new Set(); } };
+  ui.expanded = set('sectis.expanded'); ui.sbCollapsed = set('sectis.sbCollapsed');
+  ui.subCollapsed = set('sectis.subCollapsed'); ui.sbOpen = set('sectis.sbOpen');
+}
+function isExpanded(p) { return isSub(p) ? !ui.subCollapsed.has(p.id) : ui.expanded.has(p.id); }
+function saveExpanded() { lsSet('sectis.expanded', JSON.stringify([...ui.expanded])); lsSet('sectis.subCollapsed', JSON.stringify([...ui.subCollapsed])); }
+/* open (or close) rows without drawing again */
+function markExpanded(ids, on) {
+  ids.forEach((id) => {
+    const p = getP(id);
+    if (p && isSub(p)) { if (on) ui.subCollapsed.delete(id); else ui.subCollapsed.add(id); }
+    else if (on) ui.expanded.add(id); else ui.expanded.delete(id);
+  });
+  saveExpanded();
+}
+/* sidebar: show or hide a project's sub-projects (⌥ for every project) */
+function toggleSidebarProject(id, all) {
+  const show = !ui.sbOpen.has(id);
+  const ids = all ? S.projects.filter((p) => childProjects(p).length).map((p) => p.id) : [id];
+  ids.forEach((x) => (show ? ui.sbOpen.add(x) : ui.sbOpen.delete(x)));
+  lsSet('sectis.sbOpen', JSON.stringify([...ui.sbOpen]));
+  renderSidebar();
 }
 /* sidebar: hide or show the projects under an area (⌥ for every area) */
 function toggleSidebarArea(id, all) {
@@ -111,27 +135,47 @@ function setSidebarAreas(hide) {
   lsSet('sectis.sbCollapsed', JSON.stringify([...ui.sbCollapsed]));
   renderSidebar();
 }
-function setExpanded(ids, on) {
-  ids.forEach((id) => (on ? ui.expanded.add(id) : ui.expanded.delete(id)));
-  lsSet('sectis.expanded', JSON.stringify([...ui.expanded]));
-  render();
-}
-function areaProjectIds(areaId) { return S.projects.filter((p) => p.areaId === areaId && liveProject(p)).map((p) => p.id); }
+function setExpanded(ids, on) { markExpanded(ids, on); render(); }
+function areaProjectIds(areaId) { return S.projects.filter((p) => inArea(p, areaId) && liveProject(p)).map((p) => p.id); }
+/* every sub-project inside a project, at any depth (Expand All / Collapse All) */
+function subProjectIds(p) { return projDescendants(p).filter(liveProject).map((q) => q.id); }
 /* an empty project, opened under its row or as a Board column: a button to add its first to-do */
 function emptyProjectHTML(p, cls) {
   if (p.status !== 'open' || p.trashed) return `<div class="${cls}">No to-dos yet</div>`;
   return `<button class="${cls} add-first" data-action="bcol-add" data-sec="project:${p.id}:" title="New to-do in ${esc(pTitle(p))}">${ic('plus')}<span>New To-Do</span></button>`;
 }
+/* what's in a project, under its open row: its to-dos, then its sub-projects (which open the same way) */
 function projectChildrenHTML(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged)).filter(matchesTagFilter);
-  const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
   const ctx = { when: true };
+  // on a project's page, logged to-dos shown where they were show inside its sub-projects too
+  const lin = ui.view.type === 'project' && loggedShownIn(ui.view.id) ? loggedInHTML(`project:${p.id}:`, loggedOfProject(p).filter(matchesTagFilter)) : '';
+  const subs = subProjectsHTML(p);
   let html = `<div class="pchildren" data-children="${p.id}">`;
-  html += secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
-  headings.forEach((h) => {
-    const ts = todos.filter((t) => t.headingId === h.id).sort(byOrder);
-    html += subHeadingHTML(p, h, 'ph-') + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
-  });
-  if (!todos.length) html += emptyProjectHTML(p, 'pchildren-empty');
+  html += secHTML(`project:${p.id}:`, todos.sort(byOrder), ctx) + lin + subs;
+  if (!todos.length && !subs) html += emptyProjectHTML(p, 'pchildren-empty');
   return html + '</div>';
+}
+/* a sub-project shows under a tag while it, or anything in it, has the tag */
+function subMatchesFilter(q) {
+  if (!ui.tagFilter || matchesTagFilter(q)) return true;
+  const inside = new Set([q.id, ...projDescendants(q).map((x) => x.id)]);
+  return S.todos.some((t) => inside.has(t.projectId) && liveTodo(t) && matchesTagFilter(t));
+}
+/* A project's sub-projects as rows that open in place, in their order (or the list's sort). Ones
+   for later (Someday, or a start date to come) wait behind Show later, as in an area. */
+function subProjectsHTML(p, opts = {}) {
+  const all = childProjects(p).filter((q) => !q.trashed && !q.isTemplate && (q.status === 'open' || !q.logged)); // (a repeating one shows under Repeating)
+  if (!all.length) return '';
+  const later = (q) => q.status === 'open' && (q.start === 'someday' || (q.when && q.when > T0()));
+  const shown = all.filter(subMatchesFilter);
+  const active = shown.filter((q) => !later(q)).sort(byOrder), wait = shown.filter(later).sort(byOrder);
+  const ctx = { star: true, when: true, expandable: true };
+  let html = `<div class="sec subprojs" data-sec="subprojects:${p.id}" data-ok="order">${sortedRows(active).map((q) => projRowHTML(q, ctx)).join('')}</div>`;
+  if (wait.length) {
+    const open = ui.laterOpen[p.id];
+    html += `<button class="show-more" data-action="toggle-later" data-id="${p.id}">${open ? 'Hide' : 'Show'} ${plural(wait.length, 'later sub-project')}</button>`;
+    if (open) html += `<div class="sec subprojs" data-sec="subprojects:${p.id}" data-ok="order">${sortedRows(wait).map((q) => projRowHTML(q, ctx)).join('')}</div>`;
+  }
+  return html;
 }

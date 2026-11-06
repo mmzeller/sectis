@@ -10,9 +10,9 @@ function seedSample() {
   const room = makeProject({ title: 'Paint the guest room', areaId: homeArea.id, sample: true, order: 1, deadline: addDays(T, 18) });
   const garden = makeProject({ title: 'Spring garden', areaId: homeArea.id, start: 'someday', sample: true, order: 2 });
   S.projects.push(meet, room, garden); S.areas.push(homeArea);
-  const H = (projectId, title, order) => { const h = { id: uid(), projectId, title, order, archived: false }; S.headings.push(h); return h.id; };
-  const h1 = H(meet.id, 'Make a to-do', 0), h2 = H(meet.id, 'Decide when', 1), h3 = H(meet.id, 'Stay organized', 2), h4 = H(meet.id, 'Find your way', 3);
-  const m = (title, headingId, props = {}) => td(title, Object.assign({ projectId: meet.id, headingId, start: 'anytime' }, props));
+  const sub = (parentId, title, order) => { const p = makeProject({ title, parentId, order, sample: true }); S.projects.push(p); return p.id; };
+  const h1 = sub(meet.id, 'Make a to-do', 0), h2 = sub(meet.id, 'Decide when', 1), h3 = sub(meet.id, 'Stay organized', 2), h4 = sub(meet.id, 'Find your way', 3);
+  const m = (title, projectId, props = {}) => td(title, Object.assign({ projectId: projectId || meet.id, start: 'anytime' }, props));
   m('Click a to-do to select it, double-click to open it', null, { when: T, notes: 'On iPhone, tap once to open. An open to-do has room for notes, a checklist, tags, a date and a deadline.' });
   m('Press N, or the blue + button, to add a to-do', h1, { notes: 'New to-dos land in the list you are looking at. Drag the + button into the list to drop one exactly where you want it.' });
   m('Break a to-do into steps with a checklist', h1, { checklist: [{ id: uid(), title: 'Open this to-do', done: false }, { id: uid(), title: 'Tick this item', done: false }, { id: uid(), title: 'Press Return in an item to add another', done: false }] });
@@ -21,6 +21,7 @@ function seedSample() {
   m('Give something a deadline', h2, { deadline: addDays(T, 5), notes: 'Press D. Deadlines count down, turn red when due, and show up in Today.' });
   m('Make a to-do repeat', h2, { notes: 'Open a to-do and choose ••• → Repeat. It can repeat on a schedule, or a set time after you finish it.' });
   m('Group projects into areas', h3, { notes: 'Areas hold the ongoing parts of your life, like Home or Work. Use New List at the bottom of the sidebar.' });
+  m('Split a project into sub-projects', h3, { notes: 'Like these four. Press ⇧N in a project (or use its ••• menu) to add one. A sub-project is a project of its own, with notes, tags, dates and sub-projects of its own, and folds open and shut with the arrow beside it.' });
   m('Tag to-dos, then filter any list by tag', h3, { tags: [home], notes: 'Press # to tag. The tag bar at the top of each list filters it. Nest tags under each other in Settings → Manage Tags.' });
   m('Drag to-dos to reorder them, or onto the sidebar to move them', h3, { notes: 'On iPhone, press and hold a to-do, then drag. To move several at once, use ••• → Select To-Dos.' });
   m('Press / to find anything', h4);
@@ -33,11 +34,11 @@ function seedSample() {
   td('Renew car registration', { start: 'anytime', when: addDays(T, 4), deadline: addDays(T, 10), tags: [errand] });
   td('Learn to make sourdough', { start: 'someday' });
   td('Replace the furnace filter', { start: 'anytime', areaId: homeArea.id, tags: [home] });
-  const rp1 = H(room.id, 'Prep', 0), rp2 = H(room.id, 'Paint', 1);
-  td('Pick a paint color', { start: 'anytime', projectId: room.id, headingId: rp1, when: addDays(T, 2) });
-  td('Buy rollers and painter’s tape', { start: 'anytime', projectId: room.id, headingId: rp1, tags: [errand] });
-  td('Move the furniture out', { start: 'anytime', projectId: room.id, headingId: rp2 });
-  td('Two coats on the walls', { start: 'anytime', projectId: room.id, headingId: rp2 });
+  const rp1 = sub(room.id, 'Prep', 0), rp2 = sub(room.id, 'Paint', 1);
+  td('Pick a paint color', { start: 'anytime', projectId: rp1, when: addDays(T, 2) });
+  td('Buy rollers and painter’s tape', { start: 'anytime', projectId: rp1, tags: [errand] });
+  td('Move the furniture out', { start: 'anytime', projectId: rp2 });
+  td('Two coats on the walls', { start: 'anytime', projectId: rp2 });
   td('Order seeds', { start: 'anytime', projectId: garden.id });
   td('Turn the compost', { start: 'anytime', projectId: garden.id });
   const done = td('Install Sectis', { start: 'anytime', status: 'done', completedAt: Date.now() - 864e5, logged: true });
@@ -180,7 +181,11 @@ function restoreView() {
   else ui.view = { type: 'today' };
 }
 function init() {
+  // headings become sub-projects as the data loads: keep a copy of how it was, just in case
+  const before = lsGet(STORE_KEY);
+  const hadHeadings = !!before && /"headings":\s*\[\s*\{|"headingId":\s*"/.test(before);
   loadState();
+  if (hadHeadings) { saveSoon(); backupRaw(before, 'convert'); }
   loadExpanded();
   loadBoard();
   loadSorts();

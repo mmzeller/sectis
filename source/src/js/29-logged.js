@@ -1,9 +1,9 @@
 /* ===================== Logged to-dos in their lists =====================
    Settings → Logged to-dos: At the Bottom keeps a project's (or area's) logged to-dos in one
-   list at its end, behind Show logged items. Under Their Heading shows each one where it was,
+   list at its end, behind Show logged items. Where They Were shows each one where it was,
    just below the completed to-dos there, newest first, with the day it was done; the list's
-   Hide logged items button tucks them away for that list. Projects, areas, the Board and a
-   project's headings board all follow it. */
+   Hide logged items button tucks them away for that list. Projects (and their sub-projects),
+   areas, the Board and a project's sub-projects board all follow it. */
 const loggedInline = () => S.settings.loggedPlace === 'inline';
 /* logged to-dos of a project or area, newest first */
 function loggedTodos(pred) {
@@ -11,9 +11,11 @@ function loggedTodos(pred) {
     .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
 }
 const loggedOfProject = (p) => loggedTodos((t) => t.projectId === p.id);
+/* a project's and all its sub-projects' */
+function loggedInProject(p) { const ids = new Set([p.id, ...projDescendants(p).map((q) => q.id)]); return loggedTodos((t) => ids.has(t.projectId)); }
 const loggedOfArea = (a) => loggedTodos((t) => t.areaId === a.id && !t.projectId);
-/* the section a logged to-do belongs under in its project: its heading, or the top if that's gone */
-const loggedSecKey = (t) => `project:${t.projectId}:${t.headingId && getH(t.headingId) && !getH(t.headingId).archived ? t.headingId : ''}`;
+/* the section a logged to-do belongs under: its project's own to-dos */
+const loggedSecKey = (t) => `project:${t.projectId}:`;
 /* whether this list shows its logged to-dos where they were right now */
 function loggedShownIn(id) { return loggedInline() && !(ui.hideLogged || {})[id]; }
 function loggedDay(t) { return t.completedAt ? fmtDate(stampDay(t.completedAt), { weekday: false }) : ''; }
@@ -27,7 +29,7 @@ function loggedFooterHTML(id, logged) {
   if (!logged.length) return '';
   if (loggedInline()) {
     const hidden = (ui.hideLogged || {})[id];
-    return `<button class="show-more" data-action="toggle-logged" data-id="${id}" title="${hidden ? 'Show them under their headings' : 'Hide them from this list'}">${hidden ? 'Show' : 'Hide'} ${plural(logged.length, 'logged item')}</button>`;
+    return `<button class="show-more" data-action="toggle-logged" data-id="${id}" title="${hidden ? 'Show them where they were' : 'Hide them from this list'}">${hidden ? 'Show' : 'Hide'} ${plural(logged.length, 'logged item')}</button>`;
   }
   const open = ui.showLogged[id];
   return `<button class="show-more" data-action="toggle-logged" data-id="${id}">${open ? 'Hide' : 'Show'} ${plural(logged.length, 'logged item')}</button>`

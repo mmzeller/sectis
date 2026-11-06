@@ -79,27 +79,36 @@ function renderShell() {
 /* ---------- sidebar ---------- */
 function renderSidebar() {
   const c = counts(), v = ui.view;
-  // open to-dos per project and per area (an area's count includes its projects)
+  // open to-dos per project and per area (an area's count includes its projects, a project's its sub-projects)
   const openIn = { p: new Map(), a: new Map() };
   for (const t of S.todos) {
     if (t.status !== 'open' || t.trashed || t.isTemplate || t.isDraft || !inLiveProject(t)) continue;
-    if (t.projectId) openIn.p.set(t.projectId, (openIn.p.get(t.projectId) || 0) + 1);
+    const tp = projectOf(t);
+    if (tp) [tp, ...projAncestors(tp)].forEach((q) => openIn.p.set(q.id, (openIn.p.get(q.id) || 0) + 1));
     const ar = areaOf(t); if (ar) openIn.a.set(ar.id, (openIn.a.get(ar.id) || 0) + 1);
   }
   const cnt = (n) => (n ? `<span class="sb-count">${n}</span>` : '');
   // areas can hide the projects listed under them; the project you have open stays visible
   const areaToggle = (a, n) => (n ? `<span class="sb-disc${ui.sbCollapsed.has(a.id) ? '' : ' open'}" data-sbtoggle="${a.id}" role="button" aria-expanded="${!ui.sbCollapsed.has(a.id)}" aria-label="${ui.sbCollapsed.has(a.id) ? 'Show' : 'Hide'} projects in ${esc(aTitle(a))}" title="${ui.sbCollapsed.has(a.id) ? 'Show' : 'Hide'} projects (⌥-click for all areas)">${ic('chevR')}</span>` : '');
-  const sbAreaProjects = (a, list) => (ui.sbCollapsed.has(a.id) ? list.filter((p) => v.type === 'project' && v.id === p.id) : list);
+  // the project you have open, and the projects it's in, stay unfolded
+  const vp = v.type === 'project' && getP(v.id), openPath = new Set(vp ? [vp.id, ...projAncestors(vp).map((q) => q.id)] : []);
+  const sbAreaProjects = (a, list) => (ui.sbCollapsed.has(a.id) ? list.filter((p) => openPath.has(p.id)) : list);
   const on = (key) => (v.type + (v.id ? ':' + v.id : '')) === key ? ' on' : '';
   const item = (key, cnt, extra = '') => {
     const L = LISTS[key];
     return `<button class="sb-item${on(key)}" data-nav="${key}" data-drop-list="${key}"><span class="ic" style="color:${L.color}">${I[L.icon]}</span><span class="sb-name">${L.title}</span>${extra}${cnt ? `<span class="sb-count">${cnt}</span>` : ''}</button>`;
   };
-  const projRow = (p) => {
-    const pr = projectProgress(p);
-    return `<button class="sb-item sb-proj${on('project:' + p.id)}" data-nav="project:${p.id}" data-drop-list="project:${p.id}" data-drag="project" data-kind="project" data-id="${p.id}" data-sb="1">${projIc(p, '', pr.frac)}<span class="sb-name${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${p.deadline && p.deadline <= T0() ? `<span class="sb-due">!</span>` : ''}${cnt(openIn.p.get(p.id))}</button>`;
+  // a project's sub-projects sit under it, folded away until you open them
+  const sbKids = (p) => S.projects.filter((q) => q.parentId === p.id && q !== p && !q.trashed && !q.isTemplate && q.status === 'open' && q.start !== 'someday').sort(byOrder);
+  const projRow = (p, depth = 0, seen = new Set()) => {
+    if (seen.has(p.id)) return ''; seen.add(p.id);
+    // folded, it still shows the way to the sub-project you have open
+    const pr = projectProgress(p), kids = sbKids(p), open = kids.length > 0 && ui.sbOpen.has(p.id), shown = open ? kids : kids.filter((k) => openPath.has(k.id));
+    const tog = kids.length ? `<span class="sb-disc${open ? ' open' : ''}" data-sbptoggle="${p.id}" role="button" aria-expanded="${open}" aria-label="${open ? 'Hide' : 'Show'} sub-projects of ${esc(pTitle(p))}" title="${open ? 'Hide' : 'Show'} sub-projects (⌥-click for all projects)">${ic('chevR')}</span>` : '';
+    return `<button class="sb-item sb-proj${depth ? ' sb-sub' : ''}${on('project:' + p.id)}"${depth ? ` style="--d:${Math.min(depth, 6)}"` : ''} data-nav="project:${p.id}" data-drop-list="project:${p.id}" data-drag="project" data-kind="project" data-id="${p.id}" data-sb="1">${projIc(p, '', pr.frac)}<span class="sb-name${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${p.deadline && p.deadline <= T0() ? `<span class="sb-due">!</span>` : ''}${cnt(openIn.p.get(p.id))}${tog}</button>`
+      + shown.map((k) => projRow(k, depth + 1, seen)).join('');
   };
-  const sbProjects = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && (p.areaId || null) === areaId).sort(byOrder);
+  const sbProjects = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && inArea(p, areaId)).sort(byOrder);
   let html = `<div class="sb-top"><div class="sb-brand">Sectis</div><button class="sb-find" data-action="find">${ic('search')}<span>Quick Find</span><kbd>/</kbd></button>${focusBarHTML()}</div><nav class="sb-scroll" id="sb-scroll">`;
   html += `<div class="sb-group">${item('inbox', c.inbox)}</div>`;
   html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('timeline')}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
@@ -109,10 +118,10 @@ function renderSidebar() {
   const smarts = (S.smart || []).slice().sort(byOrder);
   if (smarts.length) html += `<div class="sb-group sb-smart-g">${smarts.map((sl) => `<button class="sb-item${on('smart:' + sl.id)}" data-nav="smart:${sl.id}" data-drop-list="smart:${sl.id}" data-drag="smart" data-kind="smart" data-id="${sl.id}" data-sb="1" title="${esc(smartSummary(sl))}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span class="sb-name">${esc(smartTitle(sl))}</span>${cnt(smartCount(sl))}</button>`).join('')}</div>`;
   const loose = ui.focusRec && ui.focusRec.loose === false ? [] : sbProjects(null);
-  if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map(projRow).join('')}</div>`;
+  if (loose.length) html += `<div class="sb-group" data-sb-area="">${loose.map((p) => projRow(p)).join('')}</div>`;
   else html += `<div class="sb-loose" data-drop-loose="1">${ic('project')}<span>No Area</span></div>`; // shows while a project is dragged
   S.areas.slice().sort(byOrder).filter((a) => !ui.focusRec || ui.focusAreas.has(a.id)).forEach((a) => {
-    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${placeColor(a) ? areaIc(a) : ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
+    html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${placeColor(a) ? areaIc(a) : ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map((p) => projRow(p)).join('')}</div>`;
   });
   html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="sync-now" aria-label="Sync Now" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="notepad" aria-label="Notepad" title="Notepad (J)">${ic('notepad')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button><button class="ib sb-hide" data-action="sb-toggle" aria-label="Hide Sidebar" title="Hide Sidebar (${IS_MAC ? '⌃⌘S' : 'Ctrl+Alt+S'})">${ic('sidebar')}</button></div>`;
   const sb = $('#sidebar');
@@ -127,10 +136,8 @@ function checkboxHTML(x) {
   return `<button class="cb ${x.status !== 'open' ? x.status : ''}" data-action="toggle" data-id="${x.id}" aria-label="${x.status === 'open' ? 'Complete' : 'Mark as open'}">${ic(x.status === 'canceled' ? 'x' : 'check')}</button>`;
 }
 function parentLabel(x) {
-  if (x.type === 'todo') {
-    const p = projectOf(x);
-    if (p) { const h = x.headingId && getH(x.headingId); return pTitle(p) + (h && h.title ? ` › ${h.title}` : ''); }
-  }
+  if (x.type === 'todo') { const p = projectOf(x); if (p) return projPath(p); }
+  if (x.type === 'project' && isSub(x)) return projPath(parentOf(x));
   const a = areaOf(x); if (a) return aTitle(a);
   if (x.type === 'todo' && isInbox(x) && !x.isTemplate) return 'Inbox';
   return '';
@@ -204,7 +211,7 @@ function ckInlineHTML(t) {
 }
 function projRowHTML(p, ctx = {}) {
   const pr = projectProgress(p);
-  const exp = ctx.expandable && ui.expanded.has(p.id);
+  const exp = ctx.expandable && isExpanded(p);
   const cls = ['row', 'prow']; if (ui.sel.has(p.id)) cls.push('selected'); if (p.status !== 'open') cls.push(p.status); if (p.trashed) cls.push('trashed-row');
   let line = '';
   if (ctx.star && isScheduledToday(p)) line += isEveningItem(p) ? ic('moon', 'r-moon') : ic('star', 'r-star');
@@ -223,7 +230,7 @@ function ghostRowHTML(tpl, date) {
 }
 function ghostProjRowHTML(p, date) {
   const n = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && t.status === 'open').length;
-  return `<div class="row ghost" data-nav="project:${p.id}" title="Repeating project — click to edit">${ic('repeat', 'r-ic')}<div class="r-main"><div class="r-line">${date ? `<span class="r-when">${esc(fmtRel(date))}</span>` : ''}<span class="r-title" style="font-weight:600">${esc(pTitle(p))}</span>${tagPills(p)}</div><div class="r-sub">${esc(ruleSummary(p.repeat))}${n ? ' · ' + plural(n, 'to-do') : ''}${p.areaId && getA(p.areaId) ? ' · ' + esc(aTitle(getA(p.areaId))) : ''}</div></div></div>`;
+  return `<div class="row ghost" data-nav="project:${p.id}" title="Repeating project — click to edit">${ic('repeat', 'r-ic')}<div class="r-main"><div class="r-line">${date ? `<span class="r-when">${esc(fmtRel(date))}</span>` : ''}<span class="r-title" style="font-weight:600">${esc(pTitle(p))}</span>${tagPills(p)}</div><div class="r-sub">${esc(ruleSummary(p.repeat))}${n ? ' · ' + plural(n, 'to-do') : ''}${parentLabel(p) ? ' · ' + esc(parentLabel(p)) : ''}</div></div></div>`;
 }
 function secHTML(sec, items, ctx = {}, okey = 'order') {
   const mode = currentSort();
@@ -365,7 +372,7 @@ function viewToday() {
     order.forEach((k) => {
       const g = groups.get(k); if (!g) return;
       let h = '';
-      if (k.startsWith('p:')) { const p = getP(k.slice(2)); h = `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>`; }
+      if (k.startsWith('p:')) { const p = getP(k.slice(2)); h = `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(projPath(p))}</button></div>`; }
       else if (k.startsWith('a:')) { const a = getA(k.slice(2)); h = `<div class="grp-h area-h">${placeColor(a) ? areaIc(a) : ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>`; }
       list += h + secHTML('today', g, { parent: false }, 'todayOrder');
     });
@@ -432,25 +439,27 @@ function groupedView(key, todoFilter, somedayProjects) {
   const tagSrc = todosAll.concat(projAll);
   const todos = todosAll.filter(matchesTagFilter), projs = projAll.filter(matchesTagFilter).sort(byOrder);
   const ctx = { star: key === 'anytime', when: key === 'someday' };
-  const sortT = (a, b) => { const ha = a.headingId && getH(a.headingId), hb = b.headingId && getH(b.headingId); const oa = ha ? ha.order + 1 : 0, ob = hb ? hb.order + 1 : 0; return oa - ob || byOrder(a, b); };
   let html = '';
   const loose = todos.filter((t) => !t.projectId && !t.areaId).sort(byOrder);
   html += secHTML(`${key}:loose`, loose, ctx);
+  // each project's to-dos under its name, then each of its sub-projects' under theirs ("Kitchen › Cabinets")
   const projGroup = (p) => {
-    const ts = todos.filter((t) => t.projectId === p.id).sort(sortT);
-    if (!ts.length) return '';
-    return `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(pTitle(p))}</button></div>` + secHTML(`${key}:project:${p.id}`, ts, ctx);
+    const ts = todos.filter((t) => t.projectId === p.id).sort(byOrder);
+    const own = ts.length ? `<div class="grp-h proj-h">${projIc(p)}<button data-nav="project:${p.id}">${esc(isSub(p) ? projPath(p) : pTitle(p))}</button></div>` + secHTML(`${key}:project:${p.id}`, ts, ctx) : '';
+    return own + childProjects(p).filter((q) => liveProject(q) && q.status === 'open' && q.start !== 'someday').sort(byOrder).map(projGroup).join('');
   };
-  const activeProjects = (areaId) => S.projects.filter((p) => liveProject(p) && p.status === 'open' && (p.areaId || null) === areaId && !(p.start === 'someday' && key === 'anytime')).sort(byOrder);
-  if (projs.filter((p) => !p.areaId).length) html += `<div class="sec" data-sec="${key}:projects:" data-ok="order">${projs.filter((p) => !p.areaId).map((p) => projRowHTML(p, {})).join('')}</div>`;
+  const activeProjects = (areaId) => S.projects.filter((p) => liveProject(p) && p.status === 'open' && inArea(p, areaId) && !(p.start === 'someday' && key === 'anytime')).sort(byOrder);
+  const rowsIn = (aid) => projs.filter((p) => (areaOf(p) ? areaOf(p).id : null) === aid);
+  const prow = (p) => projRowHTML(p, { parent: isSub(p) });
+  if (rowsIn(null).length) html += `<div class="sec" data-sec="${key}:projects:" data-ok="order">${rowsIn(null).map(prow).join('')}</div>`;
   activeProjects(null).forEach((p) => { if (key !== 'someday' || p.start !== 'someday') html += projGroup(p); });
   S.areas.slice().sort(byOrder).forEach((a) => {
     const at = todos.filter((t) => t.areaId === a.id && !t.projectId).sort(byOrder);
-    const ap = projs.filter((p) => p.areaId === a.id);
+    const ap = rowsIn(a.id);
     const inner = activeProjects(a.id).filter((p) => key !== 'someday' || p.start !== 'someday').map(projGroup).join('');
     if (!at.length && !ap.length && !inner) return;
     html += `<div class="grp-h area-h">${placeColor(a) ? areaIc(a) : ic('area')}<button data-nav="area:${a.id}">${esc(aTitle(a))}</button></div>` + secHTML(`${key}:area:${a.id}`, at, ctx) +
-      (ap.length ? `<div class="sec" data-sec="${key}:projects:${a.id}" data-ok="order">${ap.map((p) => projRowHTML(p, {})).join('')}</div>` : '') + inner;
+      (ap.length ? `<div class="sec" data-sec="${key}:projects:${a.id}" data-ok="order">${ap.map(prow).join('')}</div>` : '') + inner;
   });
   const emptyCopy = key === 'anytime' ? ['Nothing here yet', 'To-dos you can start any time show up here, grouped by project and area.'] : ['Someday is empty', 'Park ideas here for later. Select a to-do and press O.'];
   return headerHTML(key) + tagBarHTML(tagSrc) + `<div class="list">${html}</div>` + (tagSrc.length ? '' : emptyHTML(LISTS[key].icon, ...emptyCopy));
@@ -459,7 +468,7 @@ function viewAnytime() { return groupedView('anytime', anytimeTodo, false); }
 function viewSomeday() { return groupedView('someday', somedayTodo, true); }
 function logbookItems() {
   return S.todos.filter((t) => !t.trashed && !t.isTemplate && t.status !== 'open' && t.logged && inFocus(t))
-    .concat(S.projects.filter((p) => !p.trashed && p.status !== 'open' && p.logged && inFocus(p)))
+    .concat(S.projects.filter((p) => !p.trashed && p.status !== 'open' && p.logged && !deadAbove(p) && inFocus(p)))
     .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
 }
 function dayGroupLabel(day) {
@@ -484,8 +493,10 @@ function viewLogbook() {
   return headerHTML('logbook') + tagBarHTML(all) + `<div class="list">${html}</div>` + (all.length ? '' : emptyHTML('logbook', 'Logbook is empty', 'Completed to-dos and projects are kept here.'));
 }
 function viewTrash() {
-  const projs = S.projects.filter((p) => p.trashed).sort((a, b) => (b.trashedAt || 0) - (a.trashedAt || 0));
-  const todos = S.todos.filter((t) => t.trashed && !t.isTemplate && !(t.projectId && getP(t.projectId) && getP(t.projectId).trashed)).sort((a, b) => (b.trashedAt || 0) - (a.trashedAt || 0));
+  // what's inside a project in the Trash comes back with it, so only the project shows
+  const binned = (p) => !!p && (p.trashed || projAncestors(p).some((q) => q.trashed));
+  const projs = S.projects.filter((p) => p.trashed && !binned(parentOf(p))).sort((a, b) => (b.trashedAt || 0) - (a.trashedAt || 0));
+  const todos = S.todos.filter((t) => t.trashed && !t.isTemplate && !binned(t.projectId && getP(t.projectId))).sort((a, b) => (b.trashedAt || 0) - (a.trashedAt || 0));
   const n = projs.length + todos.length;
   const head = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-trash)">${I.trash}</span><h1 class="lh-title">Trash</h1>${n ? `<button class="btn" data-action="empty-trash">Empty Trash</button>` : ''}</div>`;
   return head + `<div class="list">${projs.length ? `<div class="sec" data-sec="trash">${projs.map((p) => projRowHTML(p, { parent: true })).join('')}</div>` : ''}${secHTML('trash', todos, { parent: true })}</div>` + (n ? '' : emptyHTML('trash', 'Trash is empty', 'Deleted to-dos and projects wait here until you empty the Trash.'));
@@ -501,38 +512,45 @@ function viewProject(p) {
   const todosAll = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft);
   const live = todosAll.filter((t) => t.status === 'open' || !t.logged);
   const items = live.filter(matchesTagFilter);
-  const logged = todosAll.filter((t) => t.status !== 'open' && t.logged).sort((a, b) => b.completedAt - a.completedAt);
-  const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
+  const logged = loggedInProject(p); // its sub-projects' too
+  const hasSubs = childProjects(p).some((q) => !q.trashed);
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + priorityChipHTML(p) + inTagOrder(p.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  let html = `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg${p.trashed || p.isTemplate ? '' : ' can-click'}"${colorStyle(p)}${p.trashed || p.isTemplate ? '' : ` role="button" title="${p.status === 'open' ? 'Complete Project' : 'Reopen Project'}"`}>${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show headings as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
+  // a sub-project shows where it is: its area, then the projects it's in
+  let html = isSub(p) ? `<nav class="crumbs" aria-label="Where this project is">${[...(areaOf(p) ? [`<button class="crumb" data-nav="area:${areaOf(p).id}">${areaIc(areaOf(p), 'crumb-ic')}<span>${esc(aTitle(areaOf(p)))}</span></button>`] : []),
+    ...projAncestors(p).reverse().map((q) => `<button class="crumb" data-nav="project:${q.id}" data-drop-list="project:${q.id}">${projIc(q, 'crumb-ic', projectProgress(q).frac)}<span>${esc(pTitle(q))}</span></button>`)].join('<span class="crumb-sep" aria-hidden="true">›</span>')}</nav>` : '';
+  html += `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg${p.trashed || p.isTemplate ? '' : ' can-click'}"${colorStyle(p)}${p.trashed || p.isTemplate ? '' : ` role="button" title="${p.status === 'open' ? 'Complete Project' : 'Reopen Project'}"`}>${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show sub-projects as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show sub-projects as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
-  else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these headings, to-dos and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
+  else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these to-dos, sub-projects and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
   else if (p.isTemplate) html += `<div class="lh-banner rp-banner">${ic('repeat')}<span><b>Repeating project.</b> ${esc(ruleSummary(p.repeat))}${p.next ? `. Next copy ${esc(fmtRel(p.next))}` : p.repeat && p.repeat.mode === 'after' ? '. The next copy comes after you complete the current one' : '. This repeat has ended'}. Changes here apply to future copies.</span><button class="link-btn" data-action="repeat" data-id="${p.id}">Change</button></div>`;
   else if (p.status !== 'open') html += `<div class="lh-banner"><b>${p.status === 'done' ? 'Completed' : 'Canceled'}</b> ${p.completedAt ? `on <button class="link-btn" data-action="completed-date" data-id="${p.id}" title="Change the date">${esc(fmtDate(stampDay(p.completedAt)))}</button> ·` : ''} <button class="link-btn" data-action="reopen-project" data-id="${p.id}">Reopen</button></div>`;
   html += notesBlockHTML('project-notes', p.id, 'pnotes', p.notes, 'lh-notes', 'Project notes');
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
-  html += tagBarHTML(live);
-  if (projectBoardOn(p)) html += projectBoardHTML(p, items, headings, ctx);
+  // the tag bar offers the tags of everything in the project, its sub-projects' to-dos included
+  const insideIds = new Set(projDescendants(p).filter((q) => !q.trashed && !q.isTemplate).map((q) => q.id));
+  html += tagBarHTML(live.concat(S.todos.filter((t) => insideIds.has(t.projectId) && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged))));
+  if (projectBoardOn(p)) html += projectBoardHTML(p, items, ctx);
   else {
-  const lbs = loggedBySec(p, matchesTagFilter), lin = (k) => loggedInHTML(k, lbs.get(k) || []);
-  html += `<div class="list">${secHTML(`project:${p.id}:`, items.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx)}${lin(`project:${p.id}:`)}`;
-  headings.forEach((h) => {
-    html += `<div class="hrow${headingDoneCls(h)}" data-heading="${h.id}" data-drag="heading" data-kind="heading" data-id="${h.id}" data-zone="project:${p.id}:${h.id}"><textarea class="h-title" data-edit="heading-title" data-id="${h.id}" data-fkey="h-${h.id}" placeholder="New Heading" aria-label="Heading" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea>${p.status === 'open' && !p.trashed ? `<button class="ib" data-action="heading-add" data-id="${h.id}" aria-label="New to-do under this heading" title="New to-do under this heading">${ic('plus')}</button>` : ''}<button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button></div>`;
-    html += secHTML(`project:${p.id}:${h.id}`, items.filter((t) => t.headingId === h.id).sort(byOrder), ctx) + lin(`project:${p.id}:${h.id}`);
-  });
-  html += '</div>';
+    const lbs = loggedBySec(p, matchesTagFilter), lin = (k) => loggedInHTML(k, lbs.get(k) || []);
+    html += `<div class="list">${secHTML(`project:${p.id}:`, items.sort(byOrder), ctx)}${lin(`project:${p.id}:`)}`;
+    const subs = subProjectsHTML(p);
+    if (subs) {
+      const ids = subProjectIds(p), n = childProjects(p).filter((q) => !q.trashed && !q.isTemplate && (q.status === 'open' || !q.logged)).length;
+      const allOpen = ids.every((id) => isExpanded(getP(id))), noneOpen = !ids.some((id) => isExpanded(getP(id)));
+      html += `<div class="exp-bar sub-bar" data-zone="subprojects:${p.id}"><span>${plural(n, 'sub-project')}</span><button class="link-btn" data-action="expand-subs" data-id="${p.id}"${allOpen ? ' disabled' : ''}>Expand All</button><button class="link-btn" data-action="collapse-subs" data-id="${p.id}"${noneOpen ? ' disabled' : ''}>Collapse All</button></div>${subs}`;
+    }
+    html += '</div>';
   }
-  if (!p.isTemplate) html += repeatingSectionHTML(templatesIn((t) => t.projectId === p.id));
+  if (!p.isTemplate) html += repeatingSectionHTML([...projectTemplatesIn((q) => q.parentId === p.id), ...templatesIn((t) => t.projectId === p.id)]);
   html += loggedFooterHTML(p.id, logged);
-  if (!todosAll.length && !headings.length && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and headings you add here.');
-  else if (!todosAll.length && !headings.length && !projectBoardOn(p)) html += p.trashed || p.status !== 'open' ? emptyHTML('project', 'No to-dos', p.trashed ? 'Put the project back to add to-dos to it.' : 'Reopen the project to add to-dos to it.') : emptyHTML('project', 'No to-dos yet', 'Press N or the + button to add the first one. Add headings from the ••• menu to split the project into stages.');
+  if (!todosAll.length && !hasSubs && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and sub-projects you add here.');
+  else if (!todosAll.length && !hasSubs && !projectBoardOn(p)) html += p.trashed || p.status !== 'open' ? emptyHTML('project', 'No to-dos', p.trashed ? 'Put the project back to add to-dos to it.' : 'Reopen the project to add to-dos to it.') : emptyHTML('project', 'No to-dos yet', `Press N or the + button to add the first one. To split the project into parts, add sub-projects${isMobile() ? ' from the ••• menu' : ' with ⇧N or the ••• menu'}; each can hold its own to-dos, notes and sub-projects.`);
   return html;
 }
 function viewArea(a) {
   const todosAll = S.todos.filter((t) => t.areaId === a.id && !t.projectId && liveTodo(t));
-  const projAll = S.projects.filter((p) => p.areaId === a.id && liveProject(p));
+  const projAll = S.projects.filter((p) => inArea(p, a.id) && liveProject(p));
   const items = todosAll.filter(matchesTagFilter).sort(byOrder);
   const active = projAll.filter((p) => p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
   const later = projAll.filter((p) => p.status === 'open' && (p.start === 'someday' || (p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);

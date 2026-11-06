@@ -1,12 +1,14 @@
 /* ===================== Quick Entry: @ files a to-do =====================
    Type @ and a project or area in Quick Entry ("Order toner @PaperCut fri") and the to-do goes
    there. A few letters are enough when they point to one place: the start of its name, the
-   start of any word in it, or the name run together ("@papercuthive"). @Project/Heading puts it
-   under a heading. As you type, a list of matches appears under the title: ↑ ↓ and Return or
-   Tab pick one, Esc closes it. Places in the current focus come first. */
+   start of any word in it, or the name run together ("@papercuthive"). A sub-project can be named
+   on its own or under its project: @Project/Sub-Project (as deep as they go). As you type, a list
+   of matches appears under the title: ↑ ↓ and Return or Tab pick one, Esc closes it. Places in
+   the current focus come first. */
+const placeOpen = (p) => !p.trashed && !p.isTemplate && p.status === 'open' && !deadAbove(p);
 function placeCands() {
   const out = [];
-  S.projects.forEach((p) => { if (!p.trashed && !p.isTemplate && p.status === 'open' && p.title) out.push({ kind: 'project', id: p.id, title: p.title, rec: p }); });
+  S.projects.forEach((p) => { if (placeOpen(p) && p.title) out.push({ kind: 'project', id: p.id, title: p.title, rec: p }); });
   S.areas.forEach((a) => { if (a.title) out.push({ kind: 'area', id: a.id, title: a.title, rec: a }); });
   return out;
 }
@@ -27,7 +29,7 @@ function matchName(rest, cands) {
     if (t && lower.startsWith(t) && BOUNDARY.test(lower.slice(t.length)) && (!best || t.length > best.len || (t.length === best.len && placeRank(c, best.c) < 0))) best = { c, len: t.length };
   }
   if (best) return best;
-  const ends = []; const re = /[^\s/]+/g; let m; // words end at spaces and at the / before a heading
+  const ends = []; const re = /[^\s/]+/g; let m; // words end at spaces and at the / before a sub-project
   while ((m = re.exec(rest)) && ends.length < 5) { if (m.index === 0 || ends.length) ends.push(m.index + m[0].length); else break; }
   for (let n = ends.length; n >= 1; n--) {
     const q = rest.slice(0, ends[n - 1]).replace(/[.,;:!?)]+$/, ''), ql = q.toLowerCase(), qc = compactName(q);
@@ -39,15 +41,18 @@ function matchName(rest, cands) {
   }
   return null;
 }
-/* text after an @ → { type, id, headingId, len } */
+/* the open sub-projects of a project, as places */
+const subCands = (p) => childProjects(p).filter((q) => placeOpen(q) && q.title).map((q) => ({ kind: 'project', id: q.id, title: q.title, rec: q }));
+/* text after an @ → { type, id, len } */
 function matchPlace(rest) {
   if (!rest || /^\s/.test(rest)) return null;
   const hit = matchName(rest, placeCands()); if (!hit) return null;
-  const out = { type: hit.c.kind, id: hit.c.id, headingId: null, len: hit.len };
-  if (hit.c.kind === 'project' && rest[hit.len] === '/') {
-    const hs = S.headings.filter((h) => h.projectId === hit.c.id && h.title).map((h) => ({ kind: 'heading', id: h.id, title: h.title, rec: Object.assign({ order: h.order }, h) }));
-    const hh = matchName(rest.slice(hit.len + 1), hs);
-    if (hh) { out.headingId = hh.c.id; out.len = hit.len + 1 + hh.len; }
+  const out = { type: hit.c.kind, id: hit.c.id, len: hit.len };
+  // @Project/Sub-Project/…: each / goes one level in
+  let p = hit.c.kind === 'project' ? hit.c.rec : null;
+  while (p && rest[out.len] === '/') {
+    const hh = matchName(rest.slice(out.len + 1), subCands(p)); if (!hh) break;
+    out.id = hh.c.id; out.len += 1 + hh.len; p = hh.c.rec;
   }
   return out;
 }
@@ -63,8 +68,7 @@ function parsePlace(raw) {
 function placeLabel(pl) {
   if (!pl) return '';
   if (pl.type === 'area') return aTitle(getA(pl.id));
-  const h = pl.headingId && getH(pl.headingId);
-  return pTitle(getP(pl.id)) + (h ? ' › ' + (h.title || 'New Heading') : '');
+  return getP(pl.id) ? projPath(getP(pl.id)) : 'New Project';
 }
 function placeIcon(pl) {
   if (pl.type === 'area') { const a = getA(pl.id); return a && placeColor(a) ? areaIc(a) : ic('area'); }
@@ -74,15 +78,19 @@ function placeIcon(pl) {
 /* ---- the list of matches under the title ---- */
 function placeSuggestions(q) {
   const ql = q.toLowerCase().trim(), qc = compactName(q);
-  const slash = q.indexOf('/');
-  if (slash > 0) { // headings of the project named before the /
-    const pq = q.slice(0, slash).toLowerCase();
-    const p = placeCands().filter((c) => c.kind === 'project' && c.title.toLowerCase() === pq).sort(placeRank)[0];
+  // what to type for a project: its name, or its path when it's a sub-project (Kitchen/Cabinets)
+  const insertFor = (p) => projPath(p, '/');
+  const slash = q.lastIndexOf('/');
+  if (slash > 0) { // the sub-projects of the project named before the last /
+    const parts = q.slice(0, slash).split('/').map((s) => s.toLowerCase().trim());
+    let p = placeCands().filter((c) => c.kind === 'project' && c.title.toLowerCase() === parts[0]).sort(placeRank)[0];
+    p = p && p.rec;
+    for (const part of parts.slice(1)) { if (!p) break; p = childProjects(p).find((x) => placeOpen(x) && (x.title || '').toLowerCase() === part) || null; }
     if (!p) return [];
     const hq = q.slice(slash + 1).toLowerCase().trim();
-    return S.headings.filter((h) => h.projectId === p.id && h.title && (!hq || h.title.toLowerCase().startsWith(hq) || h.title.toLowerCase().split(/\s+/).some((w) => w.startsWith(hq))))
-      .sort((a, b) => a.order - b.order).slice(0, 8)
-      .map((h) => ({ type: 'project', id: p.id, headingId: h.id, label: h.title, sub: `Heading in ${p.title}`, insert: `${p.title}/${h.title}` }));
+    return childProjects(p).filter((x) => placeOpen(x) && x.title && (!hq || x.title.toLowerCase().startsWith(hq) || x.title.toLowerCase().split(/\s+/).some((w) => w.startsWith(hq))))
+      .sort(byOrder).slice(0, 8)
+      .map((x) => ({ type: 'project', id: x.id, label: x.title, sub: `In ${projPath(p)}`, insert: insertFor(x) }));
   }
   const score = (title) => {
     const t = title.toLowerCase();
@@ -94,18 +102,15 @@ function placeSuggestions(q) {
     return -1;
   };
   const rows = [];
-  placeCands().forEach((c) => { const s = score(c.title); if (s >= 0) rows.push({ c, s }); });
-  if (ql.length >= 2) S.headings.forEach((h) => {
-    const p = getP(h.projectId); if (!h.title || !p || p.trashed || p.isTemplate || p.status !== 'open' || !p.title) return;
-    const s = score(h.title); if (s >= 0 && s < 2) rows.push({ c: { kind: 'heading', id: h.id, title: h.title, rec: p, p }, s: s + 0.5 });
-  });
-  const fc = (r) => placeInFocus(r.c.kind === 'heading' ? { kind: 'project', rec: r.c.p } : r.c);
-  rows.sort((a, b) => (a.s - b.s) || (fc(b) - fc(a)) || ((a.c.kind === 'heading') - (b.c.kind === 'heading')) || ((a.c.kind === 'area') - (b.c.kind === 'area')) || ((a.c.rec.order || 0) - (b.c.rec.order || 0)));
+  const sub = (c) => c.kind === 'project' && isSub(c.rec);
+  // sub-projects need a couple of letters, and come after projects and areas that match as well
+  placeCands().forEach((c) => { const s = score(c.title); if (s >= 0 && !(sub(c) && (ql.length < 2 || s >= 2))) rows.push({ c, s: s + (sub(c) ? 0.5 : 0) }); });
+  rows.sort((a, b) => (a.s - b.s) || (placeInFocus(b.c) - placeInFocus(a.c)) || (sub(a.c) - sub(b.c)) || ((a.c.kind === 'area') - (b.c.kind === 'area')) || ((a.c.rec.order || 0) - (b.c.rec.order || 0)));
   return rows.slice(0, 7).map(({ c }) => {
-    if (c.kind === 'heading') return { type: 'project', id: c.p.id, headingId: c.id, label: c.title, sub: `Heading in ${c.p.title}`, insert: `${c.p.title}/${c.title}` };
-    if (c.kind === 'area') return { type: 'area', id: c.id, headingId: null, label: c.title, sub: 'Area', insert: c.title };
-    const a = c.rec.areaId && getA(c.rec.areaId);
-    return { type: 'project', id: c.id, headingId: null, label: c.title, sub: a ? aTitle(a) : 'Project', insert: c.title };
+    if (c.kind === 'area') return { type: 'area', id: c.id, label: c.title, sub: 'Area', insert: c.title };
+    if (sub(c)) return { type: 'project', id: c.id, label: c.title, sub: `In ${projPath(parentOf(c.rec))}`, insert: insertFor(c.rec) };
+    const a = areaOf(c.rec);
+    return { type: 'project', id: c.id, label: c.title, sub: a ? aTitle(a) : 'Project', insert: c.title };
   });
 }
 /* wires the list to a title field; key(e) returns true when it used the key */
@@ -119,7 +124,7 @@ function placeAutocomplete(ti, box, onPick) {
   };
   const hide = () => { rows = []; at = -1; box.hidden = true; box.innerHTML = ''; ti.removeAttribute('aria-activedescendant'); ti.setAttribute('aria-expanded', 'false'); };
   const paint = () => {
-    box.innerHTML = rows.map((r, i) => `<button type="button" class="qe-ac-i${i === k ? ' on' : ''}" id="qe-ac-${i}" role="option" aria-selected="${i === k}" data-aci="${i}">${r.headingId ? ic('heading') : placeIcon(r)}<span class="qe-ac-t">${esc(r.label)}</span><span class="qe-ac-s">${esc(r.sub)}</span></button>`).join('');
+    box.innerHTML = rows.map((r, i) => `<button type="button" class="qe-ac-i${i === k ? ' on' : ''}" id="qe-ac-${i}" role="option" aria-selected="${i === k}" data-aci="${i}">${placeIcon(r)}<span class="qe-ac-t">${esc(r.label)}</span><span class="qe-ac-s">${esc(r.sub)}</span></button>`).join('');
     box.hidden = false; ti.setAttribute('aria-expanded', 'true'); ti.setAttribute('aria-activedescendant', 'qe-ac-' + k);
   };
   const update = () => {

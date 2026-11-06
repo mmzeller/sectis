@@ -1,6 +1,7 @@
 /* ===================== Drag and drop =====================
    Mouse: press and move. Touch: press and hold, then move.
-   Sources: to-do rows, project rows, headings, sidebar projects/areas, and the + button. */
+   Sources: to-do rows, project rows, sidebar projects/areas, and the + button. A project dropped
+   on the middle of a project in the sidebar goes inside it, as a sub-project. */
 const D = { st: null, suppressClick: false };
 
 function dragInit() {
@@ -21,9 +22,7 @@ function dragSource(target) {
   const magic = target.closest('#magic');
   if (magic) return { magic: true, src: null };
   const src = target.closest('[data-drag]');
-  // a heading's name drags its heading, until you've clicked into it to rename it
-  const headName = target.closest('textarea.h-title') && document.activeElement !== target.closest('textarea.h-title');
-  if (!src || (!headName && target.closest('input, textarea, select')) || target.closest('.cb, .restore, .card, .ib, .sel-ring') || ui.selectMode) return null;
+  if (!src || target.closest('input, textarea, select') || target.closest('.cb, .restore, .card, .ib, .sel-ring') || ui.selectMode) return null;
   return { magic: false, src };
 }
 function beginTracking(found, x, y, pt, pid) {
@@ -77,18 +76,17 @@ function touchEnd(e) {
 }
 function startDrag() {
   const st = D.st; st.active = true; clearTimeout(st.timer); st.timer = null;
-  const a = document.activeElement; if (st.kind === 'heading' && a && a.matches && a.matches('.h-title')) a.blur(); // the press focused the name; this is a drag
   if (st.kind === 'todo' || st.kind === 'project') {
     const sameKind = [...ui.sel].filter((id) => (st.kind === 'todo' ? getT(id) : getP(id)));
     st.ids = ui.sel.has(st.id) && sameKind.length > 1 ? sameKind : [st.id];
   } else st.ids = st.id ? [st.id] : [];
   if (ui.editing && st.ids.includes(ui.editing)) { D.st = null; return; }
-  const label = st.kind === 'magic' ? 'New To-Do' : st.kind === 'heading' ? (getH(st.id) || {}).title || 'Heading' : st.kind === 'area' ? aTitle(getA(st.id)) : st.kind === 'smart' ? smartTitle(getSmart(st.id)) : st.kind === 'project' ? pTitle(getP(st.id)) : (getT(st.id) || {}).title || 'New To-Do';
+  const label = st.kind === 'magic' ? 'New To-Do' : st.kind === 'area' ? aTitle(getA(st.id)) : st.kind === 'smart' ? smartTitle(getSmart(st.id)) : st.kind === 'project' ? pTitle(getP(st.id)) : (getT(st.id) || {}).title || 'New To-Do';
   const g = document.createElement('div'); g.className = 'drag-ghost';
   g.innerHTML = `${st.kind === 'magic' ? ic('plus') : ''}<span>${esc(label)}</span>${st.ids.length > 1 ? `<span class="n">${st.ids.length}</span>` : ''}`;
   document.body.append(g); st.ghost = g;
   const line = document.createElement('div'); line.className = 'drop-line'; line.hidden = true; document.body.append(line); st.line = line;
-  st.ids.forEach((id) => $$(`[data-id="${CSS.escape(id)}"]`).forEach((r) => { if (r.matches('.row, .hrow, .sb-item')) r.classList.add('dragging'); }));
+  st.ids.forEach((id) => $$(`[data-id="${CSS.escape(id)}"]`).forEach((r) => { if (r.matches('.row, .sb-item')) r.classList.add('dragging'); }));
   document.body.classList.add('dragging-active', 'drag-' + st.kind);
   if (navigator.vibrate) try { navigator.vibrate(8); } catch (err) { /* ignore */ }
   window.getSelection && window.getSelection().removeAllRanges();
@@ -105,7 +103,7 @@ function showLine(st, el, after, sec) {
 }
 function sectionAccepts(sec, kind) {
   if (!sec || /^(logbook|trash|repeating|tag|waiting|deadlines|smart|colview)/.test(sec)) return false;
-  const projectSec = sec.startsWith('areaprojects:') || sec.includes(':projects:');
+  const projectSec = sec.startsWith('areaprojects:') || sec.startsWith('subprojects:') || sec.includes(':projects:');
   if (kind === 'project') return projectSec || /^(today|evening|upcoming)/.test(sec);
   return !projectSec;
 }
@@ -132,14 +130,12 @@ function dragTrack(fromLoop) {
   if (sb) {
     const key = sb.dataset.dropList;
     if (key === 'board' || key.startsWith('board:')) { if (k === 'project' || k === 'area') { sb.classList.add('drop-hover'); st.target = { type: 'board', el: sb, bid: key.slice(6) || ui.boardId }; } return; }
-    if (k === 'heading') { // a heading (with its to-dos) into another project
-      const h = getH(st.id);
-      if (sb.dataset.kind === 'project' && h && h.projectId !== sb.dataset.id) { sb.classList.add('drop-hover'); st.target = { type: 'headproj', ref: sb.dataset.id, el: sb }; }
-      return;
-    }
     if (k === 'project' && sb.dataset.kind === 'project' && sb.dataset.sb) {
       if (st.ids.includes(sb.dataset.id)) return;
-      const r = sb.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
+      const r = sb.getBoundingClientRect(), ref = getP(sb.dataset.id), y = st.y - r.top;
+      // the middle of a project's row puts it inside that project; its top or bottom edge, beside it
+      if (ref && y > r.height * 0.28 && y < r.height * 0.72 && st.ids.every((id) => canNestIn(getP(id), ref))) { sb.classList.add('drop-hover'); st.target = { type: 'sbnest', ref: ref.id }; return; }
+      const after = y > r.height / 2;
       showLine(st, sb, after); st.target = { type: 'sbproj', ref: sb.dataset.id, after }; return;
     }
     if (k === 'smart') {
@@ -153,7 +149,7 @@ function dragTrack(fromLoop) {
       const r = sb.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
       showLine(st, sb, after); st.target = { type: 'sbarea', ref: sb.dataset.id, after }; return;
     }
-    if (k === 'area' || k === 'heading' || k === 'magic') return;
+    if (k === 'area' || k === 'magic') return;
     if (k === 'project' && key.startsWith('project:')) return;
     if (k === 'project' && key === 'inbox') return;
     sb.classList.add('drop-hover'); st.target = { type: 'list', key, el: sb }; return;
@@ -162,12 +158,6 @@ function dragTrack(fromLoop) {
   // --- a day on Upcoming's calendar: schedule for that day
   const cday = el.closest('#content [data-drop-day]');
   if (cday) { if (k === 'todo' || k === 'project' || k === 'magic') { cday.classList.add('drop-hover'); st.target = { type: 'day', date: cday.dataset.dropDay }; } return; }
-  // --- headings reorder
-  if (k === 'heading') {
-    const h = el.closest('.hrow'); if (!h || h.dataset.id === st.id) return;
-    const r = h.getBoundingClientRect(); const after = st.y > r.top + r.height / 2;
-    showLine(st, h, after); st.target = { type: 'heading', ref: h.dataset.id, after }; return;
-  }
   // --- a to-do onto a project's row: into that project. Where project rows can't take to-dos
   // (an area's projects) the whole row counts; elsewhere (Today) its middle, so its edges still reorder.
   const prow = k === 'todo' && el.closest('#content .prow[data-id]');
@@ -183,7 +173,7 @@ function dragTrack(fromLoop) {
   let sec = null, index = 0, refEl = null, after = false;
   const row = el.closest('.row[data-id]');
   const zone = el.closest('[data-zone]');
-  const under = el.closest('[data-for]'); // logged to-dos shown under a heading: a drop there goes at the end of that heading
+  const under = el.closest('[data-for]'); // logged to-dos shown where they were: a drop there goes at the end of that list
   if (under) {
     sec = $(`#content [data-sec="${CSS.escape(under.dataset.for)}"]`);
     if (sec) { const rows = $$(':scope > .row[data-id]', sec).filter((r) => !st.ids.includes(r.dataset.id)); index = rows.length; refEl = rows[rows.length - 1]; after = true; }
@@ -243,11 +233,11 @@ function performDrop(st, t) {
     boardAdd(cols, { toast: cols.length > 1 ? `Added ${cols.length} projects to the Board` : `Added “${colName(cols[0].t, cols[0].id)}” to the Board` });
     return;
   }
-  if (t.type === 'headproj') { const h = getH(st.id), p = getP(t.ref); if (h && p) { moveHeading(h, p.id); toast(`Moved “${h.title || 'Heading'}” to ${pTitle(p)}`, { undo: true }); } return; }
+  if (t.type === 'sbnest') { moveItems(ids, { type: 'project', id: t.ref }); return; }
   if (t.type === 'sbloose') {
-    const loose = S.projects.filter((p) => !p.trashed && !p.isTemplate && !p.areaId && !ids.includes(p.id));
+    const loose = S.projects.filter((p) => !p.trashed && !p.isTemplate && inArea(p, null) && !ids.includes(p.id));
     const vals = orderBetween(maxOf(loose, 'order'), null, ids.length);
-    commit('Move Project', () => ids.forEach((id, k) => { const p = getP(id); if (p) { p.areaId = null; p.order = vals[k]; touch(p); } }));
+    commit('Move Project', () => ids.forEach((id, k) => { const p = getP(id); if (p) { retagInside(p, () => placeProject(p, null, null, vals[k])); touch(p); } }));
     return;
   }
   if (t.type === 'sec') {
@@ -262,14 +252,12 @@ function performDrop(st, t) {
     const vals = orderBetween(prev ? prev[ok] : null, next ? next[ok] : null, n);
     if (st.kind === 'magic') { newTodo({ sec: t.sec, place: { [ok]: vals[0] } }); return; }
     const sec = t.sec, props = sectionProps(sec);
-    // Anytime and Someday list a project's to-dos in heading order without showing the headings,
-    // so a to-do dropped among another heading's to-dos joins that heading (or it would jump back)
-    const nb = /^(anytime|someday):project:/.test(sec) ? (prev && prev.type === 'todo' ? prev : next && next.type === 'todo' ? next : null) : null;
+    if (sec.startsWith('subprojects:') && ids.some((id) => getP(id) && !canNestIn(getP(id), getP(sec.split(':')[1])))) { toast('A project can’t go inside itself'); return; }
     commit('Move', () => ids.forEach((id, i) => {
       const x = itemById(id); if (!x) return;
-      if (nb && x.type === 'todo' && nb.projectId === props.projectId) x.headingId = nb.headingId || null;
-      if (sec.startsWith('areaprojects:')) { if (x.type === 'project') { x.areaId = sec.split(':')[1]; x.order = vals[i]; } return; }
-      if (sec.includes(':projects:')) { if (x.type === 'project') { x.areaId = sec.split(':')[2] || null; x.order = vals[i]; } return; }
+      if (sec.startsWith('subprojects:')) { if (x.type === 'project') { retagInside(x, () => placeProject(x, sec.split(':')[1], null, vals[i])); touch(x); } return; }
+      if (sec.startsWith('areaprojects:')) { if (x.type === 'project') { retagInside(x, () => placeProject(x, null, sec.split(':')[1], vals[i])); touch(x); } return; }
+      if (sec.includes(':projects:')) { if (x.type === 'project' && !isSub(x)) { x.areaId = sec.split(':')[2] || null; x.order = vals[i]; } return; }
       const before = containerKey(x);
       applySectionProps(x, props);
       if (props && props._today && x.type === 'todo' && !isTodayItem(x)) x.when = T0();
@@ -279,19 +267,14 @@ function performDrop(st, t) {
     }));
     return;
   }
-  if (t.type === 'heading') {
-    const h = getH(st.id), ref = getH(t.ref); if (!h || !ref) return;
-    const hs = S.headings.filter((x) => x.projectId === ref.projectId && !x.archived && x !== h).sort(byOrder);
-    const i = hs.indexOf(ref) + (t.after ? 1 : 0);
-    commit('Move Heading', () => { h.order = orderBetween(hs[i - 1] ? hs[i - 1].order : null, hs[i] ? hs[i].order : null)[0]; });
-    return;
-  }
-  if (t.type === 'sbproj') {
+  if (t.type === 'sbproj') { // beside another project in the sidebar: in the same project or area as it
     const ref = getP(t.ref); if (!ref) return;
-    const group = S.projects.filter((p) => !p.trashed && p.status === 'open' && p.start !== 'someday' && (p.areaId || null) === (ref.areaId || null) && !ids.includes(p.id)).sort(byOrder);
+    const up = parentOf(ref);
+    if (up && ids.some((id) => !canNestIn(getP(id), up))) { toast('A project can’t go inside itself'); return; }
+    const group = S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday' && !ids.includes(p.id) && (up ? p.parentId === up.id : inArea(p, ref.areaId))).sort(byOrder);
     const i = group.indexOf(ref) + (t.after ? 1 : 0);
     const vals = orderBetween(group[i - 1] ? group[i - 1].order : null, group[i] ? group[i].order : null, ids.length);
-    commit('Move Project', () => ids.forEach((id, k) => { const p = getP(id); if (p) { p.areaId = ref.areaId || null; p.order = vals[k]; } }));
+    commit('Move Project', () => ids.forEach((id, k) => { const p = getP(id); if (p) { retagInside(p, () => placeProject(p, up ? up.id : null, up ? null : ref.areaId, vals[k])); touch(p); } }));
     return;
   }
   if (t.type === 'sbsmart') {

@@ -17,7 +17,7 @@ function reportRange(period) {
 function rangeText(r) { return r.from === r.to ? fmtDate(r.from, { weekday: false }) : `${fmtDate(r.from, { weekday: false })} – ${fmtDate(r.to, { weekday: false })}`; }
 function reportScope(scope) {
   if (scope.type === 'area' && getA(scope.id)) { const a = getA(scope.id); return { name: aTitle(a), level: 'area', has: (t) => (areaOf(t) || {}).id === a.id }; }
-  if (scope.type === 'project' && getP(scope.id)) { const p = getP(scope.id); return { name: pTitle(p), level: 'project', has: (t) => t.projectId === p.id }; }
+  if (scope.type === 'project' && getP(scope.id)) { const p = getP(scope.id); return { name: pTitle(p), level: 'project', has: (t) => inProjectTree(t, p.id), subs: projDescendants(p).length > 0 }; }
   if (scope.type === 'board') { const cols = boardCols(); return { name: 'Board', level: 'all', has: (t) => cols.some((c) => colHas(c, t)) }; }
   return { name: '', level: 'all', has: (t) => inFocus(t) };
 }
@@ -30,7 +30,9 @@ function reportGroups(items) {
     if (!groups.has(key)) groups.set(key, { p, a, list: [] });
     groups.get(key).list.push(t);
   }
-  const rank = (g) => [g.a ? 1 : 0, g.a ? g.a.order || 0 : 0, g.p ? 1 : 0, g.p ? g.p.order || 0 : 0];
+  // a project's sub-projects right after it, in order
+  const trail = (p) => [...projAncestors(p).reverse(), p].map((q) => q.order || 0);
+  const rank = (g) => [g.a ? 1 : 0, g.a ? g.a.order || 0 : 0, g.p ? 1 : 0, ...(g.p ? trail(g.p) : [])];
   return [...groups.values()].sort((x, y) => { const a = rank(x), b = rank(y); for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return a[i] - b[i]; return 0; });
 }
 function buildReport(scope, o) {
@@ -50,7 +52,7 @@ function buildReport(scope, o) {
     .sort((a, b) => a.waitFor.localeCompare(b.waitFor) || ((a.when || '9999') < (b.when || '9999') ? -1 : 1)).filter(once);
   const B = [];
   const label = (g, progress) => {
-    let s = g.p ? pTitle(g.p) : g.a ? aTitle(g.a) : 'Not in a project';
+    let s = g.p ? projPath(g.p) : g.a ? aTitle(g.a) : 'Not in a project';
     if (g.p && sc.level === 'all' && g.a) s += ` (${aTitle(g.a)})`;
     if (progress && g.p) {
       if (g.p.status === 'done') s += ' — project completed';
@@ -61,7 +63,7 @@ function buildReport(scope, o) {
   const section = (title, items, progress) => {
     if (!items.length) return;
     B.push({ h: 2, text: title });
-    if (sc.level === 'project') { items.forEach((t) => B.push({ item: t })); return; }
+    if (sc.level === 'project' && !sc.subs) { items.forEach((t) => B.push({ item: t })); return; }
     reportGroups(items).forEach((g) => { B.push({ h: 3, text: label(g, progress) }); g.list.forEach((t) => B.push({ item: t })); });
   };
   if (o.done) section('Done', done, o.progress);

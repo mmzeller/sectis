@@ -12,34 +12,40 @@ function sharePrefs() {
 }
 
 /* ---- collect what to export as a flat list of blocks:
-   { h: level, text, proj? } headings, and { item } to-dos or projects ---- */
+   { h: level, text, proj? } headings, and { item } to-dos or projects. A project's sub-projects are
+   headings one level down, with their to-dos under them. ---- */
 function projectTodos(p) {
   return S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged));
 }
-function addProjectBody(B, p, level) {
-  const todos = projectTodos(p);
-  todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder).forEach((t) => B.push({ item: t }));
-  S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder).forEach((h) => {
-    const ts = todos.filter((t) => t.headingId === h.id).sort(byOrder);
-    if (ts.length) { B.push({ h: level, text: h.title || 'Untitled heading' }); ts.forEach((t) => B.push({ item: t })); }
+function addProjectBody(B, p, level, seen = new Set([p.id])) {
+  projectTodos(p).sort(byOrder).forEach((t) => B.push({ item: t }));
+  childProjects(p).filter((q) => !q.trashed && !q.isTemplate && (q.status === 'open' || !q.logged) && !seen.has(q.id)).sort(byOrder).forEach((q) => {
+    seen.add(q.id);
+    B.push({ h: Math.min(level, 6), text: pTitle(q), proj: q }); addProjectBody(B, q, level + 1, seen);
   });
 }
 function addGrouped(B, todos, extraProjects = []) {
   // loose to-dos, then each project (outside areas first), then each area with its to-dos and projects
   todos.filter((t) => !t.projectId && !t.areaId).sort(byOrder).forEach((t) => B.push({ item: t }));
-  const sortT = (a, b) => { const ha = a.headingId && getH(a.headingId), hb = b.headingId && getH(b.headingId); return ((ha ? ha.order + 1 : 0) - (hb ? hb.order + 1 : 0)) || byOrder(a, b); };
-  const proj = (p) => { const ts = todos.filter((t) => t.projectId === p.id).sort(sortT); if (ts.length) { B.push({ h: 2, text: pTitle(p), proj: p }); ts.forEach((t) => B.push({ item: t })); } };
-  const projectsIn = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && (p.areaId || null) === areaId).sort(byOrder);
-  extraProjects.filter((p) => !p.areaId).forEach((p) => B.push({ item: p }));
-  projectsIn(null).forEach(proj);
+  // each project's to-dos under its name, then its sub-projects' under theirs ("Kitchen › Cabinets")
+  const proj = (p, h) => {
+    const ts = todos.filter((t) => t.projectId === p.id).sort(byOrder);
+    if (ts.length) { B.push({ h, text: isSub(p) ? projPath(p) : pTitle(p), proj: p }); ts.forEach((t) => B.push({ item: t })); }
+    childProjects(p).filter((q) => !q.trashed && !q.isTemplate).sort(byOrder).forEach((q) => proj(q, h));
+  };
+  const projectsIn = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && inArea(p, areaId)).sort(byOrder);
+  const hasAny = (p) => todos.some((t) => inProjectTree(t, p.id));
+  const aid = (p) => (areaOf(p) ? areaOf(p).id : null);
+  extraProjects.filter((p) => !aid(p)).forEach((p) => B.push({ item: p }));
+  projectsIn(null).forEach((p) => proj(p, 2));
   S.areas.slice().sort(byOrder).forEach((a) => {
     const at = todos.filter((t) => t.areaId === a.id && !t.projectId).sort(byOrder);
-    const ap = extraProjects.filter((p) => p.areaId === a.id);
-    const inner = projectsIn(a.id).filter((p) => todos.some((t) => t.projectId === p.id));
+    const ap = extraProjects.filter((p) => aid(p) === a.id);
+    const inner = projectsIn(a.id).filter(hasAny);
     if (!at.length && !ap.length && !inner.length) return;
     B.push({ h: 2, text: aTitle(a) });
     at.forEach((t) => B.push({ item: t })); ap.forEach((p) => B.push({ item: p }));
-    inner.forEach((p) => { const ts = todos.filter((t) => t.projectId === p.id).sort(sortT); B.push({ h: 3, text: pTitle(p), proj: p }); ts.forEach((t) => B.push({ item: t })); });
+    inner.forEach((p) => proj(p, 3));
   });
 }
 function collectExport(scope) {
@@ -47,7 +53,7 @@ function collectExport(scope) {
   if (scope.type === 'area') {
     const a = getA(scope.id); title = aTitle(a);
     S.todos.filter((t) => t.areaId === a.id && !t.projectId && liveTodo(t)).sort(byOrder).forEach((t) => B.push({ item: t }));
-    S.projects.filter((p) => p.areaId === a.id && liveProject(p)).sort((x, y) => (x.start === 'someday') - (y.start === 'someday') || byOrder(x, y)).forEach((p) => { B.push({ h: 2, text: pTitle(p), proj: p }); addProjectBody(B, p, 3); });
+    S.projects.filter((p) => inArea(p, a.id) && liveProject(p)).sort((x, y) => (x.start === 'someday') - (y.start === 'someday') || byOrder(x, y)).forEach((p) => { B.push({ h: 2, text: pTitle(p), proj: p }); addProjectBody(B, p, 3); });
   } else if (scope.type === 'items') {
     const items = scope.ids.map(itemById).filter(Boolean);
     if (items.length === 1 && items[0].type === 'project') {
@@ -200,7 +206,9 @@ function buildCSV(doc, o) {
   const cols = [['Title', (x) => itemName(x)]];
   if (items.some((x) => x.type === 'project')) cols.push(['Type', (x) => (x.type === 'project' ? 'Project' : 'To-Do')]);
   cols.push(['List', (x) => (x.type === 'project' ? (areaOf(x) ? aTitle(areaOf(x)) : '') : parentLabel(x).split(' › ')[0])]);
-  if (items.some((x) => x.type === 'todo' && x.headingId && getH(x.headingId))) cols.push(['Heading', (x) => { const h = x.type === 'todo' && x.headingId && getH(x.headingId); return h ? h.title : ''; }]);
+  // the sub-project a to-do is in, below its top project (the List column)
+  const subOf = (x) => { const p = x.type === 'todo' && projectOf(x); return p && isSub(p) ? projPath(p).split(' › ').slice(1).join(' › ') : ''; };
+  if (items.some(subOf)) cols.push(['Sub-Project', subOf]);
   if (showStatus) cols.push(['Status', (x) => ({ open: 'Open', done: 'Done', canceled: 'Canceled' }[x.status])]);
   if (o.dates) {
     cols.push(['When', (x) => (x.start === 'someday' ? 'Someday' : x.when ? fmtDate(x.when, { year: true }) : '')]);

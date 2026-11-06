@@ -116,7 +116,7 @@ function spawnInstance(tpl, date) {
     id,
     title: tpl.title, notes: tpl.notes, tags: tpl.tags.slice(), priority: tpl.priority || 0,
     checklist: (tpl.checklist || []).map((c) => ({ id: uid(), title: c.title, done: false })),
-    projectId: tpl.projectId, areaId: tpl.areaId, headingId: tpl.headingId,
+    projectId: tpl.projectId, areaId: tpl.areaId,
     start: 'anytime', when: date, evening: !!r.evening, reminder: r.reminder || null,
     deadline: r.deadlineDays != null && r.deadlineDays !== '' ? addDays(date, +r.deadlineDays) : null,
     templateId: tpl.id, order: tpl.order, todayOrder: todayTop(), sample: tpl.sample,
@@ -125,8 +125,9 @@ function spawnInstance(tpl, date) {
   syncHint(inst.id);
   return inst;
 }
-/* A repeating project is a hidden template project whose headings and to-dos are the
-   steps. Each copy gets the template's open to-dos and headings, with predictable IDs. */
+/* A repeating project is a hidden template project whose to-dos and sub-projects are the
+   steps. Each copy gets the template's open to-dos and sub-projects (with theirs), with
+   predictable IDs. A repeating sub-project's copies go in the same project. */
 function spawnProjectInstance(tpl, date) {
   const r = tpl.repeat;
   const id = `${tpl.id}-${date}`;
@@ -134,29 +135,36 @@ function spawnProjectInstance(tpl, date) {
   syncHint(tpl.id);
   if (getP(id)) return getP(id);
   const p = makeProject({
-    id, title: tpl.title, notes: tpl.notes, tags: tpl.tags.slice(), areaId: tpl.areaId, priority: tpl.priority || 0,
+    id, title: tpl.title, notes: tpl.notes, tags: tpl.tags.slice(), areaId: tpl.areaId, parentId: tpl.parentId || null, priority: tpl.priority || 0,
     start: 'anytime', when: date, evening: !!r.evening, reminder: r.reminder || null,
     deadline: r.deadlineDays != null && r.deadlineDays !== '' ? addDays(date, +r.deadlineDays) : null,
     templateId: tpl.id, order: tpl.order + 0.001, todayOrder: todayTop(), sample: tpl.sample,
   });
   S.projects.push(p); idx.project.set(p.id, p); syncHint(p.id);
-  const hmap = {};
-  S.headings.filter((h) => h.projectId === tpl.id && !h.archived).forEach((h) => {
-    const nh = { id: `${h.id}-${date}`, projectId: p.id, title: h.title, order: h.order, archived: false };
-    hmap[h.id] = nh.id; S.headings.push(nh); idx.heading.set(nh.id, nh); syncHint(nh.id);
-  });
-  S.todos.filter((c) => c.projectId === tpl.id && !c.trashed && !c.isTemplate && !c.isDraft && c.status === 'open').forEach((c) => {
-    const t = makeTodo({
-      id: `${c.id}-${date}`, title: c.title, notes: c.notes, tags: c.tags.slice(), priority: c.priority || 0,
-      checklist: (c.checklist || []).map((k, i) => ({ id: `${c.id}-${date}-${i}`, title: k.title, done: false })),
-      projectId: p.id, headingId: c.headingId ? hmap[c.headingId] || null : null,
-      start: c.start === 'someday' ? 'someday' : 'anytime', order: c.order, todayOrder: c.todayOrder, sample: c.sample,
+  const copyIn = (from, to) => {
+    S.todos.filter((c) => c.projectId === from.id && !c.trashed && !c.isTemplate && !c.isDraft && c.status === 'open').forEach((c) => {
+      const t = makeTodo({
+        id: `${c.id}-${date}`, title: c.title, notes: c.notes, tags: c.tags.slice(), priority: c.priority || 0,
+        checklist: (c.checklist || []).map((k, i) => ({ id: `${c.id}-${date}-${i}`, title: k.title, done: false })),
+        projectId: to.id, start: c.start === 'someday' ? 'someday' : 'anytime', order: c.order, todayOrder: c.todayOrder, sample: c.sample,
+      });
+      if (!getT(t.id)) { S.todos.push(t); idx.todo.set(t.id, t); syncHint(t.id); }
     });
-    S.todos.push(t); idx.todo.set(t.id, t); syncHint(t.id);
-  });
+    childProjects(from).filter((q) => !q.trashed && !q.isTemplate && q.status === 'open').sort(byOrder).forEach((q) => {
+      const qid = `${q.id}-${date}`;
+      let qc = getP(qid);
+      if (!qc) {
+        qc = makeProject({ id: qid, title: q.title, notes: q.notes, tags: q.tags.slice(), priority: q.priority || 0, parentId: to.id, start: q.start === 'someday' ? 'someday' : 'anytime', order: q.order, deadline: null, sample: q.sample });
+        S.projects.push(qc); idx.project.set(qc.id, qc); syncHint(qc.id);
+      }
+      copyIn(q, qc);
+    });
+  };
+  copyIn(tpl, p);
   return p;
 }
-function isTplChild(t) { const p = t && t.type === 'todo' && t.projectId && getP(t.projectId); return !!(p && p.isTemplate); }
+/* a to-do in a template project (a repeating project's steps, or a project template), at any depth */
+function isTplChild(t) { const p = t && t.type === 'todo' && t.projectId && getP(t.projectId); return !!(p && (p.isTemplate || projAncestors(p).some((q) => q.isTemplate))); }
 function generateRepeats() {
   const T = T0(); let changed = false;
   const step = (tpl, spawn) => {
@@ -173,11 +181,12 @@ function generateRepeats() {
   for (const tpl of S.todos.slice()) {
     if (!tpl.isTemplate || tpl.trashed || !tpl.repeat || !tpl.next) continue;
     const proj = tpl.projectId && getP(tpl.projectId);
-    if (proj && (proj.trashed || proj.status !== 'open' || proj.isTemplate)) continue;
+    if (proj && (proj.trashed || proj.status !== 'open' || proj.isTemplate || deadAbove(proj))) continue;
     step(tpl, spawnInstance);
   }
   for (const tpl of S.projects.slice()) {
     if (!tpl.isTemplate || tpl.trashed || !tpl.repeat || !tpl.next) continue;
+    const up = parentOf(tpl); if (up && (up.trashed || up.status !== 'open' || up.isTemplate || deadAbove(up))) continue; // a repeating sub-project waits while its project can't take it
     step(tpl, spawnProjectInstance);
   }
   if (changed) { reindex(); saveSoon(); }

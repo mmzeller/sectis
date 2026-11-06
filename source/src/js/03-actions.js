@@ -38,21 +38,39 @@ function applyReminder(ids, hm) {
   commit('Reminder', () => itemsFor(ids).forEach((x) => { if (x.when) x.reminder = hm; touch(x); }));
 }
 
-/* target: {type:'inbox'} | {type:'area', id} | {type:'project', id, headingId} | {type:'none'} */
+/* can project p go inside project q? Not into itself or anything inside it */
+function canNestIn(p, q) { return !!(p && q && p !== q && !projAncestors(q).includes(p)); }
+/* a project's new place: inside another project, or at the top level of an area (or none) */
+function placeProject(x, parentId, areaId, order) {
+  const was = x.parentId || null;
+  x.parentId = parentId || null; x.areaId = parentId ? null : areaId || null;
+  if (order != null) x.order = order;
+  else if (was !== x.parentId) x.order = endOrder(S.projects.filter((p) => p !== x && !p.trashed && (parentId ? p.parentId === parentId : inArea(p, areaId))));
+}
+/* moving a project: the to-dos in it (and in its sub-projects) swap the tags they had from where
+   it was for the ones from where it goes */
+function retagInside(p, fn) {
+  const inside = new Set([p.id, ...projDescendants(p).map((q) => q.id)]);
+  const todos = S.todos.filter((t) => inside.has(t.projectId) && !t.isTemplate);
+  const before = new Map(todos.map((t) => [t, placeTagIds(t)]));
+  fn();
+  todos.forEach((t) => retag(t, before.get(t)));
+}
+/* target: {type:'inbox'} | {type:'area', id} | {type:'project', id} | {type:'none'} */
 function moveItems(ids, target, opts = {}) {
   const items = itemsFor(ids);
   if (!items.length) return;
+  if (target.type === 'project' && items.some((x) => x.type === 'project' && !canNestIn(x, getP(target.id)))) { toast('A project can’t go inside itself'); return; }
   const fn = () => {
     for (const x of items) {
       if (x.type === 'project') {
-        if (target.type === 'area') x.areaId = target.id;
-        else if (target.type === 'none' || target.type === 'inbox') x.areaId = null;
+        retagInside(x, () => { if (target.type === 'project') placeProject(x, target.id, null); else placeProject(x, null, target.type === 'area' ? target.id : null); });
         touch(x); continue;
       }
       const prevContainer = containerKey(x), prevTags = placeTagIds(x);
       if (target.type === 'inbox') { x.projectId = null; x.areaId = null; x.headingId = null; x.start = 'inbox'; x.when = null; x.evening = false; x.reminder = null; }
       else if (target.type === 'area') { x.areaId = target.id; x.projectId = null; x.headingId = null; if (x.start === 'inbox') x.start = 'anytime'; }
-      else if (target.type === 'project') { x.projectId = target.id; x.areaId = null; x.headingId = target.headingId || null; if (x.start === 'inbox') x.start = 'anytime'; }
+      else if (target.type === 'project') { x.projectId = target.id; x.areaId = null; x.headingId = null; if (x.start === 'inbox') x.start = 'anytime'; }
       else if (target.type === 'none') { x.projectId = null; x.areaId = null; x.headingId = null; if (x.start === 'inbox') x.start = 'anytime'; }
       if (prevContainer !== containerKey(x) && !opts.keepOrder) x.order = endOrder(S.todos.filter((t) => t !== x && containerKey(t) === containerKey(x)));
       retag(x, prevTags);
@@ -61,11 +79,11 @@ function moveItems(ids, target, opts = {}) {
   };
   if (opts.noCommit) fn(); else commit('Move', fn);
   if (!opts.silent && !items.every((x) => x.isDraft)) {
-    const name = target.type === 'inbox' ? 'Inbox' : target.type === 'area' ? (getA(target.id) || {}).title : target.type === 'project' ? (getP(target.id) || {}).title || 'New Project' : 'No Area';
+    const name = target.type === 'inbox' ? 'Inbox' : target.type === 'area' ? (getA(target.id) || {}).title : target.type === 'project' ? pTitle(getP(target.id)) : 'No Area';
     toast(`Moved to ${name || 'list'}`, { undo: true });
   }
 }
-function containerKey(t) { return t.projectId ? `p:${t.projectId}:${t.headingId || ''}` : t.areaId ? `a:${t.areaId}` : t.start === 'inbox' ? 'inbox' : 'loose'; }
+function containerKey(t) { return t.projectId ? `p:${t.projectId}:` : t.areaId ? `a:${t.areaId}` : t.start === 'inbox' ? 'inbox' : 'loose'; }
 
 function setStatus(x, status) {
   if (status === 'open') { x.status = 'open'; x.completedAt = null; x.logged = false; }
@@ -82,8 +100,11 @@ function toggleComplete(ids, status = 'done') {
   if (!allDone) afterLinkedComplete(items);
   if (!allDone && S.settings.logMode === 'immediate') setTimeout(() => { if (autoLog()) render(); }, 1300);
 }
+/* completing a project completes what's still open inside it: its to-dos and its sub-projects */
 async function completeProjectFlow(p, status = 'done') {
-  const remaining = S.todos.filter((t) => t.projectId === p.id && t.status === 'open' && !t.trashed && !t.isTemplate);
+  const subs = projDescendants(p).filter((q) => !q.trashed && !q.isTemplate);
+  const inside = new Set([p.id, ...subs.map((q) => q.id)]);
+  const remaining = S.todos.filter((t) => inside.has(t.projectId) && t.status === 'open' && !t.trashed && !t.isTemplate);
   let mode = status;
   if (remaining.length) {
     const r = await choiceDialog({
@@ -95,13 +116,15 @@ async function completeProjectFlow(p, status = 'done') {
   }
   commit(status === 'done' ? 'Complete Project' : 'Cancel Project', () => {
     remaining.forEach((t) => setStatus(t, mode));
-    S.todos.filter((t) => t.projectId === p.id && t.isTemplate).forEach((t) => { t.trashed = true; });
+    S.todos.filter((t) => inside.has(t.projectId) && t.isTemplate).forEach((t) => { t.trashed = true; });
+    subs.filter((q) => q.status === 'open').forEach((q) => setStatus(q, mode));
     setStatus(p, status);
   });
   toast(`${status === 'done' ? 'Completed' : 'Canceled'} “${p.title || 'New Project'}”`, { undo: true });
   if (S.settings.logMode === 'immediate') setTimeout(() => { if (autoLog()) render(); }, 1300);
 }
-function reopenProject(p) { commit('Reopen Project', () => setStatus(p, 'open')); }
+/* reopening a sub-project reopens the projects it's in, so it's back in your lists */
+function reopenProject(p) { commit('Reopen Project', () => [p, ...projAncestors(p)].forEach((q) => { if (q.status !== 'open') setStatus(q, 'open'); })); }
 /* send items to the Logbook now, whatever the Logbook setting. Open to-dos are completed first;
    an open project is left alone (Complete Project asks about its remaining to-dos). */
 function loggableItems(ids) { return itemsFor(ids).filter((x) => !x.trashed && !x.isTemplate && !isTplChild(x) && !x.logged && !(x.type === 'project' && x.status === 'open')); }
@@ -113,7 +136,11 @@ function logItems(ids) {
   commit('Move to Logbook', () => items.forEach((x) => {
     if (x.status === 'open') setStatus(x, 'done');
     x.logged = true; touch(x); ui.sel.delete(x.id);
-    if (x.type === 'project') S.todos.forEach((t) => { if (t.projectId === x.id && t.status !== 'open' && !t.trashed && !t.logged) { t.logged = true; touch(t); } });
+    if (x.type === 'project') {
+      const inside = new Set([x.id, ...projDescendants(x).map((q) => q.id)]);
+      S.todos.forEach((t) => { if (inside.has(t.projectId) && t.status !== 'open' && !t.trashed && !t.logged) { t.logged = true; touch(t); } });
+      S.projects.forEach((q) => { if (q !== x && inside.has(q.id) && q.status !== 'open' && !q.trashed && !q.logged) { q.logged = true; touch(q); } });
+    }
   }));
   const what = items.length > 1 ? plural(items.length, 'item') : '';
   toast(completing ? `Completed${what ? ' ' + what : ''} and moved to the Logbook` : `Moved ${what ? what + ' ' : ''}to the Logbook`, { undo: true });
@@ -126,18 +153,22 @@ function trashItems(ids) {
   if (ui.editing && ids.includes(ui.editing)) ui.editing = null;
   if (ui.tplModal && ids.includes(ui.tplModal)) closeTplModal();
   toast(items.length > 1 ? `Moved ${items.length} items to Trash` : 'Moved to Trash', { undo: true });
-  if (ui.view.type === 'project' && ids.includes(ui.view.id)) navigate('today');
+  const vp = ui.view.type === 'project' && getP(ui.view.id);
+  if (vp && [vp, ...projAncestors(vp)].some((q) => ids.includes(q.id))) navigate('today');
 }
 function restoreItems(ids) {
   commit('Put Back', () => itemsFor(ids).forEach((x) => {
     x.trashed = false; delete x.trashedAt;
     if (x.type === 'project' && x.areaId && !getA(x.areaId)) x.areaId = null;
+    if (x.type === 'project' && x.parentId && !getP(x.parentId)) x.parentId = null;
     if (x.type === 'todo') {
       if (x.projectId && (!getP(x.projectId))) x.projectId = null;
-      const p = x.projectId && getP(x.projectId); if (p && p.trashed) { p.trashed = false; }
       if (x.areaId && !getA(x.areaId)) x.areaId = null;
-      if (x.headingId && !getH(x.headingId)) x.headingId = null;
+      x.headingId = null;
     }
+    // what it's in comes back with it
+    const p = x.type === 'todo' ? x.projectId && getP(x.projectId) : parentOf(x);
+    if (p) [p, ...projAncestors(p)].forEach((q) => { if (q.trashed) { q.trashed = false; delete q.trashedAt; touch(q); } });
     touch(x);
   }));
   toast('Put back', { undo: true });
@@ -148,10 +179,10 @@ async function emptyTrash() {
   const ok = await confirmDialog({ title: 'Empty Trash?', body: `This permanently deletes ${plural(n, 'item')}. You can still undo right after.`, ok: 'Empty Trash', danger: true });
   if (!ok) return;
   commit('Empty Trash', () => {
-    const deadProjects = new Set(S.projects.filter((p) => p.trashed).map((p) => p.id));
+    const deadProjects = new Set();
+    S.projects.filter((p) => p.trashed).forEach((p) => { deadProjects.add(p.id); projDescendants(p).forEach((q) => deadProjects.add(q.id)); });
     S.todos = S.todos.filter((t) => !t.trashed && !deadProjects.has(t.projectId));
-    S.projects = S.projects.filter((p) => !p.trashed);
-    S.headings = S.headings.filter((h) => !deadProjects.has(h.projectId));
+    S.projects = S.projects.filter((p) => !deadProjects.has(p.id));
   });
 }
 
@@ -177,11 +208,17 @@ function duplicateItems(ids) {
   }));
   if (last) { ui.sel = new Set([last.id]); render(); }
 }
+/* A to-do becomes a project with its checklist items as to-dos. In a project, it becomes one of
+   its sub-projects, so it stays where it was. */
 function convertToProject(id) {
   const t = getT(id); if (!t) return;
+  const parent = projectOf(t);
   let p;
   commit('Convert to Project', () => {
-    p = makeProject({ title: t.title, notes: t.notes, priority: t.priority || 0, areaId: t.areaId || (projectOf(t) && projectOf(t).areaId) || null, tags: t.tags.slice(), start: t.start === 'someday' ? 'someday' : 'anytime', when: t.when, deadline: t.deadline, order: endOrder(S.projects) });
+    const inherited = parent ? placeTagIds(t) : new Set(); // its project's tags come with being inside it
+    p = makeProject({ title: t.title, notes: t.notes, priority: t.priority || 0, areaId: parent ? null : t.areaId || null, parentId: parent ? parent.id : null,
+      tags: t.tags.filter((x) => !inherited.has(x)), start: t.start === 'someday' ? 'someday' : 'anytime', when: t.when, deadline: t.deadline,
+      order: parent ? endOrder(childProjects(parent)) : endOrder(S.projects) });
     S.projects.push(p);
     (t.checklist || []).forEach((c, i) => S.todos.push(makeTodo({ title: c.title, projectId: p.id, start: 'anytime', status: c.done ? 'done' : 'open', completedAt: c.done ? Date.now() : null, order: i })));
     S.todos = S.todos.filter((x) => x !== t);
@@ -189,42 +226,7 @@ function convertToProject(id) {
   ui.editing = null; navigate('project:' + p.id);
 }
 
-/* A to-do in a project becomes a heading in the same spot, and its checklist items become the
-   to-dos under it (done ones stay done). They take on the to-do's tags, date, deadline and
-   priority. Headings have no notes, so a to-do with notes goes to the Trash (where they stay);
-   one without is simply replaced. Several at once keep their order. */
-const canBeHeading = (t) => !!(t && t.projectId && t.status === 'open' && !t.trashed && !t.isTemplate && !t.isDraft && getP(t.projectId) && getP(t.projectId).status === 'open' && !getP(t.projectId).trashed);
-function convertToHeading(ids) {
-  const todos = ids.map(getT).filter(canBeHeading).sort(byOrder);
-  if (!todos.length) return;
-  let made = 0, kids = 0; const keptNotes = [];
-  commit(todos.length > 1 ? 'Convert to Headings' : 'Convert to Heading', () => {
-    // where each new heading goes: right after the heading its to-do was under, or before the first heading
-    const groups = new Map();
-    todos.forEach((t) => { const k = t.projectId + ':' + (t.headingId && getH(t.headingId) && !getH(t.headingId).archived ? t.headingId : ''); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); });
-    groups.forEach((list, k) => {
-      const [pid, hid] = k.split(':');
-      const hs = S.headings.filter((h) => h.projectId === pid && !h.archived).sort(byOrder);
-      const i = hid ? hs.findIndex((h) => h.id === hid) : -1;
-      const orders = orderBetween(i >= 0 ? hs[i].order : null, hs[i + 1] ? hs[i + 1].order : null, list.length);
-      list.forEach((t, j) => {
-        const h = { id: uid(), projectId: pid, title: t.title || 'New Heading', order: orders[j], archived: false };
-        S.headings.push(h); made++;
-        (t.checklist || []).forEach((c, n) => {
-          const x = makeTodo({ title: c.title, projectId: pid, headingId: h.id, start: t.start === 'someday' ? 'someday' : 'anytime', when: t.when, evening: t.evening, deadline: t.deadline,
-            priority: t.priority || 0, tags: t.tags.slice(), status: c.done ? 'done' : 'open', completedAt: c.done ? Date.now() : null, order: n, todayOrder: t.todayOrder + n * 0.001 });
-          S.todos.push(x); kids++;
-        });
-        if ((t.notes || '').trim()) { t.trashed = true; touch(t); keptNotes.push(t.title || 'New To-Do'); } else S.todos = S.todos.filter((x) => x !== t);
-      });
-    });
-  });
-  ui.editing = null; ui.sel.clear();
-  toast(`${made > 1 ? `${made} to-dos are now headings` : `“${todos[0].title || 'New To-Do'}” is now a heading`}${kids ? ` with ${plural(kids, 'to-do')} under ${made > 1 ? 'them' : 'it'}` : ''}${!keptNotes.length ? '' : made === 1 ? '. Its notes are in the Trash' : `. Notes from ${keptNotes.map((x) => `“${x}”`).join(' and ')} are in the Trash`}`, { undo: true });
-  render();
-}
-
-/* ---- projects, areas, headings ---- */
+/* ---- projects and areas ---- */
 function newProject(areaId) {
   let p;
   commit('New Project', () => { p = makeProject({ areaId: areaId || null, order: endOrder(S.projects) }); S.projects.push(p); });
@@ -247,114 +249,94 @@ async function deleteArea(a) {
   });
   navigate('today');
 }
-/* a new heading at the end of the project, or right after a column of the headings board
-   (opts.after: 'h:headingId', or 'n:projectId' for the top), stacked under it */
-function newHeading(projectId, opts = {}) {
-  let h;
-  const after = opts.after && opts.after.startsWith('h:') ? getH(opts.after.slice(2)) : null;
-  commit('New Heading', () => {
-    const hs = S.headings.filter((x) => x.projectId === projectId && !x.archived).sort(byOrder);
-    let order = endOrder(hs);
-    if (opts.after) { const i = after ? hs.indexOf(after) + 1 : 0; order = orderBetween(hs[i - 1] ? hs[i - 1].order : null, hs[i] ? hs[i].order : null)[0]; }
-    h = { id: uid(), projectId, title: '', order, archived: false };
-    S.headings.push(h);
-  }, { render: false });
-  if (opts.after && ui.hUnder) { ui.hUnder.add(h.id); saveHUnder(); }
-  ui.sel.clear(); ui.anchor = null; // so N then goes under the new heading, not to a to-do picked earlier
-  ui.focusAfter = `[data-fkey="h-${h.id}"]`; render();
-  return h;
-}
-async function deleteHeading(h) {
-  const todos = S.todos.filter((t) => t.headingId === h.id && !t.trashed && t.status === 'open');
-  if (todos.length) {
-    const r = await choiceDialog({ title: 'Delete heading?', body: `The heading has ${plural(todos.length, 'to-do')}.`, choices: [{ id: 'keep', label: 'Keep its to-dos', primary: true }, { id: 'trash', label: 'Delete its to-dos too', danger: true }] });
-    if (!r) return;
-    commit('Delete Heading', () => {
-      S.todos.filter((t) => t.headingId === h.id).forEach((t) => { if (r === 'trash' && t.status === 'open') t.trashed = true; t.headingId = null; });
-      S.headings = S.headings.filter((x) => x !== h);
-    });
-  } else commit('Delete Heading', () => { S.todos.filter((t) => t.headingId === h.id).forEach((t) => { t.headingId = null; }); S.headings = S.headings.filter((x) => x !== h); });
-}
-async function archiveHeading(h) {
-  const open = S.todos.filter((t) => t.headingId === h.id && t.status === 'open' && !t.trashed);
-  if (open.length) {
-    const ok = await confirmDialog({ title: 'Archive heading?', body: `Its ${plural(open.length, 'remaining to-do')} will be marked complete and moved to the Logbook.`, ok: 'Archive' });
-    if (!ok) return;
-  }
-  commit('Archive Heading', () => {
-    S.todos.filter((t) => t.headingId === h.id && !t.trashed).forEach((t) => { if (t.status === 'open') setStatus(t, 'done'); t.logged = true; });
-    h.archived = true;
-  });
-  toast(`Archived “${h.title || 'heading'}”`, { undo: true });
-}
-function headingToProject(h) {
-  const src = getP(h.projectId); let p;
-  commit('Convert Heading', () => {
-    p = makeProject({ title: h.title, areaId: src ? src.areaId : null, order: endOrder(S.projects) });
+/* A new sub-project at the end of a project's sub-projects, or right after one (opts.after) or
+   before them all (opts.first), named right where it shows. On the sub-projects board, opts.stack
+   puts its column under the one it was added below. Once it's named, Return carries straight on
+   with its first to-do. */
+function newSubProject(parentId, opts = {}) {
+  const parent = getP(parentId); if (!parent || parent.trashed) return null;
+  if (parent.status !== 'open') { toast('Reopen the project to add to it'); return null; }
+  const sibs = childProjects(parent).filter((x) => !x.trashed).sort(byOrder);
+  let p;
+  commit('New Sub-Project', () => {
+    let order = endOrder(sibs);
+    if (opts.after || opts.first) { const a = opts.after && getP(opts.after), i = a ? sibs.indexOf(a) + 1 : 0; order = orderBetween(sibs[i - 1] ? sibs[i - 1].order : null, sibs[i] ? sibs[i].order : null)[0]; }
+    p = makeProject({ parentId, order });
     S.projects.push(p);
-    S.todos.filter((t) => t.headingId === h.id).forEach((t) => { const before = placeTagIds(t); t.projectId = p.id; t.headingId = null; retag(t, before); });
-    S.headings = S.headings.filter((x) => x !== h);
-  });
-  navigate('project:' + p.id);
+  }, { render: false });
+  if (opts.stack && ui.hUnder) { ui.hUnder.add(p.id); saveHUnder(); } // on the board, stacked under that column
+  if (ui.editing) closeEditor({ noRender: true });
+  ui.sel.clear(); ui.anchor = null;
+  ui.renaming = { t: 'p', id: p.id, value: null, fresh: true };
+  const shown = () => $(`#content [data-rename="p:${CSS.escape(p.id)}"]`);
+  render();
+  if (!shown()) { navigate('project:' + parentId); render(); } // not on screen here: open the project it's in
+  const inp = shown();
+  if (inp) { inp.focus(); return p; }
+  ui.renaming = null; navigate('project:' + p.id); ui.focusAfter = '[data-fkey="ptitle"]'; render();
+  return p;
 }
-/* The reverse of Convert to Project: a project becomes a heading in another project, with all its
-   to-dos (done, logged and repeating ones too) under it, in order. Its own headings fold into that
-   one heading, since headings don't nest. The emptied project goes to the Trash, keeping its notes,
-   dates and tags, and remembers where it went: to-dos that still arrive for it later (Sintr can send
-   to a project) land under the heading. */
-function projectToHeading(p, targetId) {
+/* a new sub-project left unnamed (Esc, or clicking away) isn't kept */
+function dropFreshProject(p) {
+  if (!p || p.title || S.todos.some((t) => t.projectId === p.id) || childProjects(p).length) return false;
+  S.projects = S.projects.filter((x) => x !== p); reindex();
+  const top = undoStack[undoStack.length - 1]; if (top && top.label === 'New Sub-Project') undoStack.pop();
+  saveSoon(); return true;
+}
+/* put a project inside another one, with everything in it */
+function moveProjectInto(p, targetId) {
   const to = getP(targetId);
-  if (!p || !to || to === p || p.isTemplate || to.isTemplate) return;
-  const rank = new Map(S.headings.filter((h) => h.projectId === p.id).sort(byOrder).map((h, i) => [h.id, i + 1]));
-  const items = S.todos.filter((t) => t.projectId === p.id && !t.isDraft).sort((a, b) => (rank.get(a.headingId) || 0) - (rank.get(b.headingId) || 0) || byOrder(a, b));
-  const folded = rank.size;
-  let h;
+  if (!p || !to || p.isTemplate || to.trashed) return;
+  if (!canNestIn(p, to)) { toast('A project can’t go inside itself'); return; }
   commit('Move Into Project', () => {
-    h = { id: uid(), projectId: to.id, title: pTitle(p), order: endOrder(S.headings.filter((x) => x.projectId === to.id && !x.archived)), archived: false };
-    S.headings.push(h);
-    items.forEach((t, i) => {
-      const before = placeTagIds(t);
-      t.projectId = to.id; t.headingId = h.id; t.areaId = null; t.order = i;
-      if (t.start === 'inbox') t.start = 'anytime';
-      retag(t, before); touch(t);
-    });
-    S.headings = S.headings.filter((x) => x.projectId !== p.id);
-    p.trashed = true; p.mergedInto = { headingId: h.id }; touch(p);
-    if (ui.expanded) { ui.expanded.add(to.id); lsSet('sectis.expanded', JSON.stringify([...ui.expanded])); } // open, so the heading shows
+    retagInside(p, () => placeProject(p, to.id, null)); touch(p);
+    if (isSub(to)) ui.subCollapsed.delete(to.id); else { ui.expanded.add(to.id); lsSet('sectis.expanded', JSON.stringify([...ui.expanded])); } // open, so it shows
   });
-  toast(`“${pTitle(p)}” is now a heading in “${pTitle(to)}”${folded === 1 ? ', with its heading folded in' : folded ? `, with its ${folded} headings folded in` : ''}`, { undo: true });
+  toast(`“${pTitle(p)}” is now in “${pTitle(to)}”`, { undo: true });
 }
-/* to-dos that arrive for a project that became a heading go under that heading */
+/* take a sub-project out of the project it's in: it goes right after that project */
+function moveProjectOut(p) {
+  const parent = parentOf(p); if (!parent) return;
+  commit('Move Out of Project', () => {
+    const sibs = S.projects.filter((q) => q !== p && !q.trashed && (parent.parentId ? q.parentId === parent.parentId : inArea(q, parent.areaId))).sort(byOrder);
+    const i = sibs.indexOf(parent) + 1;
+    retagInside(p, () => placeProject(p, parent.parentId || null, parent.parentId ? null : parent.areaId, orderBetween(sibs[i - 1] ? sibs[i - 1].order : null, sibs[i] ? sibs[i].order : null)[0]));
+    touch(p);
+  });
+  toast(`Moved “${pTitle(p)}” out of “${pTitle(parent)}”`, { undo: true });
+}
+/* to-dos that arrive for a project that was merged into another (it became a heading there, which
+   is a sub-project now) go to where it went */
 function followMerges() {
   let changed = false;
   for (const p of S.projects) {
     if (!p.mergedInto || !p.trashed) continue; // put back from the Trash, it's a project again
-    const h = getH(p.mergedInto.headingId), to = h && getP(h.projectId);
-    if (!h || h.archived || !to || to.trashed) continue;
+    const to = getP(p.mergedInto.projectId || subIdFor(p.mergedInto.headingId || ''));
+    if (!to || to.trashed || to.status !== 'open' || deadAbove(to)) continue;
     S.todos.forEach((t) => {
       if (t.projectId !== p.id || t.trashed || t.isDraft) return;
       const before = placeTagIds(t);
-      t.projectId = to.id; t.headingId = h.id; t.areaId = null; retag(t, before); touch(t); changed = true;
+      t.projectId = to.id; t.headingId = null; t.areaId = null; retag(t, before); touch(t); changed = true;
     });
   }
   return changed;
-}
-function moveHeading(h, projectId) {
-  commit('Move Heading', () => {
-    h.projectId = projectId; h.order = endOrder(S.headings.filter((x) => x.projectId === projectId));
-    S.todos.filter((t) => t.headingId === h.id).forEach((t) => { const before = placeTagIds(t); t.projectId = projectId; retag(t, before); });
-  });
 }
 function duplicateProject(p) {
   let c;
   commit('Duplicate Project', () => {
     c = makeProject(Object.assign({}, p, { id: uid(), title: (p.title || 'New Project') + ' copy', status: 'open', completedAt: null, logged: false, trashed: false, order: p.order + 0.01, createdAt: Date.now(), isTemplate: false, repeat: null, next: null, templateId: null }));
     c.tags = p.tags.slice(); S.projects.push(c);
-    const hmap = {};
-    S.headings.filter((h) => h.projectId === p.id && !h.archived).forEach((h) => { const nh = Object.assign({}, h, { id: uid(), projectId: c.id }); hmap[h.id] = nh.id; S.headings.push(nh); });
-    S.todos.filter((t) => t.projectId === p.id && !t.trashed && t.status === 'open' && !t.isTemplate).forEach((t) => {
-      S.todos.push(makeTodo(Object.assign(JSON.parse(JSON.stringify(t)), { id: uid(), projectId: c.id, headingId: t.headingId ? hmap[t.headingId] || null : null, templateId: null, checklist: t.checklist.map((i) => ({ id: uid(), title: i.title, done: false })) })));
-    });
+    // its open to-dos and sub-projects (with theirs), all the way down
+    const copyIn = (from, to) => {
+      S.todos.filter((t) => t.projectId === from.id && !t.trashed && t.status === 'open' && !t.isTemplate).forEach((t) => {
+        S.todos.push(makeTodo(Object.assign(JSON.parse(JSON.stringify(t)), { id: uid(), projectId: to.id, headingId: null, templateId: null, linkId: null, checklist: t.checklist.map((i) => ({ id: uid(), title: i.title, done: false })) })));
+      });
+      childProjects(from).filter((q) => !q.trashed && !q.isTemplate && q.status === 'open').forEach((q) => {
+        const qc = makeProject(Object.assign({}, q, { id: uid(), parentId: to.id, createdAt: Date.now(), templateId: null, tags: q.tags.slice() }));
+        S.projects.push(qc); copyIn(q, qc);
+      });
+    };
+    copyIn(p, c);
   });
   navigate('project:' + c.id);
 }
@@ -378,7 +360,7 @@ function defaultsForView(extra = {}) {
     case 'upcoming': Object.assign(p, { start: 'anytime', when: extra.date || addDays(T, 1) }); break;
     case 'anytime': p.start = 'anytime'; break;
     case 'someday': p.start = 'someday'; break;
-    case 'project': Object.assign(p, { start: 'anytime', projectId: v.id, headingId: extra.headingId || null }); break;
+    case 'project': Object.assign(p, { start: 'anytime', projectId: v.id }); break;
     case 'area': Object.assign(p, { start: 'anytime', areaId: v.id }); break;
     case 'tag': p.tags = [v.id]; break;
     case 'deadlines': p.deadline = extra.deadline || T; break;
