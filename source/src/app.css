@@ -595,7 +595,7 @@ body.drag-project .sb-loose { display: flex; }
   .modal, .modal.narrow { top: auto; bottom: 0; transform: none; left: 0; right: 0; width: auto; max-height: 92%; border-radius: 16px 16px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); animation: sheetIn .2s ease-out; }
   .modal.top { top: 0; bottom: auto; border-radius: 0 0 16px 16px; max-height: 100%; padding-top: env(safe-area-inset-top, 0px); }
   .qf-res { max-height: none; }
-  .pk-in, .field, .qf-in input, .qe-title, .ck-input, .h-title, .rp-row select, .rp-row input, .tm-row select { font-size: 16px; }
+  .pk-in, .field, .qf-in input, .qe-title, .ck-input, .h-title, .sub-h-t, .rp-row select, .rp-row input, .tm-row select { font-size: 16px; }
   .sel-mode .sel-ring { display: inline-flex; flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--cb); align-items: center; justify-content: center; color: transparent; }
   .sel-mode .selected .sel-ring { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .sel-mode .sel-ring .ic { width: 13px; height: 13px; }
@@ -808,6 +808,15 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .bcol-body { min-height: 40px; }
 .bcol .sec { min-height: 6px; }
 .bcol .sub-h { margin: 12px 8px 2px; }
+/* a heading you can rename where it is (a Board column, under a project's row) */
+.sub-hr { display: flex; align-items: flex-start; gap: 2px; }
+.sub-h-t { flex: 1; min-width: 0; padding: 0; margin: 0; border: 0; background: none; resize: none; color: inherit; font: inherit; line-height: 1.45; outline: none; overflow: hidden; cursor: text; }
+.sub-h-t::placeholder { color: var(--faint); font-weight: 500; }
+.sub-hr .ib { width: 22px; height: 22px; margin: -2px 0 -3px; flex: none; color: var(--muted); opacity: 0; }
+.sub-hr .ib .ic { width: 14px; height: 14px; }
+.sub-hr:hover .ib, .sub-hr:focus-within .ib, .touch .sub-hr .ib { opacity: 1; }
+.sub-hr .ib:hover { color: var(--fg); }
+.sub-hr.done .sub-h-t { color: var(--muted); }
 .bcol .row { padding-left: 8px; padding-right: 8px; }
 .bcol .bcol-projs { margin-top: 6px; }
 .bcol .pchildren { margin-left: 26px; }

@@ -255,6 +255,15 @@ function boardColHTML(c) {
     <div class="bcol-h" data-col="a:${a.id}">${areaIc(a, 'bcol-ic')}<div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
     <div class="bcol-body"${bodyAttr}>${body}</div>${resizeHandlesHTML(key)}</section>`;
 }
+/* a project's heading in a Board column or under its row: rename it right there (Return when
+   you're done; on a new heading Return starts its first to-do), with + and ••• beside it like
+   on the project's own page */
+function subHeadingHTML(p, h, fk = 'h-') {
+  const open = p.status === 'open' && !p.trashed;
+  return `<div class="sub-h sub-hr${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}"><textarea class="sub-h-t" data-edit="heading-title" data-id="${h.id}" data-fkey="${fk}${h.id}" placeholder="New Heading" aria-label="Heading" title="Click to rename" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea>`
+    + (open ? `<button class="ib" data-action="heading-add" data-id="${h.id}" aria-label="New to-do under this heading" title="New to-do under this heading">${ic('plus')}</button>` : '')
+    + `<button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button></div>`;
+}
 function boardProjectBody(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged));
   const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
@@ -262,7 +271,7 @@ function boardProjectBody(p) {
   const lbs = loggedBySec(p), lin = (k) => loggedInHTML(k, lbs.get(k) || []);
   let html = secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx) + lin(`project:${p.id}:`);
   headings.forEach((h) => {
-    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx) + lin(`project:${p.id}:${h.id}`);
+    html += subHeadingHTML(p, h) + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx) + lin(`project:${p.id}:${h.id}`);
   });
   if (!todos.length) html += emptyProjectHTML(p, 'bcol-empty');
   return html;

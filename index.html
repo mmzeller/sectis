@@ -616,7 +616,7 @@ body.drag-project .sb-loose { display: flex; }
   .modal, .modal.narrow { top: auto; bottom: 0; transform: none; left: 0; right: 0; width: auto; max-height: 92%; border-radius: 16px 16px 0 0; padding-bottom: env(safe-area-inset-bottom, 0px); animation: sheetIn .2s ease-out; }
   .modal.top { top: 0; bottom: auto; border-radius: 0 0 16px 16px; max-height: 100%; padding-top: env(safe-area-inset-top, 0px); }
   .qf-res { max-height: none; }
-  .pk-in, .field, .qf-in input, .qe-title, .ck-input, .h-title, .rp-row select, .rp-row input, .tm-row select { font-size: 16px; }
+  .pk-in, .field, .qf-in input, .qe-title, .ck-input, .h-title, .sub-h-t, .rp-row select, .rp-row input, .tm-row select { font-size: 16px; }
   .sel-mode .sel-ring { display: inline-flex; flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--cb); align-items: center; justify-content: center; color: transparent; }
   .sel-mode .selected .sel-ring { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .sel-mode .sel-ring .ic { width: 13px; height: 13px; }
@@ -829,6 +829,15 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .bcol-body { min-height: 40px; }
 .bcol .sec { min-height: 6px; }
 .bcol .sub-h { margin: 12px 8px 2px; }
+/* a heading you can rename where it is (a Board column, under a project's row) */
+.sub-hr { display: flex; align-items: flex-start; gap: 2px; }
+.sub-h-t { flex: 1; min-width: 0; padding: 0; margin: 0; border: 0; background: none; resize: none; color: inherit; font: inherit; line-height: 1.45; outline: none; overflow: hidden; cursor: text; }
+.sub-h-t::placeholder { color: var(--faint); font-weight: 500; }
+.sub-hr .ib { width: 22px; height: 22px; margin: -2px 0 -3px; flex: none; color: var(--muted); opacity: 0; }
+.sub-hr .ib .ic { width: 14px; height: 14px; }
+.sub-hr:hover .ib, .sub-hr:focus-within .ib, .touch .sub-hr .ib { opacity: 1; }
+.sub-hr .ib:hover { color: var(--fg); }
+.sub-hr.done .sub-h-t { color: var(--muted); }
 .bcol .row { padding-left: 8px; padding-right: 8px; }
 .bcol .bcol-projs { margin-top: 6px; }
 .bcol .pchildren { margin-left: 26px; }
@@ -1374,7 +1383,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.43.0';
+const APP_VERSION = '1.43.1';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -4216,7 +4225,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'New Project from Template', icon: 'project', fn: () => newProjectFromTemplate(p.id) });
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
     items.push({ label: 'Default Area…', icon: 'area', fn: () => openMove([p.id], el, { title: 'Default Area', onPick: (tg) => commit('Default Area', () => { p.bpAreaId = tg.type === 'area' ? tg.id : null; touch(p); }) }) });
-    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
+    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id) && !$(`#content .bcol[data-col="p:${p.id}"]`)) navigate('project:' + p.id); newHeading(p.id); } }); // on a Board with the project's column, it's added there
     items.push({ label: 'All Templates', icon: 'template', fn: () => navigate('templates') });
     items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(p.id) });
     openMenu(el, items); return;
@@ -4240,7 +4249,7 @@ function projectMenu(p, el, extra = []) {
     items.push(colorMenuItem('p', p, el));
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Move Into Project…', icon: 'heading', fn: () => openMove([], el, { heading: true, noHeadings: true, exclude: p.id, title: `Make “${pTitle(p)}” a Heading In`, onPick: (t) => { if (t.type === 'project') projectToHeading(p, t.id); } }) });
-    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
+    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id) && !$(`#content .bcol[data-col="p:${p.id}"]`)) navigate('project:' + p.id); newHeading(p.id); } }); // on a Board with the project's column, it's added there
     items.push(...boardMenuItems('p', p.id, isColMenu(extra), el));
     if (!isMobile()) items.push({ label: ui.projBoard.has(p.id) ? 'Show as List' : 'Show Headings as Board', icon: 'columns', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); setProjectBoard(p.id, !ui.projBoard.has(p.id)); } });
     if (ui.view.type === 'project' && ui.view.id === p.id && !isColMenu(extra)) items.push(sortMenuItem(el));
@@ -7160,7 +7169,7 @@ function projectChildrenHTML(p) {
   html += secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
   headings.forEach((h) => {
     const ts = todos.filter((t) => t.headingId === h.id).sort(byOrder);
-    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
+    html += subHeadingHTML(p, h, 'ph-') + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
   });
   if (!todos.length) html += emptyProjectHTML(p, 'pchildren-empty');
   return html + '</div>';
@@ -7423,6 +7432,15 @@ function boardColHTML(c) {
     <div class="bcol-h" data-col="a:${a.id}">${areaIc(a, 'bcol-ic')}<div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
     <div class="bcol-body"${bodyAttr}>${body}</div>${resizeHandlesHTML(key)}</section>`;
 }
+/* a project's heading in a Board column or under its row: rename it right there (Return when
+   you're done; on a new heading Return starts its first to-do), with + and ••• beside it like
+   on the project's own page */
+function subHeadingHTML(p, h, fk = 'h-') {
+  const open = p.status === 'open' && !p.trashed;
+  return `<div class="sub-h sub-hr${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}"><textarea class="sub-h-t" data-edit="heading-title" data-id="${h.id}" data-fkey="${fk}${h.id}" placeholder="New Heading" aria-label="Heading" title="Click to rename" autocomplete="off" rows="1" data-autosize data-oneline>${esc(h.title)}</textarea>`
+    + (open ? `<button class="ib" data-action="heading-add" data-id="${h.id}" aria-label="New to-do under this heading" title="New to-do under this heading">${ic('plus')}</button>` : '')
+    + `<button class="ib" data-action="heading-menu" data-id="${h.id}" aria-label="Heading options" title="Heading options">${ic('more')}</button></div>`;
+}
 function boardProjectBody(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged));
   const headings = sinkHeadings(S.headings.filter((h) => h.projectId === p.id && !h.archived).sort(byOrder));
@@ -7430,7 +7448,7 @@ function boardProjectBody(p) {
   const lbs = loggedBySec(p), lin = (k) => loggedInHTML(k, lbs.get(k) || []);
   let html = secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx) + lin(`project:${p.id}:`);
   headings.forEach((h) => {
-    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx) + lin(`project:${p.id}:${h.id}`);
+    html += subHeadingHTML(p, h) + secHTML(`project:${p.id}:${h.id}`, todos.filter((t) => t.headingId === h.id).sort(byOrder), ctx) + lin(`project:${p.id}:${h.id}`);
   });
   if (!todos.length) html += emptyProjectHTML(p, 'bcol-empty');
   return html;

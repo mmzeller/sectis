@@ -130,7 +130,7 @@ function projectChildrenHTML(p) {
   html += secHTML(`project:${p.id}:`, todos.filter((t) => !t.headingId || !getH(t.headingId) || getH(t.headingId).archived).sort(byOrder), ctx);
   headings.forEach((h) => {
     const ts = todos.filter((t) => t.headingId === h.id).sort(byOrder);
-    html += `<div class="sub-h${headingDoneCls(h)}" data-zone="project:${p.id}:${h.id}">${esc(h.title || 'Untitled heading')}</div>` + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
+    html += subHeadingHTML(p, h, 'ph-') + secHTML(`project:${p.id}:${h.id}`, ts, ctx);
   });
   if (!todos.length) html += emptyProjectHTML(p, 'pchildren-empty');
   return html + '</div>';

@@ -223,7 +223,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'New Project from Template', icon: 'project', fn: () => newProjectFromTemplate(p.id) });
     items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
     items.push({ label: 'Default Area…', icon: 'area', fn: () => openMove([p.id], el, { title: 'Default Area', onPick: (tg) => commit('Default Area', () => { p.bpAreaId = tg.type === 'area' ? tg.id : null; touch(p); }) }) });
-    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
+    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id) && !$(`#content .bcol[data-col="p:${p.id}"]`)) navigate('project:' + p.id); newHeading(p.id); } }); // on a Board with the project's column, it's added there
     items.push({ label: 'All Templates', icon: 'template', fn: () => navigate('templates') });
     items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(p.id) });
     openMenu(el, items); return;
@@ -247,7 +247,7 @@ function projectMenu(p, el, extra = []) {
     items.push(colorMenuItem('p', p, el));
     items.push({ label: 'Move to Area…', icon: 'move', fn: () => openMove([p.id], el) });
     items.push({ label: 'Move Into Project…', icon: 'heading', fn: () => openMove([], el, { heading: true, noHeadings: true, exclude: p.id, title: `Make “${pTitle(p)}” a Heading In`, onPick: (t) => { if (t.type === 'project') projectToHeading(p, t.id); } }) });
-    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newHeading(p.id); } });
+    items.push({ label: 'Add Heading', icon: 'heading', hint: '⇧N', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id) && !$(`#content .bcol[data-col="p:${p.id}"]`)) navigate('project:' + p.id); newHeading(p.id); } }); // on a Board with the project's column, it's added there
     items.push(...boardMenuItems('p', p.id, isColMenu(extra), el));
     if (!isMobile()) items.push({ label: ui.projBoard.has(p.id) ? 'Show as List' : 'Show Headings as Board', icon: 'columns', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); setProjectBoard(p.id, !ui.projBoard.has(p.id)); } });
     if (ui.view.type === 'project' && ui.view.id === p.id && !isColMenu(extra)) items.push(sortMenuItem(el));
