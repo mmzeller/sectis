@@ -65,7 +65,7 @@ function revealTodo(id) {
   else if (t.start === 'someday') key = 'someday';
   else if (t.when && t.when > T0()) key = 'upcoming';
   else key = 'anytime';
-  if (!/^(project|area):/.test(key) && !inFocus(t)) showAllAreas(); // a list the focus hides it from
+  if (!/^(project|area):|^inbox$/.test(key) && !inFocus(t)) showAllAreas(); // a list the focus hides it from (the Inbox hides nothing)
   navigate(key);
   if (key === 'logbook' || key === 'trash') { ui.sel = new Set([id]); ui.anchor = id; render(); const r = $(`#content .row[data-id="${CSS.escape(id)}"]`); if (r) r.scrollIntoView({ block: 'center' }); }
   else openEditor(id);

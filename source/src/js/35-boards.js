@@ -145,12 +145,13 @@ function listColAdd(key) {
   if (t === 'l') {
     if (id === 'inbox' || id === 'today') { newTodo({ sec: id }); return; }
     if (id === 'anytime' || id === 'someday') { newTodo({ sec: id + ':loose' }); return; }
-    if (id === 'deadlines') { const n = newTodo({ sec: 'inbox' }); if (n) { n.deadline = T0(); saveSoon(); render(); } return; }
+    if (id === 'deadlines') { const n = newTodo({ sec: 'inbox' }); if (n) { n.deadline = T0(); focusAdopt(n); saveSoon(); render(); } return; }
     return;
   }
   const n = newTodo({ sec: 'inbox' }); if (!n) return;
   if (t === 't') { if (!n.tags.includes(id)) n.tags = n.tags.concat(id); }
   else Object.assign(n, smartNewProps(getSmart(id)));
+  focusAdopt(n);
   touch(n); saveSoon(); render();
 }
 /* a new to-do made in a smart list (or its column) starts out fitting it, where it can */

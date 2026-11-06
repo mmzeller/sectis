@@ -57,10 +57,11 @@ function refreshFocus() {
   ui.focusRec = f; ui.focusAreas = new Set(f ? f.areas : []);
   return f;
 }
-/* is this to-do or project shown under the current focus? */
+/* is this to-do or project shown under the current focus? A to-do still in the Inbox is outside
+   any area, so it follows the focus's loose setting here like any other; the Inbox list itself
+   (and its count and Board column) doesn't ask, so it still shows everything */
 function inFocus(x) {
   const f = ui.focusRec; if (!f || !x) return true;
-  if (x.type === 'todo' && isInbox(x)) return true; // the Inbox always shows everything
   const a = areaOf(x);
   return a ? ui.focusAreas.has(a.id) : f.loose !== false;
 }
@@ -71,14 +72,22 @@ function viewOutsideFocus(v = ui.view) {
   if (v.type === 'project') { const p = getP(v.id); return !!p && !inFocus(p); }
   return false;
 }
-/* a new to-do made in Today, Anytime and the like would vanish if this focus hides to-dos
-   outside any area, so it goes into the focus's first area instead */
+/* a new to-do made in Today, Deadlines, a tag and the like would vanish if this focus hides
+   to-dos outside any area, so it goes into the focus's first area instead. One made in the
+   Inbox stays there: the Inbox shows everything */
 function focusNewProps(p) {
   const f = ui.focusRec;
-  if (!f || f.loose !== false || p.projectId || p.areaId || p.start === 'inbox') return p;
+  if (!f || f.loose !== false || p.projectId || p.areaId || (ui.view && ui.view.type === 'inbox')) return p;
   const a = S.areas.filter((x) => ui.focusAreas.has(x.id)).sort(byOrder)[0];
-  if (a) p.areaId = a.id;
+  if (a) { p.areaId = a.id; if (p.start === 'inbox') p.start = 'anytime'; }
   return p;
+}
+/* the same for a to-do just made in the Inbox on its way somewhere else (the + on a Board's
+   Deadlines, tag or smart-list column) */
+function focusAdopt(t) {
+  if (!t || inFocus(t)) return;
+  const a = S.areas.filter((x) => ui.focusAreas.has(x.id)).sort(byOrder)[0];
+  if (a) { t.areaId = a.id; if (t.start === 'inbox') t.start = 'anytime'; }
 }
 function setFocus(id) {
   ui.focusPick = { id: id || '', at: Date.now() };
@@ -199,7 +208,7 @@ function openFocusEditor(f = null) {
     return `<div class="modal-b sm-ed fx-ed">
       <label class="sm-row"><span class="sm-l">Name</span><input class="pk-in sm-in" id="fx-name" value="${esc(st.title)}" placeholder="Work" autocomplete="off"></label>
       <div class="sm-row"><span class="sm-l">Show these areas</span><div class="sm-chips">${areas}</div></div>
-      <div class="sm-row fx-line"><span class="sm-l">To-dos and projects outside any area<small>${st.loose ? 'They show in this focus too.' : 'Hidden. New ones you make here go into its first area.'}</small></span><div class="seg" role="group"><button type="button" data-floose="1" class="${st.loose ? 'on' : ''}">Show</button><button type="button" data-floose="0" class="${st.loose ? '' : 'on'}">Hide</button></div></div>
+      <div class="sm-row fx-line"><span class="sm-l">To-dos and projects outside any area<small>${st.loose ? 'They show in this focus too.' : 'Hidden, Inbox to-dos too, everywhere but the Inbox. New ones you make here go into its first area.'}</small></span><div class="seg" role="group"><button type="button" data-floose="1" class="${st.loose ? 'on' : ''}">Show</button><button type="button" data-floose="0" class="${st.loose ? '' : 'on'}">Hide</button></div></div>
       <div class="sm-row fx-line"><span class="sm-l">Turn on automatically<small>${st.on ? 'You can still switch by hand. That lasts until the next scheduled change.' : 'On a schedule, like weekdays from 8 to 5.'}</small></span><button type="button" class="switch${st.on ? ' on' : ''}" data-fsched="1" role="switch" aria-checked="${st.on}" aria-label="Turn on automatically"></button></div>
       ${st.on ? `<div class="sm-row"><div class="fx-days" role="group" aria-label="Days">${days}</div><div class="fx-times"><label>From <input type="time" class="pk-in" id="fx-from" value="${esc(st.from)}"></label><label>To <input type="time" class="pk-in" id="fx-to" value="${esc(st.to)}"></label></div></div>` : ''}
       <p class="note fx-note">The Inbox always shows everything, and Quick Find still finds everything.</p>
