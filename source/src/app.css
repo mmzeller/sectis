@@ -1217,6 +1217,13 @@ body.np-docked .magic { right: calc(var(--npw) + 30px); }
 .np-todo:hover { background: var(--hover); color: var(--fg); }
 @media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .np-todo { height: 30px; font-size: 13px; } }
 .np-ctx { flex: 0 1 auto; min-width: 0; }
+.np-more-ctx { flex: none; font-weight: 600; }
+/* Attach To… */
+.np-places { width: 300px; }
+.np-places .pick-list { max-height: min(420px, 55vh); overflow: auto; }
+.np-places .pick-i.in { padding-left: 34px; }
+.np-places .menu-h { margin-top: 6px; }
+.np-places-tip { margin: 6px 10px 4px; font-size: 11.5px; color: var(--muted); line-height: 1.4; }
 .np-time, .np-todo { flex: none; white-space: nowrap; }
 /* resize it (its left edge at the side, any edge or corner when it floats) and drag it by its title */
 .np { position: relative; }

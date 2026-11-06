@@ -68,7 +68,7 @@ function choiceDialog({ title, body, choices }) {
 /* ---- menus ---- */
 function openMenu(anchor, items, opts = {}) {
   const html = items.map((it, i) => it.sep ? '<div class="menu-sep"></div>' : it.header ? `<div class="menu-h">${esc(it.header)}</div>` :
-    `<button class="menu-i${it.danger ? ' danger' : ''}" data-mi="${i}" ${it.disabled ? 'disabled' : ''}>${it.icon ? ic(it.icon) : ''}<span>${esc(it.label)}</span>${it.hint ? `<span class="hint">${esc(it.hint)}</span>` : ''}</button>`).join('');
+    `<button class="menu-i${it.danger ? ' danger' : ''}" data-mi="${i}" ${it.disabled ? 'disabled' : ''}>${it.iconHTML || (it.icon ? ic(it.icon) : '')}<span>${esc(it.label)}</span>${it.hint ? `<span class="hint">${esc(it.hint)}</span>` : ''}</button>`).join('');
   const L = openLayer({ html, anchor, cls: 'menu', onMount: (el) => {
     el.addEventListener('click', (e) => { const b = e.target.closest('[data-mi]'); if (!b) return; const it = items[+b.dataset.mi]; closeLayer(L); if (it.fn) it.fn(); });
     listKeys(el, '.menu-i:not([disabled])');

@@ -1238,6 +1238,13 @@ body.np-docked .magic { right: calc(var(--npw) + 30px); }
 .np-todo:hover { background: var(--hover); color: var(--fg); }
 @media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .np-todo { height: 30px; font-size: 13px; } }
 .np-ctx { flex: 0 1 auto; min-width: 0; }
+.np-more-ctx { flex: none; font-weight: 600; }
+/* Attach To… */
+.np-places { width: 300px; }
+.np-places .pick-list { max-height: min(420px, 55vh); overflow: auto; }
+.np-places .pick-i.in { padding-left: 34px; }
+.np-places .menu-h { margin-top: 6px; }
+.np-places-tip { margin: 6px 10px 4px; font-size: 11.5px; color: var(--muted); line-height: 1.4; }
 .np-time, .np-todo { flex: none; white-space: nowrap; }
 /* resize it (its left edge at the side, any edge or corner when it floats) and drag it by its title */
 .np { position: relative; }
@@ -1417,7 +1424,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.44.1';
+const APP_VERSION = '1.44.2';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -3437,7 +3444,7 @@ function choiceDialog({ title, body, choices }) {
 /* ---- menus ---- */
 function openMenu(anchor, items, opts = {}) {
   const html = items.map((it, i) => it.sep ? '<div class="menu-sep"></div>' : it.header ? `<div class="menu-h">${esc(it.header)}</div>` :
-    `<button class="menu-i${it.danger ? ' danger' : ''}" data-mi="${i}" ${it.disabled ? 'disabled' : ''}>${it.icon ? ic(it.icon) : ''}<span>${esc(it.label)}</span>${it.hint ? `<span class="hint">${esc(it.hint)}</span>` : ''}</button>`).join('');
+    `<button class="menu-i${it.danger ? ' danger' : ''}" data-mi="${i}" ${it.disabled ? 'disabled' : ''}>${it.iconHTML || (it.icon ? ic(it.icon) : '')}<span>${esc(it.label)}</span>${it.hint ? `<span class="hint">${esc(it.hint)}</span>` : ''}</button>`).join('');
   const L = openLayer({ html, anchor, cls: 'menu', onMount: (el) => {
     el.addEventListener('click', (e) => { const b = e.target.closest('[data-mi]'); if (!b) return; const it = items[+b.dataset.mi]; closeLayer(L); if (it.fn) it.fn(); });
     listKeys(el, '.menu-i:not([disabled])');
@@ -4655,7 +4662,7 @@ function findResults(q, includeLog) {
       .sort((a, b) => (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1) || b.modifiedAt - a.modifiedAt)
       .forEach((t) => { if (n < 60 && m(t.title, t.notes, t.checklist.map((c) => c.title).join(' '))) { n++; out.push({ g: t.blueprint ? 'Templates' : t.isTemplate ? 'Repeating' : 'To-Dos', kind: t.isTemplate ? 'template' : 'todo', id: t.id, title: t.title || 'New To-Do', icon: t.blueprint ? 'template' : t.isTemplate ? 'repeat' : t.status === 'open' ? 'select' : 'logbook', color: t.status === 'open' ? 'var(--faint)' : 'var(--c-logbook)', sub: [parentLabel(t), t.when && t.start === 'anytime' ? fmtRel(t.when) : t.start === 'someday' ? 'Someday' : ''].filter(Boolean).join(' · ') }); } });
     (S.notes || []).filter((x) => x.text.trim() && m(x.text)).sort((a, b) => b.modifiedAt - a.modifiedAt).slice(0, 20)
-      .forEach((x) => { const c = noteCtx(noteKey(x)); out.push({ g: 'Notepad', kind: 'note', id: x.id, title: noteTitle(x), icon: 'notepad', color: 'var(--c-note)', sub: [x.archived ? 'Archived' : '', c ? c.label : ''].filter(Boolean).join(' · ') }); });
+      .forEach((x) => { const xs = noteKeys(x).map(noteCtx).filter(Boolean), c = xs[0] ? { label: xs[0].label + (xs.length > 1 ? ` +${xs.length - 1}` : '') } : null; out.push({ g: 'Notepad', kind: 'note', id: x.id, title: noteTitle(x), icon: 'notepad', color: 'var(--c-note)', sub: [x.archived ? 'Archived' : '', c ? c.label : ''].filter(Boolean).join(' · ') }); });
   }
   return out;
 }
@@ -10386,11 +10393,21 @@ function normalizeNote(n) { return Object.assign({ type: 'note', text: '', ctx: 
 const noteTitle = (n) => { const l = (n.text || '').split('\n').map((s) => s.trim()).find(Boolean); return l ? l.replace(/^(?:#{1,6}\s+|(?:[-*•+]|\d+[.)])\s+(?:\[[ xX]\]\s*)?)/, '').replace(/\*\*|__|`/g, '') : 'Empty Note'; };
 /* the page you're on, as a note remembers it (a Board: which Board) */
 const viewKeyNow = () => (ui.view.type === 'board' && ui.boardId ? `board:${ui.boardId}` : ui.view.id ? `${ui.view.type}:${ui.view.id}` : ui.view.type);
-/* the page a note was written on. One written on a Board before notes knew which Board counts as
-   the Board you're on now */
-const noteKey = (n) => (n.ctx === 'board' && ui.boardId ? `board:${ui.boardId}` : n.ctx);
+/* the pages a note is attached to: where it was written, unless you've changed that, and any
+   others you've added (Attach To…). ctx is the first; ctxs has them all when there's more than
+   one, so a note on one page looks just as it always has. One written on a Board before notes
+   knew which Board counts as the Board you're on now */
+const noteKeys = (n) => [...new Set((Array.isArray(n.ctxs) && n.ctxs.length ? n.ctxs : n.ctx ? [n.ctx] : []).map((k) => (k === 'board' && ui.boardId ? `board:${ui.boardId}` : k)))];
+const noteKey = (n) => noteKeys(n)[0] || null;
+const noteOn = (n, key) => noteKeys(n).includes(key);
+function setNoteKeys(n, keys) {
+  keys = [...new Set(keys.filter(Boolean))];
+  n.ctx = keys[0] || null;
+  if (keys.length > 1) n.ctxs = keys; else delete n.ctxs;
+  touch(n);
+}
 const liveNotes = () => (S.notes || []).filter((n) => n.text.trim());
-const pageNoteCount = (key) => liveNotes().filter((n) => noteKey(n) === key && !n.archived).length;
+const pageNoteCount = (key) => liveNotes().filter((n) => noteOn(n, key) && !n.archived).length;
 /* the page a note was written on, as a label and icon (null once it's gone) */
 function noteCtx(key) {
   if (!key) return null;
@@ -10482,7 +10499,7 @@ function openNotepad(opts = {}) {
   ui.np.open = true; lsSet('sectis.np', '1');
   if (opts.focus) {
     ui.np.q = ''; const n = getNote(opts.focus);
-    if (n) { ui.np.arch = !!n.archived; if (ui.np.page && noteKey(n) !== viewKeyNow()) ui.np.page = false; }
+    if (n) { ui.np.arch = !!n.archived; if (ui.np.page && !noteOn(n, viewKeyNow())) ui.np.page = false; }
   }
   ui.np.focus = opts.focus || (opts.write === false || ui.np.arch ? null : 'draft');
   applyNotepadMode(); renderNotepad();
@@ -10508,12 +10525,14 @@ function dropEmptyNotes(except) {
 
 /* ---- drawing it ---- */
 function noteCardHTML(n, o = {}) {
-  const editing = ui.np.editing === n.id, key = noteKey(n), c = o.noCtx ? null : noteCtx(key);
+  const editing = ui.np.editing === n.id, places = noteKeys(n).map((k) => [k, noteCtx(k)]).filter(([, c]) => c);
+  const [key, main] = places.find(([k]) => k === o.here) || places[0] || [null, null]; // in a page's group: that page first
+  const c = o.noCtx ? null : main, others = places.filter(([k]) => k !== key);
   return `<div class="np-card${n.pinned && !n.archived ? ' pinned' : ''}${n.archived ? ' archived' : ''}" data-note="${n.id}">`
     + `<div class="np-view md" data-np-view="${n.id}"${editing ? ' hidden' : ''}>${editing ? '' : renderMarkdown(n.text, NP_MD)}</div>`
     + npEditorHTML(n.id, 'note-' + n.id, 'Note', editing ? n.text : null)
     + `<button class="np-more" data-np-fold="${n.id}" hidden>${ui.np.expanded.has(n.id) ? 'Show Less' : 'Show More'}</button>`
-    + `<div class="np-meta">${n.pinned && !n.archived ? `<span class="np-pin" title="Pinned">${ic('pin')}</span>` : ''}${n.archived && o.archTag ? `<span class="np-arch" title="Archived">${ic('archive')}</span>` : ''}${stickyOf(n.id) && !isMobile() ? `<span class="np-pin" title="Showing as a sticky">${ic('popout')}</span>` : ''}${c ? `<button class="np-ctx" data-nav="${esc(key)}" title="Written on ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : ''}<span class="np-time" title="${esc(new Date(n.modifiedAt || n.createdAt).toLocaleString())}">${esc(noteWhen(n.modifiedAt || n.createdAt))}</span><span class="spacer"></span>`
+    + `<div class="np-meta">${n.pinned && !n.archived ? `<span class="np-pin" title="Pinned">${ic('pin')}</span>` : ''}${n.archived && o.archTag ? `<span class="np-arch" title="Archived">${ic('archive')}</span>` : ''}${stickyOf(n.id) && !isMobile() ? `<span class="np-pin" title="Showing as a sticky">${ic('popout')}</span>` : ''}${c ? `<button class="np-ctx" data-nav="${esc(key)}" title="${places.length > 1 ? 'On' : 'Written on'} ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : ''}${others.length && key ? `<button class="np-ctx np-more-ctx" data-np-places="${n.id}" title="Also on ${esc(others.map(([, x]) => x.label).join(', '))}">${o.noCtx ? `Also on ${others.length === 1 ? esc(others[0][1].label) : others.length + ' more'}` : '+' + others.length}</button>` : ''}<span class="np-time" title="${esc(new Date(n.modifiedAt || n.createdAt).toLocaleString())}">${esc(noteWhen(n.modifiedAt || n.createdAt))}</span><span class="spacer"></span>`
     + `<button class="np-todo" data-np-todo="${n.id}" title="Make a to-do of this note, or of the text you've selected in it">${ic('plus')}<span>To-Do</span></button><button class="ib" data-np-more="${n.id}" aria-label="More" title="More">${ic('more')}</button></div></div>`;
 }
 /* a note's live editor; text null: hidden and empty until you click into the note */
@@ -10523,9 +10542,9 @@ function notepadHTML() {
   const here = viewKeyNow(), herectx = noteCtx(here), arch = ui.np.arch;
   const words = ui.np.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const all = liveNotes(), match = (n) => words.every((w) => n.text.toLowerCase().includes(w));
-  const pageCount = all.filter((n) => noteKey(n) === here && !n.archived).length;
+  const pageCount = all.filter((n) => noteOn(n, here) && !n.archived).length;
   const newest = (a, b) => b.modifiedAt - a.modifiedAt, pinFirst = (a, b) => (b.pinned - a.pinned) || newest(a, b);
-  const onPage = (n) => !ui.np.page || noteKey(n) === here;
+  const onPage = (n) => !ui.np.page || noteOn(n, here);
   let list, archHits = [];
   if (arch) list = all.filter((n) => n.archived && match(n)).sort(newest);
   else {
@@ -10536,12 +10555,13 @@ function notepadHTML() {
   if (ui.np.group && !ui.np.page && !arch && list.length) {
     // under the page each was written on: this page first, then the most recently written in
     const groups = new Map();
-    list.forEach((n) => { const k = noteCtx(noteKey(n)) ? noteKey(n) : ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(n); });
+    // a note on several pages goes under this page if it's one of them, else under its first
+    list.forEach((n) => { const k = noteOn(n, here) ? here : noteKeys(n).find((x) => noteCtx(x)) || ''; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(n); });
     const latest = (k) => Math.max(...groups.get(k).map((n) => n.modifiedAt));
     const keys = [...groups.keys()].sort((a, b) => (b === here) - (a === here) || (a === '') - (b === '') || latest(b) - latest(a));
     body = keys.map((k) => {
       const c = noteCtx(k), ns = groups.get(k);
-      return `<div class="np-group"><div class="np-gh">${c ? `<button class="np-gl" data-nav="${esc(k)}" title="Go to ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : '<span class="np-gl"><span>Other Notes</span></span>'}<span class="np-gn">${ns.length}</span></div>${ns.map((n) => noteCardHTML(n, { noCtx: !!c })).join('')}</div>`;
+      return `<div class="np-group"><div class="np-gh">${c ? `<button class="np-gl" data-nav="${esc(k)}" title="Go to ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : '<span class="np-gl"><span>Other Notes</span></span>'}<span class="np-gn">${ns.length}</span></div>${ns.map((n) => noteCardHTML(n, { noCtx: !!c, here: k })).join('')}</div>`;
     }).join('');
   } else body = list.map((n) => noteCardHTML(n)).join('');
   if (archHits.length) body += `<div class="np-gh np-arch-h"><span class="np-gl">${ic('archive')}<span>Archived</span></span><span class="np-gn">${archHits.length}</span></div>${archHits.map((n) => noteCardHTML(n, { archTag: true })).join('')}`;
@@ -10757,6 +10777,7 @@ $('#notepad').addEventListener('click', (e) => {
   if (b.dataset.nav) { if (!npStays()) closeNotepad(); navigate(b.dataset.nav); return; } // to the page it was written on
   if (b.dataset.npTodo) { noteToTodo(b.dataset.npTodo); return; }
   if (b.dataset.npMore) { noteMenu(getNote(b.dataset.npMore), b); }
+  if (b.dataset.npPlaces) { notePlacesMenu(getNote(b.dataset.npPlaces), b); }
 });
 function notepadMenu(el) {
   const archived = liveNotes().filter((n) => n.archived).length;
@@ -10775,13 +10796,65 @@ function noteMenu(n, el) {
     ...(lines > 1 ? [{ label: picked ? 'One To-Do per Selected Line' : 'One To-Do per Line', icon: 'checklist', hint: String(lines), fn: () => noteToTodos(n.id, picked) }] : []),
     { label: 'Copy Text', icon: 'copy', fn: () => { copyText(n.text).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy')); } },
     ...(isMobile() || n.archived ? [] : [stickyOf(n.id) ? { label: 'Hide Sticky', icon: 'popout', fn: () => hideSticky(n.id) } : { label: 'Show as Sticky', icon: 'popout', fn: () => showSticky(n.id) }]),
-    ...(hc && noteKey(n) !== here ? [{ label: `Move to ${hc.label}`, icon: 'move', fn: () => { commit('Move Note', () => { n.ctx = here; touch(n); }); renderNotepad(); } }] : []),
+    { label: 'Attach To…', icon: 'move', fn: () => openNotePlaces(n.id, el) },
+    ...(hc && !noteOn(n, here) ? [
+      { label: `Move to ${hc.label}`, icon: 'blank', fn: () => { commit('Move Note', () => setNoteKeys(n, [here])); renderNotepad(); toast(`Note moved to ${hc.label}`, { undo: true }); } },
+      ...(noteKeys(n).length ? [{ label: `Also Attach to ${hc.label}`, icon: 'blank', fn: () => { commit('Attach Note', () => setNoteKeys(n, noteKeys(n).concat(here))); renderNotepad(); toast(`Note also on ${hc.label}`, { undo: true }); } }] : []),
+    ] : []),
     { sep: 1 },
     n.archived
       ? { label: 'Move Out of Archive', icon: 'archive', fn: () => archiveNote(n.id, false) }
       : { label: 'Archive', icon: 'archive', fn: () => archiveNote(n.id, true) },
     { label: 'Delete Note', icon: 'trash', danger: true, fn: () => { commit('Delete Note', () => { S.notes = S.notes.filter((x) => x.id !== n.id); }); renderNotepad(); toast('Note deleted', { undo: true }); } },
   ]);
+}
+/* the +N beside a note's page: every page it's on, to go to, and Attach To… to change them */
+function notePlacesMenu(n, el) {
+  if (!n) return;
+  const places = noteKeys(n).map((k) => [k, noteCtx(k)]).filter(([, c]) => c);
+  openMenu(el, [{ header: 'On These Pages' }, ...places.map(([k, c]) => ({ label: c.label, iconHTML: c.icon, fn: () => navigate(k) })), { sep: 1 }, { label: 'Attach To…', icon: 'move', fn: () => openNotePlaces(n.id, el) }]);
+}
+/* Attach To…: tick every list, area, project or Board a note should be on. It shows in the
+   Notepad on each of them (This Page, and the count beside each page's name) */
+function openNotePlaces(id, anchor) {
+  const n = getNote(id); if (!n) return;
+  const build = (q = '') => {
+    const on = new Set(noteKeys(n)), ql = q.trim().toLowerCase(), m = (t) => !ql || (t || '').toLowerCase().includes(ql);
+    const row = (key, icon, label, cls = '') => `<button class="pick-i${cls}" data-key="${esc(key)}" role="menuitemcheckbox" aria-checked="${on.has(key)}">${icon}<span>${esc(label)}</span>${on.has(key) ? `<span class="check">${ic('check')}</span>` : ''}</button>`;
+    let out = '';
+    // what it's on now that the lists below don't offer (a tag, a smart list, a finished project…)
+    const offered = (k) => /^(inbox|today|upcoming|anytime|someday|waiting|deadlines|timeline|logbook)$/.test(k) || /^area:/.test(k) || (/^project:/.test(k) && (getP(k.slice(8)) || {}).status === 'open') || /^board:/.test(k);
+    [...on].filter((k) => !offered(k)).forEach((k) => { const c = noteCtx(k); if (c && m(c.label)) out += `<button class="pick-i" data-key="${esc(k)}" role="menuitemcheckbox" aria-checked="true">${c.icon}<span>${esc(c.label)}</span><span class="check">${ic('check')}</span></button>`; });
+    const projs = (areaId) => S.projects.filter((p) => !p.trashed && !p.isTemplate && p.status === 'open' && (p.areaId || null) === areaId).sort(byOrder);
+    let places = projs(null).filter((p) => m(pTitle(p))).map((p) => row('project:' + p.id, projIc(p, '', projectProgress(p).frac), pTitle(p), ' p')).join('');
+    S.areas.slice().sort(byOrder).forEach((a) => {
+      const ps = projs(a.id).filter((p) => m(pTitle(p)) || m(aTitle(a)));
+      if (m(aTitle(a)) || ps.length) places += row('area:' + a.id, placeColor(a) ? areaIc(a) : ic('area'), aTitle(a), ' a') + ps.map((p) => row('project:' + p.id, projIc(p, '', projectProgress(p).frac), pTitle(p), ' p in')).join('');
+    });
+    if (places) out += '<div class="menu-h">Areas &amp; Projects</div>' + places;
+    const lists = ['inbox', 'today', 'upcoming', 'anytime', 'someday', 'waiting', 'deadlines', 'timeline', 'logbook'].filter((k) => m(LISTS[k].title));
+    if (lists.length) out += '<div class="menu-h">Lists</div>' + lists.map((k) => row(k, `<span class="ic" style="color:${LISTS[k].color}">${I[LISTS[k].icon]}</span>`, LISTS[k].title)).join('');
+    const boards = isMobile() ? [] : (ui.boards || []).filter((b) => m(b.name || 'Board'));
+    if (boards.length) out += '<div class="menu-h">Boards</div>' + boards.map((b) => row('board:' + b.id, `<span class="ic" style="color:var(--c-board)">${I.columns}</span>`, b.name || 'Board')).join('');
+    return out || '<p class="note" style="padding:6px 10px">Nothing matches.</p>';
+  };
+  const L = openLayer({ anchor, cls: 'move-pop np-places', html: `<div class="pk-h">Attach Note To</div><input class="pk-in" placeholder="Find a list, area or project" autocomplete="off" aria-label="Find a list, area or project"><div class="pick-list" role="menu">${build()}</div><p class="np-places-tip">Tick as many as you like: the note shows in the Notepad on each.</p>`,
+    onMount: (el) => {
+      const inp = $('.pk-in', el), list = $('.pick-list', el);
+      const nav = listKeys(el, '.pick-i', inp);
+      const redraw = () => { const top = list.scrollTop; list.innerHTML = build(inp.value); list.scrollTop = top; };
+      inp.addEventListener('input', () => { list.innerHTML = build(inp.value); nav.first(); });
+      el.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-key]'); if (!b) return;
+        const k = b.dataset.key, has = noteOn(n, k), c = noteCtx(k);
+        commit(has ? 'Detach Note' : 'Attach Note', () => setNoteKeys(n, has ? noteKeys(n).filter((x) => x !== k) : noteKeys(n).concat(k)), { render: false });
+        renderNotepad(); render(); redraw();
+        const again = $(`[data-key="${CSS.escape(k)}"]`, list); if (again) again.focus({ preventScroll: true });
+        if (c) toast(has ? `Note taken off ${c.label}` : `Note also on ${c.label}`, { undo: true });
+      });
+      if (!isCoarse()) inp.focus({ preventScroll: true });
+    } });
+  return L;
 }
 function archiveNote(id, on) {
   const n = getNote(id); if (!n) return;
