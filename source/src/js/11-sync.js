@@ -140,7 +140,7 @@ function renderSyncIndicator() {
   const el = document.getElementById('sync-ind'); if (!el) return;
   el.hidden = !Y.enabled;
   el.className = `ib sync-ind ${Y.status}`;
-  el.title = Y.enabled ? `Sync: ${syncStatusText().replace(/<[^>]+>/g, '')}` : '';
+  el.title = Y.enabled ? `Sync Now\n${syncStatusText().replace(/<[^>]+>/g, '')}` : '';
 }
 
 /* ---- pushing local changes ---- */
@@ -380,6 +380,34 @@ function dedupeTags() {
   S.tags.forEach((t) => { if (remap[t.parentId]) t.parentId = remap[t.parentId]; });
   S.todos.concat(S.projects, S.areas).forEach((x) => { if (x.tags.some((id) => remap[id])) x.tags = Array.from(new Set(x.tags.map((id) => remap[id] || id))); });
   reindex();
+}
+/* Sync Now (the cloud in the sidebar, and Settings → Sync): send what changed here, then ask
+   for anything new from the other devices. A second click while one runs waits for that one. */
+let syncNowRun = null;
+function syncNow() {
+  if (syncNowRun) return syncNowRun;
+  syncNowRun = (async () => {
+    if (!Y.enabled) return;
+    if (navigator.onLine === false) { setSyncStatus('offline'); return; }
+    if (Y.status === 'connecting' || (Y.col && !Y.pulled)) return; // Sectis is still bringing in the other devices' changes
+    if (!Y.col) { await syncStart(); if (Y.col && Y.pulled) await syncPush(); return; } // never connected (or couldn't): start over
+    syncDiff(); setSyncStatus('syncing');
+    await syncPush();
+    if (Y.status !== 'error') setSyncStatus('syncing'); // keep the cloud busy until the other devices' changes are in
+    await Promise.race([syncListen(), new Promise((r) => setTimeout(r, 15000))]);
+    if (Y.status === 'syncing') setSyncStatus('synced');
+  })().catch((e) => setSyncStatus(navigator.onLine === false ? 'offline' : 'error', friendlySyncError(e))).finally(() => { syncNowRun = null; });
+  return syncNowRun;
+}
+/* the cloud: sync, then say how it went (there's no tooltip on iPhone) */
+async function syncNowFromCloud() {
+  if (!Y.enabled) return;
+  const starting = Y.status === 'connecting' || (Y.col && !Y.pulled);
+  await syncNow();
+  if (starting || Y.status === 'connecting') toast('Still connecting. Your changes will sync in a moment.');
+  else if (Y.status === 'error') toast(Y.error || 'Sync didn’t work.', { action: 'Settings', fn: openSettings, ms: 7000 });
+  else if (Y.status === 'offline') toast('You’re offline. Changes will sync when you reconnect.');
+  else { const pend = Object.keys(Y.pending).length; toast(pend ? `Synced. ${plural(pend, 'change')} still waiting.` : 'Synced.'); }
 }
 function syncStopLocal() {
   if (Y.unsub) { try { Y.unsub(); } catch (e) { /* ignore */ } }

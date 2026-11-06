@@ -1438,7 +1438,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.45.0';
+const APP_VERSION = '1.45.1';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -2690,7 +2690,7 @@ function renderSidebar() {
   S.areas.slice().sort(byOrder).filter((a) => !ui.focusRec || ui.focusAreas.has(a.id)).forEach((a) => {
     html += `<div class="sb-group" data-sb-area="${a.id}"><button class="sb-item sb-area-row${on('area:' + a.id)}" data-nav="area:${a.id}" data-drop-list="area:${a.id}" data-drag="area" data-kind="area" data-id="${a.id}" data-sb="1">${placeColor(a) ? areaIc(a) : ic('area')}<span class="sb-name${a.title ? '' : ' untitled'}">${esc(aTitle(a))}</span>${cnt(openIn.a.get(a.id))}${areaToggle(a, sbProjects(a.id).length)}</button>${sbAreaProjects(a, sbProjects(a.id)).map(projRow).join('')}</div>`;
   });
-  html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="settings" aria-label="Sync status" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="notepad" aria-label="Notepad" title="Notepad (J)">${ic('notepad')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button><button class="ib sb-hide" data-action="sb-toggle" aria-label="Hide Sidebar" title="Hide Sidebar (${IS_MAC ? '⌃⌘S' : 'Ctrl+Alt+S'})">${ic('sidebar')}</button></div>`;
+  html += `</nav><div class="sb-resize" aria-hidden="true" title="Drag to change the sidebar’s width. Double-click for the usual width."></div><div class="sb-foot"><button class="sb-new" data-action="new-list">${ic('plus')}<span>New List</span></button><button class="ib sync-ind" id="sync-ind" data-action="sync-now" aria-label="Sync Now" hidden>${ic('cloud')}</button><button class="ib" data-action="quick-entry" aria-label="Quick Entry" title="Quick Entry (Q)">${ic('bolt')}</button><button class="ib" data-action="notepad" aria-label="Notepad" title="Notepad (J)">${ic('notepad')}</button><button class="ib" data-action="settings" aria-label="Settings" title="Settings">${ic('gear')}</button><button class="ib sb-hide" data-action="sb-toggle" aria-label="Hide Sidebar" title="Hide Sidebar (${IS_MAC ? '⌃⌘S' : 'Ctrl+Alt+S'})">${ic('sidebar')}</button></div>`;
   const sb = $('#sidebar');
   const scroll = $('#sb-scroll'); const st = scroll ? scroll.scrollTop : 0;
   sb.innerHTML = html;
@@ -4202,6 +4202,7 @@ function handleAction(act, el, e) {
     case 'focus-menu': openFocusMenu(el); return;
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
+    case 'sync-now': syncNowFromCloud(); return;
     case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { label: 'New Smart List…', icon: 'funnel', fn: () => openSmartEditor() }, { label: 'New Focus…', icon: 'focus', fn: () => openFocusEditor() }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
     case 'm-back': closeEditor({ noRender: true }); ui.mobile = 'home'; ui.sel.clear(); ui.selectMode = false; render(); return;
     case 'select-done': ui.selectMode = false; ui.sel.clear(); render(); return;
@@ -4946,7 +4947,7 @@ function openSettings() {
         } catch (e) { toast(friendlySyncError(e)); }
         el.innerHTML = build(); return;
       }
-      if (act === 'sync-now') { if (!Y.col) await syncStart(); else { syncDiff(); setSyncStatus('syncing'); await syncPush(); if (Y.unsub) syncListen(); } el.innerHTML = build(); }
+      if (act === 'sync-now') { b.disabled = true; b.textContent = 'Syncing…'; await syncNow(); el.innerHTML = build(); }
       if (act === 'sync-off') { if (await confirmSyncOff()) el.innerHTML = build(); }
     });
   } });
@@ -5397,7 +5398,7 @@ function renderSyncIndicator() {
   const el = document.getElementById('sync-ind'); if (!el) return;
   el.hidden = !Y.enabled;
   el.className = `ib sync-ind ${Y.status}`;
-  el.title = Y.enabled ? `Sync: ${syncStatusText().replace(/<[^>]+>/g, '')}` : '';
+  el.title = Y.enabled ? `Sync Now\n${syncStatusText().replace(/<[^>]+>/g, '')}` : '';
 }
 
 /* ---- pushing local changes ---- */
@@ -5637,6 +5638,34 @@ function dedupeTags() {
   S.tags.forEach((t) => { if (remap[t.parentId]) t.parentId = remap[t.parentId]; });
   S.todos.concat(S.projects, S.areas).forEach((x) => { if (x.tags.some((id) => remap[id])) x.tags = Array.from(new Set(x.tags.map((id) => remap[id] || id))); });
   reindex();
+}
+/* Sync Now (the cloud in the sidebar, and Settings → Sync): send what changed here, then ask
+   for anything new from the other devices. A second click while one runs waits for that one. */
+let syncNowRun = null;
+function syncNow() {
+  if (syncNowRun) return syncNowRun;
+  syncNowRun = (async () => {
+    if (!Y.enabled) return;
+    if (navigator.onLine === false) { setSyncStatus('offline'); return; }
+    if (Y.status === 'connecting' || (Y.col && !Y.pulled)) return; // Sectis is still bringing in the other devices' changes
+    if (!Y.col) { await syncStart(); if (Y.col && Y.pulled) await syncPush(); return; } // never connected (or couldn't): start over
+    syncDiff(); setSyncStatus('syncing');
+    await syncPush();
+    if (Y.status !== 'error') setSyncStatus('syncing'); // keep the cloud busy until the other devices' changes are in
+    await Promise.race([syncListen(), new Promise((r) => setTimeout(r, 15000))]);
+    if (Y.status === 'syncing') setSyncStatus('synced');
+  })().catch((e) => setSyncStatus(navigator.onLine === false ? 'offline' : 'error', friendlySyncError(e))).finally(() => { syncNowRun = null; });
+  return syncNowRun;
+}
+/* the cloud: sync, then say how it went (there's no tooltip on iPhone) */
+async function syncNowFromCloud() {
+  if (!Y.enabled) return;
+  const starting = Y.status === 'connecting' || (Y.col && !Y.pulled);
+  await syncNow();
+  if (starting || Y.status === 'connecting') toast('Still connecting. Your changes will sync in a moment.');
+  else if (Y.status === 'error') toast(Y.error || 'Sync didn’t work.', { action: 'Settings', fn: openSettings, ms: 7000 });
+  else if (Y.status === 'offline') toast('You’re offline. Changes will sync when you reconnect.');
+  else { const pend = Object.keys(Y.pending).length; toast(pend ? `Synced. ${plural(pend, 'change')} still waiting.` : 'Synced.'); }
 }
 function syncStopLocal() {
   if (Y.unsub) { try { Y.unsub(); } catch (e) { /* ignore */ } }

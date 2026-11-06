@@ -145,6 +145,7 @@ function handleAction(act, el, e) {
     case 'focus-menu': openFocusMenu(el); return;
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
+    case 'sync-now': syncNowFromCloud(); return;
     case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { label: 'New Smart List…', icon: 'funnel', fn: () => openSmartEditor() }, { label: 'New Focus…', icon: 'focus', fn: () => openFocusEditor() }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
     case 'm-back': closeEditor({ noRender: true }); ui.mobile = 'home'; ui.sel.clear(); ui.selectMode = false; render(); return;
     case 'select-done': ui.selectMode = false; ui.sel.clear(); render(); return;

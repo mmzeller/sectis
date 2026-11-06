@@ -287,7 +287,7 @@ function openSettings() {
         } catch (e) { toast(friendlySyncError(e)); }
         el.innerHTML = build(); return;
       }
-      if (act === 'sync-now') { if (!Y.col) await syncStart(); else { syncDiff(); setSyncStatus('syncing'); await syncPush(); if (Y.unsub) syncListen(); } el.innerHTML = build(); }
+      if (act === 'sync-now') { b.disabled = true; b.textContent = 'Syncing…'; await syncNow(); el.innerHTML = build(); }
       if (act === 'sync-off') { if (await confirmSyncOff()) el.innerHTML = build(); }
     });
   } });

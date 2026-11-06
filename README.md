@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.45.0
+Version 1.45.1
 
 ## What's in it
 
@@ -123,6 +123,7 @@ If the iPhone only has the sample to-dos, they're replaced by your Mac's list. I
 **How it behaves**
 
 - Changes show up on the other device within a few seconds while both are open.
+- **The cloud** at the bottom of the sidebar syncs right away when you click it (the same as **Settings → Sync → Sync Now**): it sends what changed here, then brings in anything new from your other devices, and says how it went. It pulses while syncing, turns gray when you're offline and red if something's wrong; the message then has a **Settings** button to see more.
 - Offline changes wait on the device and sync when it reconnects.
 - If the same to-do is edited on both devices before they sync, the most recent edit wins.
 - When Sectis opens, it brings in your other devices' changes before it sends any of its own, so a device that was asleep (or just updated) can't put back an older copy of something you changed elsewhere. And it never overwrites a newer copy in Firebase with an older one: the newer one comes to this device instead.
