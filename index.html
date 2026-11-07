@@ -1464,7 +1464,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.46.0';
+const APP_VERSION = '1.46.1';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -10055,7 +10055,7 @@ function placeAutocomplete(ti, box, onPick) {
    or the day it was made) to its deadline, filled in as its to-dos get done; each to-do with a
    deadline is a flag on its day (a bar when it also has a start date). Grouped by area, then
    project, soonest first. Overdue ones sit at the left edge in red.
-   - 2 Weeks, Month or 3 Months, starting this week; ‹ › page through time, Today comes back.
+   - 2 Weeks, Month, 3 Months or Custom; ‹ › page through time, Today comes back to this week.
    - ••• → Scheduled To-Dos Too adds to-dos and projects that only have a When date.
    - Drag a flag (or a bar's right end) to change the deadline, a bar's left end to change
      its start, or the bar itself to move both. Click a flag or bar for its dates; click a name
@@ -10067,9 +10067,10 @@ function placeAutocomplete(ti, box, onPick) {
      (⌥-click folds or unfolds them all; ••• → Fold All / Unfold All too).
    - Click an empty day on a row for that day: a new to-do due then (in that project, area or
      list, through Quick Entry), or that to-do's or project's deadline moved there.
-   - Custom: any span from a week to a year. Its start and end are buttons (click for a
-     calendar, or type a date), and the slider beside them stretches or shrinks the span live.
-     Long spans (over nine weeks) go by the week, like 3 Months.
+   - Whichever span is showing, its start and end are buttons (click for a calendar, or type a
+     date), and the slider beside them stretches or shrinks it live. A new start keeps the span
+     (and stays when you switch spans); a new length that isn't 2 Weeks, a Month or 3 Months is
+     Custom, any span from a week to a year. Long spans (over nine weeks) go by the week.
    Zoom, options and what's folded are each device's own. */
 const TL_MIN = 7, TL_MAX = 366; // a custom span: a week to a year
 const TL_ZOOM = {
@@ -10082,20 +10083,21 @@ const TL_ZOOM = {
   ui.tl = Object.assign({ zoom: 'month', when: false, kids: true, names: true }, t || {}, { off: 0 });
   ui.tl.fold = new Set(Array.isArray(ui.tl.fold) ? ui.tl.fold : []);
   ui.tl.cdays = clamp(+ui.tl.cdays || 56, TL_MIN, TL_MAX);
-  // a custom span that's all in the past starts from this week again
-  if (ui.tl.cfrom && (!/^\d{4}-\d\d-\d\d$/.test(ui.tl.cfrom) || addDays(ui.tl.cfrom, ui.tl.cdays - 1) < T0())) ui.tl.cfrom = null;
   if (!TL_ZOOM[ui.tl.zoom] && ui.tl.zoom !== 'custom') ui.tl.zoom = 'month';
+  // a start you chose that leaves the whole span in the past goes back to this week
+  if (ui.tl.cfrom && (!/^\d{4}-\d\d-\d\d$/.test(ui.tl.cfrom) || addDays(ui.tl.cfrom, tlZoom().days - 1) < T0())) ui.tl.cfrom = null;
 })();
 function saveTimeline() { lsSet('sectis.timeline', JSON.stringify({ zoom: ui.tl.zoom, when: ui.tl.when, kids: ui.tl.kids, names: ui.tl.names, fold: [...ui.tl.fold], cdays: ui.tl.cdays, cfrom: ui.tl.cfrom || null, cused: !!ui.tl.cused })); }
-/* the span shown: one of the three, or Custom (any number of days from a week to a year, from
-   the day you chose or this week). A custom one pages by about three quarters of itself */
+/* the span shown: one of the three, or Custom (any number of days from a week to a year), from
+   the day you chose (ui.tl.cfrom, for every span) or this week. A custom one pages by about three
+   quarters of itself */
 function tlZoom() {
   if (ui.tl.zoom !== 'custom') return TL_ZOOM[ui.tl.zoom];
   const days = clamp(Math.round(ui.tl.cdays) || 56, TL_MIN, TL_MAX);
   return { days, step: Math.max(7, Math.round((days * 0.75) / 7) * 7), min: clamp(Math.round(420 / days), 2, 30), label: 'Custom' };
 }
 function tlRange() {
-  const z = tlZoom(), base = ui.tl.zoom === 'custom' && ui.tl.cfrom ? ui.tl.cfrom : weekStart(T0()), from = addDays(base, ui.tl.off * z.step);
+  const z = tlZoom(), base = ui.tl.cfrom || weekStart(T0()), from = addDays(base, ui.tl.off * z.step);
   return { from, to: addDays(from, z.days - 1), days: z.days, z };
 }
 /* long spans go by the week: week columns, a week to each cell of the Due row, no date labels */
@@ -10308,12 +10310,12 @@ function viewTimeline() {
   });
   // the header
   const shown = timelineEntries(r), dls = shown.filter((e) => e.dl && e.x.status === 'open' && !e.overdue).length, od = shown.filter((e) => e.overdue).length;
-  const sub = `${fmtDate(r.from, { weekday: false })} – ${fmtDate(r.to, { weekday: false })}${dls ? ` · ${plural(dls, 'deadline')}` : ''}${od ? ` · <span class="tl-odn">${od} overdue</span>` : ''}`;
+  const sub = [dls ? plural(dls, 'deadline') : '', od ? `<span class="tl-odn">${od} overdue</span>` : ''].filter(Boolean).join(' · ') || (shown.length ? '' : 'Nothing due'); // (the dates are the buttons beside it)
   const zoomSeg = tlZoomSegHTML(), nav = tlNavHTML();
   let html = `<div class="lh tl-lh"><span class="ic lh-ic" style="color:var(--c-timeline)">${I.timeline}</span><h1 class="lh-title">Timeline</h1><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="view-menu" aria-label="Timeline options" title="Timeline options">${ic('more')}</button></div>`
-    + `<div class="lh-sub tl-sub"><span class="tl-sub-t">${sub}</span>${zoomSeg}${nav}${tlCustomHTML(r)}</div>` + tagBarHTML(allEntries.map((e) => e.x));
+    + `<div class="lh-sub tl-sub"><span class="tl-sub-t">${sub}</span>${zoomSeg}${nav}${tlSpanHTML(r)}</div>` + tagBarHTML(allEntries.map((e) => e.x));
   if (!rows) {
-    return html + `<div class="tl-live">${emptyHTML('timeline', ui.tl.off || ui.tl.zoom === 'custom' ? 'Nothing due in these weeks' : 'Nothing due yet', `Give a project or to-do a deadline (select it and press D) and it shows up here, on its day.${ui.tl.when ? '' : ' To see When dates too, choose <b>Scheduled To-Dos Too</b> in the ••• menu.'}`)}</div>`;
+    return html + `<div class="tl-live">${emptyHTML('timeline', !tlAtToday() || ui.tl.zoom === 'custom' ? 'Nothing due in these weeks' : 'Nothing due yet', `Give a project or to-do a deadline (select it and press D) and it shows up here, on its day.${ui.tl.when ? '' : ' To see When dates too, choose <b>Scheduled To-Dos Too</b> in the ••• menu.'}`)}</div>`;
   }
   html += `<div class="tl-live"><div class="tl-wrap${L.fits ? ' fits' : ''}" data-hscroll="timeline"><div class="tl ${'z-' + ui.tl.zoom}${weekly ? ' wk' : ''}${L.stack ? ' stack' : ''}" style="--dw:${L.dw}px;--lw:${L.lw}px;--days:${r.days};--vw:${Math.round(L.vw)}px">`
     + tlHeadHTML(months, scale, tlBusyHTML(timelineEntries(r).filter((e) => ui.tl.kids || e.x.type === 'project' || !e.x.projectId), r, L))
@@ -10321,21 +10323,31 @@ function viewTimeline() {
   return html;
 }
 
-/* ---- the span: 2 Weeks, Month, 3 Months or Custom; paging; a custom span's start, end and slider ---- */
+/* ---- the span: 2 Weeks, Month, 3 Months or Custom; paging; its start, end and slider ---- */
 function tlZoomSegHTML() {
   const zs = Object.entries(TL_ZOOM).map(([k, z]) => [k, z.label]).concat([['custom', 'Custom']]);
   return `<div class="seg tl-zoom" role="group" aria-label="Time span">${zs.map(([k, l]) => `<button data-tlzoom="${k}" class="${ui.tl.zoom === k ? 'on' : ''}" aria-pressed="${ui.tl.zoom === k}">${l}</button>`).join('')}</div>`;
 }
-const tlAtToday = () => !ui.tl.off && !(ui.tl.zoom === 'custom' && ui.tl.cfrom && ui.tl.cfrom !== weekStart(T0()));
+const tlAtToday = () => !ui.tl.off && !(ui.tl.cfrom && ui.tl.cfrom !== weekStart(T0()));
 const tlNavHTML = () => `<div class="tl-nav"><button class="ib" data-tlnav="-1" aria-label="Earlier" title="Earlier">${ic('chevL')}</button><button class="btn tl-today${tlAtToday() ? ' at' : ''}" data-tlnav="0">Today</button><button class="ib" data-tlnav="1" aria-label="Later" title="Later">${ic('chevR')}</button></div>`;
 /* the slider goes by ratio (a week to a year), so short spans get as much room as long ones */
 const tlSlideFor = (days) => Math.round((1000 * Math.log(days / TL_MIN)) / Math.log(TL_MAX / TL_MIN));
 const tlDaysFor = (v) => clamp(Math.round(TL_MIN * Math.pow(TL_MAX / TL_MIN, v / 1000)), TL_MIN, TL_MAX);
 const tlSpanText = (days) => (days % 7 === 0 && days <= 84 ? plural(days / 7, 'week') : plural(days, 'day'));
 const tlDayText = (d) => fmtDate(d, { weekday: false }); // the year shows when it isn't this one
-function tlCustomHTML(r, band = false) {
-  if (ui.tl.zoom !== 'custom') return '';
-  return `<div class="tl-custom${band ? ' in-band' : ''}" role="group" aria-label="Custom span">`
+/* a new length: one of the three if it's exactly theirs, Custom otherwise (which keeps it for
+   the next time you choose Custom) */
+function tlSetDays(days) {
+  days = clamp(Math.round(days), TL_MIN, TL_MAX);
+  const k = Object.keys(TL_ZOOM).find((x) => TL_ZOOM[x].days === days);
+  ui.tl.zoom = k || 'custom';
+  if (!k) { ui.tl.cdays = days; ui.tl.cused = true; }
+}
+/* start the span on the day showing now (after paging), so a change to its length stretches from there */
+function tlHoldStart() { const r = tlRange(); if (ui.tl.off) { ui.tl.cfrom = r.from === weekStart(T0()) ? null : r.from; ui.tl.off = 0; } return r; }
+/* the span's start and end, and the slider, for every span */
+function tlSpanHTML(r, band = false) {
+  return `<div class="tl-custom${band ? ' in-band' : ''}" role="group" aria-label="Time span">`
     + `<button class="tl-date" data-tlpick="from" title="Start on…" aria-label="Starts ${esc(tlDayText(r.from))}">${esc(tlDayText(r.from))}</button><span class="tl-dash">–</span>`
     + `<button class="tl-date" data-tlpick="to" title="End on…" aria-label="Ends ${esc(tlDayText(r.to))}">${esc(tlDayText(r.to))}</button>`
     + `<input type="range" class="tl-slider" data-tlslide min="0" max="1000" step="1" value="${tlSlideFor(r.days)}" aria-label="How many days to show" aria-valuetext="${esc(tlSpanText(r.days))}">`
@@ -10351,27 +10363,27 @@ function tlLiveRedraw() {
   const root = band || $('#content'), fresh = band ? tmp.firstElementChild : tmp;
   const live = $('.tl-live', root), nlive = $('.tl-live', fresh);
   if (live && nlive) live.replaceWith(nlive);
-  ['.tl-sub-t', '[data-tlpick="from"]', '[data-tlpick="to"]', '.tl-span-n', '.tl-today'].forEach((sel) => { const a = $(sel, root), b = $(sel, fresh); if (a && b) a.replaceWith(b); });
+  ['.tl-sub-t', '[data-tlpick="from"]', '[data-tlpick="to"]', '.tl-span-n', '.tl-today', '.tl-zoom'].forEach((sel) => { const a = $(sel, root), b = $(sel, fresh); if (a && b) a.replaceWith(b); });
   const sl = $('[data-tlslide]', root); if (sl) sl.setAttribute('aria-valuetext', tlSpanText(tlRange().days));
 }
 document.addEventListener('input', (e) => {
   const sl = e.target.closest && e.target.closest('#content [data-tlslide]'); if (!sl || !tlHere()) return;
-  const r = tlRange();
-  if (ui.tl.off) { ui.tl.cfrom = r.from; ui.tl.off = 0; } // stretch from what's showing
-  ui.tl.cdays = tlDaysFor(+sl.value); ui.tl.cused = true;
+  tlHoldStart(); // stretch from what's showing
+  tlSetDays(tlDaysFor(+sl.value));
   if (!tlLiveRaf) tlLiveRaf = requestAnimationFrame(tlLiveRedraw);
 });
 document.addEventListener('change', (e) => { if (e.target.closest && e.target.closest('#content [data-tlslide]')) saveTimeline(); });
-/* a custom span's start or end: a calendar, or type a date */
+/* the span's start (it keeps its length) or end (a new length): a calendar, or type a date */
 function tlPickDay(which, anchor) {
   const r = tlRange(), cur = which === 'from' ? r.from : r.to;
   let shown = cur, cy = pd(cur).getFullYear(), cm = pd(cur).getMonth();
   const cal = () => calHTML(cy, cm, shown, true);
   const set = (d) => {
     if (which === 'from') { ui.tl.cfrom = d === weekStart(T0()) ? null : d; ui.tl.off = 0; }
-    else { ui.tl.cfrom = r.from === weekStart(T0()) ? null : r.from; ui.tl.off = 0; ui.tl.cdays = clamp(diffDays(r.from, d) + 1, TL_MIN, TL_MAX); }
+    else { ui.tl.cfrom = r.from === weekStart(T0()) ? null : r.from; ui.tl.off = 0; tlSetDays(diffDays(r.from, d) + 1); }
     saveTimeline(); render();
-    if (which === 'to' && diffDays(r.from, d) + 1 < TL_MIN) toast(`A custom span is at least ${TL_MIN} days`);
+    if (which === 'to' && diffDays(r.from, d) + 1 < TL_MIN) toast(`The Timeline shows at least ${TL_MIN} days`);
+    else if (which === 'to' && diffDays(r.from, d) + 1 > TL_MAX) toast('The Timeline shows up to a year');
   };
   const L = openLayer({ anchor, cls: 'picker done-picker', html: `<div class="pk-h">${which === 'from' ? 'Start On' : 'End On'}</div>
     <input class="pk-in" placeholder="${which === 'from' ? 'jan 1, next mon, 2 weeks ago…' : 'mar 31, end of month, in 6 weeks…'}" autocomplete="off" aria-label="Type a date">
@@ -10406,9 +10418,10 @@ document.addEventListener('click', (e) => {
   if (!tlHere() || !e.target.closest) return;
   const z = e.target.closest('#content [data-tlzoom]');
   if (z) {
-    // Custom starts from what's showing (or the span you set before)
-    if (z.dataset.tlzoom === 'custom' && ui.tl.zoom !== 'custom') { const r = tlRange(); if (ui.tl.off) ui.tl.cfrom = r.from; if (!ui.tl.cused) { ui.tl.cdays = r.days; ui.tl.cused = true; } }
-    ui.tl.zoom = z.dataset.tlzoom; ui.tl.off = 0; saveTimeline(); render(); return;
+    // a different span starts on the day showing now; Custom takes up the length you set it to before
+    const r = tlHoldStart();
+    if (z.dataset.tlzoom === 'custom' && ui.tl.zoom !== 'custom' && !ui.tl.cused) { ui.tl.cdays = r.days; ui.tl.cused = true; }
+    ui.tl.zoom = z.dataset.tlzoom; saveTimeline(); render(); return;
   }
   const n = e.target.closest('#content [data-tlnav]');
   if (n) { const d = +n.dataset.tlnav; ui.tl.off = d ? ui.tl.off + d : 0; if (!d && ui.tl.cfrom) { ui.tl.cfrom = null; saveTimeline(); } render(); return; }
@@ -10658,8 +10671,8 @@ function boardTimelineHTML() {
     return `<div class="tl-row tl-proj tl-laned"${attrs}>${head}<div class="tl-track tl-lanes" style="--lanes:${lanes.n}">${lanes.html}</div></div>`;
   }).join('');
   const zoomSeg = tlZoomSegHTML(), nav = tlNavHTML();
-  return `<section class="tl-band" aria-label="Timeline for this Board"><div class="tl-band-h"><span class="ic" style="color:var(--c-timeline)">${I.timeline}</span><b>Timeline</b><span class="tl-band-r tl-sub-t">${esc(fmtDate(r.from, { weekday: false }))} – ${esc(fmtDate(r.to, { weekday: false }))}</span><span class="spacer"></span><div class="tl-band-ctl">${zoomSeg}${nav}</div><button class="ib tl-band-x" data-action="board-tl" aria-label="Hide the Timeline" title="Hide the Timeline">${ic('chevU')}</button></div>`
-    + `${tlCustomHTML(r, true)}<div class="tl-live">`
+  return `<section class="tl-band" aria-label="Timeline for this Board"><div class="tl-band-h"><span class="ic" style="color:var(--c-timeline)">${I.timeline}</span><b>Timeline</b><span class="spacer"></span><div class="tl-band-ctl">${zoomSeg}${nav}</div><button class="ib tl-band-x" data-action="board-tl" aria-label="Hide the Timeline" title="Hide the Timeline">${ic('chevU')}</button></div>`
+    + `${tlSpanHTML(r, true)}<div class="tl-live">`
     + (body ? `<div class="tl-wrap" data-hscroll="board-tl" data-vscroll="board-tl"><div class="tl z-${ui.tl.zoom}${L.stack ? ' stack' : ''}" style="--dw:${L.dw}px;--lw:${L.lw}px;--days:${r.days};--vw:${Math.round(L.vw)}px">${tlHeadHTML(months, scale, tlBusyHTML(rows.flatMap((row) => (row.main ? [row.main] : []).concat(row.kids)), r, L))}<div class="tl-body"><div class="tl-bg" aria-hidden="true">${bg}</div>${body}</div></div></div>`
       : `<p class="tl-band-empty">Nothing on this Board has a deadline between ${esc(fmtDate(r.from, { weekday: false }))} and ${esc(fmtDate(r.to, { weekday: false }))}.</p>`)
     + `</div></section>`;
