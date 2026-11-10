@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.46.1';
+const APP_VERSION = '1.47.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -203,6 +203,7 @@ const I = {
   sidebar: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M5.8 8.2h1.6M5.8 11.2h1.6"/>'),
   focus: svg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><circle class="fill" cx="12" cy="12" r="1.4"/>'),
   bolt: svg('<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>'),
+  info: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2"/><circle class="fill" cx="12" cy="7.9" r="1.15"/>'),
   mic: svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>'),
 };
 const ic = (name, cls = '') => `<span class="ic ${cls}">${I[name] || ''}</span>`;

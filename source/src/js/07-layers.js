@@ -31,6 +31,9 @@ function closeLayer(L = layers[layers.length - 1]) {
   const i = layers.indexOf(L); if (i < 0) return;
   layers.splice(i, 1); L.el.remove(); L.scrim.remove();
   if (L.onClose) L.onClose();
+  // the window underneath (Settings, say) can catch up with what changed while it was covered
+  const under = layers[layers.length - 1];
+  if (under && under.onReveal && under.el.isConnected) under.onReveal();
 }
 function closeAllLayers() { while (layers.length) closeLayer(); }
 const topLayer = () => layers[layers.length - 1];
@@ -213,11 +216,14 @@ function openTagPicker(ids, anchor, kind = 'item') {
 
 /* ---- Move picker ----
    To-dos go to the Inbox, an area or a project (sub-projects listed under theirs). Projects go to
-   an area, to no area, or inside another project; opts.areasOnly leaves the projects out. */
+   an area, to no area, or inside another project; opts.areasOnly leaves the projects out.
+   With opts.onPick it's a picker for anything that needs a place: ids can be empty, opts.cur
+   ({ areaId } or { projectId }) says which place is ticked, opts.noInbox and opts.noAreas leave
+   those out (areas then only head their projects), opts.placeholder names what you're finding. */
 function openMove(ids, anchor, opts = {}) {
   const items = itemsFor(ids);
-  const projectsOnly = items.length && items.every((x) => x.type === 'project');
-  const cur = items[0] || {};
+  const projectsOnly = items.length ? items.every((x) => x.type === 'project') : !!opts.areasOnly;
+  const cur = opts.cur || items[0] || {};
   const check = `<span class="check">${ic('check')}</span>`;
   const build = (q = '') => {
     const ql = q.trim().toLowerCase(); const m = (s) => !ql || (s || '').toLowerCase().includes(ql);
@@ -242,13 +248,14 @@ function openMove(ids, anchor, opts = {}) {
     out += projRows(null);
     S.areas.slice().sort(byOrder).forEach((a) => {
       const pr = projRows(a.id);
-      if (m(aTitle(a))) out += `<button class="pick-i a" data-to="area:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span></button>`;
+      if (!opts.noAreas && m(aTitle(a))) out += `<button class="pick-i a" data-to="area:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span></button>`;
       else if (pr) out += `<div class="menu-h">${esc(aTitle(a))}</div>`;
       out += pr;
     });
-    return out || '<p class="note" style="padding:6px 10px">No matching lists.</p>';
+    return out || `<p class="note" style="padding:6px 10px">${opts.noAreas ? 'No matching projects.' : 'No matching lists.'}</p>`;
   };
-  const L = openLayer({ anchor, cls: 'move-pop', html: `<div class="pk-h">${esc(opts.title || 'Move')}</div><input class="pk-in" id="mv-in" placeholder="Find a list" autocomplete="off" aria-label="Find a list"><div class="pick-list" id="mv-list">${build()}</div>`,
+  const find = esc(opts.placeholder || 'Find a list');
+  const L = openLayer({ anchor, cls: 'move-pop', html: `<div class="pk-h">${esc(opts.title || 'Move')}</div><input class="pk-in" id="mv-in" placeholder="${find}" autocomplete="off" aria-label="${find}"><div class="pick-list" id="mv-list">${build()}</div>`,
     onMount: (el) => {
       const inp = $('#mv-in', el), list = $('#mv-list', el);
       const nav = listKeys(el, '.pick-i', inp);

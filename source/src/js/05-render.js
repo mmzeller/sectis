@@ -93,10 +93,12 @@ function renderSidebar() {
   // the project you have open, and the projects it's in, stay unfolded
   const vp = v.type === 'project' && getP(v.id), openPath = new Set(vp ? [vp.id, ...projAncestors(vp).map((q) => q.id)] : []);
   const sbAreaProjects = (a, list) => (ui.sbCollapsed.has(a.id) ? list.filter((p) => openPath.has(p.id)) : list);
-  const on = (key) => (v.type + (v.id ? ':' + v.id : '')) === key ? ' on' : '';
-  const item = (key, cnt, extra = '') => {
+  // a template's own page (or a sub-project's inside one) counts as being in Templates
+  const inTpl = !!vp && [vp, ...projAncestors(vp)].some((q) => q.blueprint);
+  const on = (key) => ((v.type + (v.id ? ':' + v.id : '')) === key || (key === 'templates' && inTpl) ? ' on' : '');
+  const item = (key, cnt, extra = '', tip = '') => {
     const L = LISTS[key];
-    return `<button class="sb-item${on(key)}" data-nav="${key}" data-drop-list="${key}"><span class="ic" style="color:${L.color}">${I[L.icon]}</span><span class="sb-name">${L.title}</span>${extra}${cnt ? `<span class="sb-count">${cnt}</span>` : ''}</button>`;
+    return `<button class="sb-item${on(key)}" data-nav="${key}" data-drop-list="${key}"${tip ? ` title="${tip}"` : ''}><span class="ic" style="color:${L.color}">${I[L.icon]}</span><span class="sb-name">${L.title}</span>${extra}${cnt ? `<span class="sb-count">${cnt}</span>` : ''}</button>`;
   };
   // a project's sub-projects sit under it, folded away until you open them
   const sbKids = (p) => S.projects.filter((q) => q.parentId === p.id && q !== p && !q.trashed && !q.isTemplate && q.status === 'open' && q.start !== 'someday').sort(byOrder);
@@ -114,7 +116,7 @@ function renderSidebar() {
   html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('timeline')}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
   // the Board, or each Board once there are several; drop a project or area on one to add it
-  html += `<div class="sb-group sb-board-g">${(ui.boards || []).map((b) => `<button class="sb-item${v.type === 'board' && b.id === ui.boardId ? ' on' : ''}" data-nav="board:${b.id}" data-drop-list="board:${b.id}" title="${esc(b.name || 'Board')}${ui.boards.length > 1 ? '' : ' (8)'}. Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">${esc(b.name || 'Board')}</span></button>`).join('')}</div>`;
+  html += `<div class="sb-group sb-board-g">${(ui.boards || []).map((b) => `<button class="sb-item sb-board-i${v.type === 'board' && b.id === ui.boardId ? ' on' : ''}" data-nav="board:${b.id}" data-drop-list="board:${b.id}" title="${esc(b.name || 'Board')}${ui.boards.length > 1 ? '' : ' (8)'}. Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">${esc(b.name || 'Board')}</span></button>`).join('')}${item('templates', 0, '', `Templates (9)${isCoarse() ? '' : '. Drop a project or to-do here to save it as a template.'}`)}</div>`;
   const smarts = (S.smart || []).slice().sort(byOrder);
   if (smarts.length) html += `<div class="sb-group sb-smart-g">${smarts.map((sl) => `<button class="sb-item${on('smart:' + sl.id)}" data-nav="smart:${sl.id}" data-drop-list="smart:${sl.id}" data-drag="smart" data-kind="smart" data-id="${sl.id}" data-sb="1" title="${esc(smartSummary(sl))}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span class="sb-name">${esc(smartTitle(sl))}</span>${cnt(smartCount(sl))}</button>`).join('')}</div>`;
   const loose = ui.focusRec && ui.focusRec.loose === false ? [] : sbProjects(null);
@@ -285,12 +287,12 @@ function cardHTML(t) {
     `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>`,
     !ckOpen ? `<button class="ib" data-action="ck-open" data-id="${t.id}" title="Checklist" aria-label="Checklist">${ic('checklist')}</button>` : '',
     !t.deadline && !tpl && !tplChild ? `<button class="ib" data-action="deadline" data-id="${t.id}" title="Deadline (D)" aria-label="Deadline">${ic('flag')}</button>` : '',
-    !prio(t) && !tplChild && !t.blueprint ? `<button class="ib" data-action="priority" data-id="${t.id}" title="Priority (P)" aria-label="Priority">${ic('priority')}</button>` : '',
+    !prio(t) && !tplChild ? `<button class="ib" data-action="priority" data-id="${t.id}" title="Priority (P)" aria-label="Priority">${ic('priority')}</button>` : '',
     !t.when && t.start !== 'someday' && !tpl && !tplChild ? `<button class="ib" data-action="when" data-id="${t.id}" title="When (S)" aria-label="When">${ic('calendar')}</button>` : '',
     `<button class="ib" data-action="todo-menu" data-id="${t.id}" title="More" aria-label="More">${ic('more')}</button>`,
   ].join('');
   return `<div class="card" data-id="${t.id}" data-kind="todo">
-    ${tpl ? (t.blueprint ? `<div class="c-tpl">${ic('template')}<span>To-do template. New to-dos made from it get this title, notes, checklist and tags.</span></div>` : `<div class="c-tpl">${ic('repeat')}<span>Repeating to-do. Changes apply to the copies it makes from now on.</span></div>`) : ''}
+    ${tpl ? (t.blueprint ? `<div class="c-tpl">${ic('template')}<span>New to-dos made from this template get its title, notes, checklist, tags and priority.</span></div>` : `<div class="c-tpl">${ic('repeat')}<span>Repeating to-do. Changes apply to the copies it makes from now on.</span></div>`) : ''}
     <div class="c-top">${tpl || tplChild ? `<span class="cb tpl-cb" aria-hidden="true"></span>` : checkboxHTML(t)}<textarea class="c-title" data-edit="title" data-id="${t.id}" data-fkey="title-${t.id}" placeholder="New To-Do" enterkeyhint="done" aria-label="Title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(t.title)}</textarea></div>
     <div class="c-body">${notesBlockHTML('notes', t.id, `notes-${t.id}`, t.notes, 'c-notes', 'Notes')}${ck}${tags}
     <div class="c-foot"><div class="c-chips">${chips}</div><div class="c-tools">${tools}</div></div></div></div>`;
@@ -495,11 +497,13 @@ function viewLogbook() {
 function viewTrash() {
   // what's inside a project in the Trash comes back with it, so only the project shows
   const binned = (p) => !!p && (p.trashed || projAncestors(p).some((q) => q.trashed));
-  const projs = S.projects.filter((p) => p.trashed && !binned(parentOf(p))).sort((a, b) => (b.trashedAt || 0) - (a.trashedAt || 0));
-  const todos = S.todos.filter((t) => t.trashed && !t.isTemplate && !binned(t.projectId && getP(t.projectId))).sort((a, b) => (b.trashedAt || 0) - (a.trashedAt || 0));
-  const n = projs.length + todos.length;
+  const newest = (a, b) => (b.trashedAt || 0) - (a.trashedAt || 0);
+  const projs = S.projects.filter((p) => p.trashed && !p.blueprint && !binned(parentOf(p))).sort(newest);
+  const todos = S.todos.filter((t) => t.trashed && !t.isTemplate && !binned(t.projectId && getP(t.projectId))).sort(newest);
+  const tpls = S.projects.filter((p) => p.trashed && p.blueprint).concat(S.todos.filter((t) => t.trashed && t.blueprint)).sort(newest); // deleted templates
+  const n = projs.length + todos.length + tpls.length;
   const head = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-trash)">${I.trash}</span><h1 class="lh-title">Trash</h1>${n ? `<button class="btn" data-action="empty-trash">Empty Trash</button>` : ''}</div>`;
-  return head + `<div class="list">${projs.length ? `<div class="sec" data-sec="trash">${projs.map((p) => projRowHTML(p, { parent: true })).join('')}</div>` : ''}${secHTML('trash', todos, { parent: true })}</div>` + (n ? '' : emptyHTML('trash', 'Trash is empty', 'Deleted to-dos and projects wait here until you empty the Trash.'));
+  return head + `<div class="list">${projs.length ? `<div class="sec" data-sec="trash">${projs.map((p) => projRowHTML(p, { parent: true })).join('')}</div>` : ''}${secHTML('trash', todos, { parent: true })}${trashedTemplatesHTML(tpls)}</div>` + (n ? '' : emptyHTML('trash', 'Trash is empty', 'Deleted to-dos, projects and templates wait here until you empty the Trash.'));
 }
 function templatesIn(filter) { return S.todos.filter((t) => t.isTemplate && !t.blueprint && !t.trashed && filter(t)).sort(byOrder); }
 function projectTemplatesIn(filter) { return S.projects.filter((p) => p.isTemplate && !p.blueprint && !p.trashed && filter(p)).sort(byOrder); }
@@ -517,9 +521,12 @@ function viewProject(p) {
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + priorityChipHTML(p) + inTagOrder(p.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  // a sub-project shows where it is: its area, then the projects it's in
-  let html = isSub(p) ? `<nav class="crumbs" aria-label="Where this project is">${[...(areaOf(p) ? [`<button class="crumb" data-nav="area:${areaOf(p).id}">${areaIc(areaOf(p), 'crumb-ic')}<span>${esc(aTitle(areaOf(p)))}</span></button>`] : []),
-    ...projAncestors(p).reverse().map((q) => `<button class="crumb" data-nav="project:${q.id}" data-drop-list="project:${q.id}">${projIc(q, 'crumb-ic', projectProgress(q).frac)}<span>${esc(pTitle(q))}</span></button>`)].join('<span class="crumb-sep" aria-hidden="true">›</span>')}</nav>` : '';
+  // a sub-project shows where it is: its area, then the projects it's in; a template, the way back to Templates
+  const inTpl = !p.trashed && [p, ...projAncestors(p)].some((q) => q.blueprint);
+  const crumbs = [...(inTpl ? [`<button class="crumb" data-nav="templates"><span class="ic crumb-ic" style="color:var(--c-template)">${I.template}</span><span>Templates</span></button>`] : []),
+    ...(isSub(p) ? [...(areaOf(p) ? [`<button class="crumb" data-nav="area:${areaOf(p).id}">${areaIc(areaOf(p), 'crumb-ic')}<span>${esc(aTitle(areaOf(p)))}</span></button>`] : []),
+      ...projAncestors(p).reverse().map((q) => `<button class="crumb" data-nav="project:${q.id}" data-drop-list="project:${q.id}">${q.blueprint ? `<span class="ic crumb-ic" style="color:var(--c-template)">${I.template}</span>` : projIc(q, 'crumb-ic', projectProgress(q).frac)}<span>${esc(pTitle(q))}</span></button>`)] : [])];
+  let html = crumbs.length ? `<nav class="crumbs${inTpl && !isSub(p) ? ' crumbs-back' : ''}" aria-label="Where this project is">${crumbs.join('<span class="crumb-sep" aria-hidden="true">›</span>')}${inTpl && !isSub(p) ? '<span class="crumb-sep" aria-hidden="true">›</span>' : ''}</nav>` : '';
   html += `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg${p.trashed || p.isTemplate ? '' : ' can-click'}"${colorStyle(p)}${p.trashed || p.isTemplate ? '' : ` role="button" title="${p.status === 'open' ? 'Complete Project' : 'Reopen Project'}"`}>${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show sub-projects as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show sub-projects as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these to-dos, sub-projects and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
@@ -544,7 +551,8 @@ function viewProject(p) {
   }
   if (!p.isTemplate) html += repeatingSectionHTML([...projectTemplatesIn((q) => q.parentId === p.id), ...templatesIn((t) => t.projectId === p.id)]);
   html += loggedFooterHTML(p.id, logged);
-  if (!todosAll.length && !hasSubs && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and sub-projects you add here.');
+  if (!todosAll.length && !hasSubs && p.blueprint && !p.trashed && !projectBoardOn(p)) html += emptyHTML('template', p.title ? 'Add what every copy starts with' : 'Name it, then add what every copy starts with', `Press N or the + button to add a to-do${isMobile() ? ', and add sub-projects from the ••• menu' : ', ⇧N to add a sub-project'}. Each new project made from this template starts with them.`);
+  else if (!todosAll.length && !hasSubs && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and sub-projects you add here.');
   else if (!todosAll.length && !hasSubs && !projectBoardOn(p)) html += p.trashed || p.status !== 'open' ? emptyHTML('project', 'No to-dos', p.trashed ? 'Put the project back to add to-dos to it.' : 'Reopen the project to add to-dos to it.') : emptyHTML('project', 'No to-dos yet', `Press N or the + button to add the first one. To split the project into parts, add sub-projects${isMobile() ? ' from the ••• menu' : ' with ⇧N or the ••• menu'}; each can hold its own to-dos, notes and sub-projects.`);
   return html;
 }

@@ -184,12 +184,13 @@ function renderTplModal() {
   if (!t || t.trashed || !t.isTemplate) { closeTplModal(); return; }
   let L = ui.tplLayer;
   if (!L || !L.el.isConnected) {
-    L = ui.tplLayer = openLayer({ modal: true, cls: 'tpl-modal', html: '', onClose: () => { ui.tplModal = null; ui.tplLayer = null; render(); } });
+    L = ui.tplLayer = openLayer({ modal: true, cls: 'tpl-modal', html: '', onClose: () => { ui.tplModal = null; ui.tplLayer = null; dropEmptyBlueprint(getT(L.tid)); render(); } }); // (a new template left blank isn't kept)
   }
+  L.tid = t.id;
   if (t.blueprint) {
     L.el.innerHTML = `<div class="modal-h"><h2>To-Do Template</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>
-      <div class="modal-b">${cardHTML(t)}<p class="note">Use it from any list’s ••• menu (<b>New To-Do from Template</b>), or with <b>Add To…</b> below.</p></div>
-      <div class="modal-f"><button class="btn" data-action="delete-template" data-id="${t.id}">Delete Template</button><button class="btn" data-action="use-ttemplate" data-id="${t.id}">Add To…</button><button class="btn primary" data-action="close-layer">Done</button></div>`;
+      <div class="modal-b">${cardHTML(t)}<p class="note">Use it with <b>Add To…</b> here, or from any list: ${isCoarse() ? 'its ••• menu has <b>New To-Do from Template</b>' : 'press <kbd>⇧</kbd> <kbd>T</kbd>, or choose <b>New To-Do from Template</b> in its ••• menu'}.</p></div>
+      <div class="modal-f tpl-f"><button class="btn danger-quiet" data-action="delete-template" data-id="${t.id}">Delete</button><button class="btn" data-action="tpl-dup" data-id="${t.id}">Duplicate</button><span class="tpl-f-gap"></span><button class="btn" data-action="use-ttemplate" data-id="${t.id}">Add To…</button><button class="btn primary" data-action="close-layer">Done</button></div>`;
     return;
   }
   const upcoming = []; let nd = t.next;

@@ -4,6 +4,7 @@
    - a project's sub-project (its row or its column) → that sub-project's menu, like any project's
    - a project or area named anywhere (Anytime's groups, the Timeline, a note's chip) → its menu
    - a repeating to-do's preview in Upcoming → its repeat menu
+   - a template on the Templates page → the template's menu (in the Trash: Put Back)
    - a day in Upcoming, or This Evening → New To-Do there, or Paste
    - the sidebar's lists, smart lists and Board → their menus
    - an open to-do (away from its text fields) → the to-do's menu; a checklist item → the item's
@@ -22,6 +23,7 @@ function listMenu(key, at) {
   if (key === 'board') { items.push(...boardsMenuItems()); openMenu(at, items); return; }
   if (key === 'logbook') items.push({ label: 'Log Completed Now', icon: 'logbook', fn: logCompletedNow });
   if (key === 'trash') items.push({ label: 'Empty Trash…', icon: 'trash', danger: true, fn: () => { go(); emptyTrash(); } });
+  if (key === 'templates') { items.push(...newTemplateMenuItems(null), { sep: 1 }, { label: 'New from Template…', icon: 'template', hint: '⇧T', fn: () => openTemplatePicker(at) }); openMenu(at, items); return; }
   if (BOARD_LISTS.includes(key)) items.push(...boardMenuItems('l', key, false, at));
   if (key !== 'trash') items.push({ label: 'Share List…', icon: 'share', fn: () => { go(); openShare({ type: 'view' }); } });
   if (!['trash', 'logbook'].includes(key)) items.push({ label: 'Status Report…', icon: 'report', fn: () => { go(); openReport({ type: 'all' }); } });
@@ -80,6 +82,10 @@ document.addEventListener('contextmenu', (e) => {
   if (tchip && getTag(tchip.dataset.tag)) return take(() => tagChipMenu(getTag(tchip.dataset.tag), at));
   const hc = t.closest('#content .hcol[data-hcol^="h:"] .bcol-h'); // a sub-project's column on its project's board
   if (hc) { const b = hc.querySelector('[data-action="hcol-menu"]'); if (b) return take(() => hcolMenu(b)); }
+  const trow = t.closest('#content .tpl-row[data-tplrow]'); // a template on the Templates page
+  if (trow && isBlueprint(itemById(trow.dataset.tplrow))) return take(() => templateMenu(trow.dataset.tplrow, at));
+  const binned = t.closest('#content .tpl-row.trashed-row'); // a template in the Trash
+  if (binned) { const b = binned.querySelector('[data-action="restore"]'), x = b && itemById(b.dataset.id); if (x) return take(() => openMenu(at, [{ header: tplName(x) }, { label: 'Put Back', icon: 'reopen', fn: () => restoreItems([x.id]) }])); }
   const ghost = t.closest('#content [data-tpl]');
   if (ghost && getT(ghost.dataset.tpl)) return take(() => todoMenu(ghost.dataset.tpl, at));
   const day = t.closest('#content .day-h[data-zone^="upcoming:"]:not(.month)');

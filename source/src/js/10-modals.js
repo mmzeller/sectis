@@ -1,4 +1,4 @@
-/* ===================== Quick Find, Quick Entry, Settings, Tags, Shortcuts, Backup ===================== */
+/* ===================== Quick Find, Quick Entry, Tags, Shortcuts, Backup ===================== */
 
 /* ---- Quick Find ---- */
 function findResults(q, includeLog) {
@@ -132,7 +132,7 @@ function openQuickEntry(prefill = '', preset = null) {
         parsed = S.settings.parseEntry ? parseEntry(ti.value) : null;
         const chips = [];
         const placeOK = parsed && parsed.place && !ignore.place && !x.projectId && !x.areaId; // not once you've chosen a list
-        if (placeOK) chips.push(`<span class="qe-p qe-place">${placeIcon(parsed.place)}${esc(placeLabel(parsed.place))}<button data-ign="place" aria-label="Don’t file it there">${ic('x')}</button></span>`);
+        if (placeOK) chips.push(`<span class="qe-p qe-place">${placeIcon(parsed.place)}${esc(qePlaceLabel(parsed.place))}<button data-ign="place" aria-label="Don’t file it there">${ic('x')}</button></span>`);
         if (parsed && parsed.when && !ignore.when && x.start === 'inbox' && !x.when) chips.push(`<span class="qe-p">${ic('calendar')}${esc(parsed.when.date ? fmtRel(parsed.when.date) : describeParsed({ special: parsed.when }))}<button data-ign="when" aria-label="Ignore date">${ic('x')}</button></span>`);
         if (parsed && parsed.deadline && !ignore.deadline && !x.deadline) chips.push(`<span class="qe-p">${ic('flag')}Deadline ${esc(fmtRel(parsed.deadline))}<button data-ign="deadline" aria-label="Ignore deadline">${ic('x')}</button></span>`);
         if (parsed && parsed.priority && !ignore.priority && !prio(x)) chips.push(`<span class="qe-p"><b class="pri-bangs p${parsed.priority}">${'!'.repeat(parsed.priority)}</b>${PRIORITY_NAMES[parsed.priority]} Priority<button data-ign="priority" aria-label="Ignore priority">${ic('x')}</button></span>`);
@@ -199,99 +199,7 @@ function rebuildTitle(raw, pz, ignore) {
   return t.trim() || raw.trim();
 }
 
-/* ---- Settings ---- */
-function openSettings() {
-  if (ui.editing) closeEditor({ noRender: false });
-  const seg = (key, opts) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-set="${key}" data-val="${v}" class="${String(S.settings[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
-  const sw = (key) => `<button class="switch${S.settings[key] ? ' on' : ''}" data-switch="${key}" role="switch" aria-checked="${!!S.settings[key]}" aria-label="${key}"></button>`;
-  const hasSample = S.todos.some((t) => t.sample) || S.projects.some((p) => p.sample) || S.areas.some((a) => a.sample);
-  const notifState = !('Notification' in window) || IN_FRAME ? 'unavailable' : Notification.permission;
-  const fsOK = fileSyncSupported();
-  const build = () => `<div class="modal-h"><h2>Settings</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">
-    <div class="set-sec"><h3>Appearance</h3><div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']])}</div><div class="set-row"><span class="lbl">Row spacing<small>Compact fits more to-dos on screen, handy on the Board. Each device keeps its own.</small></span>${seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']])}</div></div>
-    <div class="set-sec"><h3>Lists</h3>
-      <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
-      <div class="set-row"><span class="lbl">Keep higher priorities on top<small>Lists you haven’t sorted another way show High, then Medium, then Low, then the rest. Drag or use ⌘↑ / ⌘↓ to arrange them within each priority. Each list’s Sort By… still changes it.</small></span>${sw('prioTop')}</div>
-      <div class="set-row"><span class="lbl">Completed to-dos<small>Move to Bottom puts checked to-dos below the rest of their list. Unchecking one puts it back where it was.</small></span>${seg('doneSink', [['bottom', 'Move to Bottom'], ['stay', 'Stay in Place']])}</div>
-      <div class="set-row"><span class="lbl">Logged to-dos in projects and areas<small>At the Bottom keeps them in one list at the end, behind Show logged items. Where They Were shows each one in its project or sub-project, just below the completed to-dos, with the day it was done.</small></span>${seg('loggedPlace', [['bottom', 'At the Bottom'], ['inline', 'Where They Were']])}</div>
-      <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
-      <div class="set-row"><span class="lbl">To-dos take on the tags of their project and area<small>When you add or move a to-do into a project or area, it gets that place’s tags. Moving it elsewhere swaps them.</small></span>${sw('inheritTags')}</div>
-      <div class="set-row"><span class="lbl">Tags shown in lists<small>Own Only hides the tags a to-do already gets from its project or area, so lists stay clean. Open a to-do to see all of its tags.</small></span>${seg('rowTags', [['own', 'Own Only'], ['all', 'All'], ['none', 'None']])}</div>
-      <div class="set-row"><span class="lbl">Tag to-dos already in projects and areas<small>Adds each project’s and area’s tags to the to-dos inside it now. You can undo it.</small></span><button class="btn" data-s="retag-all">Tag Them Now</button></div>
-      <div class="set-row"><span class="lbl">Week starts on</span>${seg('weekStart', [[0, 'Sunday'], [1, 'Monday']])}</div>
-      <div class="set-row"><span class="lbl">Quick Entry reads dates, tags and places<small>“Pay rent friday @Home #Bills !oct 31” sets When, the area, a tag and a deadline.</small></span>${sw('parseEntry')}</div></div>
-    <div class="set-sec"><h3>Focus</h3>${focusSettingsHTML()}</div>
-    <div class="set-sec"><h3>Sync</h3>${syncSettingsHTML()}</div>
-    <div class="set-sec"><h3>Reminders</h3>
-      <div class="set-row"><span class="lbl">System notifications<small>${notifState === 'unavailable' ? 'Not available here. Reminders still show inside Sectis while it is open.' : notifState === 'denied' ? 'Blocked in your browser settings. Reminders still show inside Sectis.' : 'Reminders fire while Sectis is open, in a tab or as an installed app.'}</small></span>${notifState === 'unavailable' || notifState === 'denied' ? '' : sw('notify')}</div></div>
-    <div class="set-sec"><h3>Tags</h3><div class="set-btns"><button class="btn" data-s="tags">Manage Tags…</button></div></div>
-    <div class="set-sec"><h3>Your data</h3>
-      <p class="note" style="margin:0 0 10px">Your to-dos are saved in this browser on this device. Nothing is sent anywhere.</p>
-      <div class="set-btns"><button class="btn" data-s="backups">Backups…</button><button class="btn" data-s="export">${'Export Backup…'}</button><button class="btn" data-s="import">Import…</button></div>
-      ${fsOK ? `<div class="set-row" style="margin-top:10px"><span class="lbl">Data file<small>${fileSync.name ? `Saving to <b>${esc(fileSync.name)}</b>${fileSync.needsPermission ? ' (click Reconnect to allow access)' : ''}` : 'Keep your to-dos in a file, for example on a thumb drive next to Sectis.'}</small></span><div class="set-btns">${fileSync.name ? `${fileSync.needsPermission ? '<button class="btn primary" data-s="fs-reconnect">Reconnect</button>' : ''}<button class="btn" data-s="fs-unlink">Disconnect</button>` : '<button class="btn" data-s="fs-new">Create File…</button><button class="btn" data-s="fs-open">Open File…</button>'}</div></div>` : ''}
-      <div class="set-btns" style="margin-top:12px">${hasSample ? '<button class="btn" data-s="sample-remove">Remove Sample To-Dos</button>' : '<button class="btn" data-s="sample-add">Add Sample To-Dos</button>'}<button class="btn" data-s="erase" style="color:var(--red)">Erase All Data…</button></div></div>
-    <div class="about"><span><b>Sectis</b> version ${APP_VERSION}${updatesAvailable() ? ` · <button class="link-btn" data-s="update-check" id="upd-btn">${upd.latest && newerVersion(upd.latest, APP_VERSION) ? `Update to ${esc(upd.latest)}` : 'Check for Updates'}</button>` : ''}</span><span>Press <kbd>?</kbd> for keyboard shortcuts</span></div></div>`;
-  const L = openLayer({ modal: true, html: build(), onMount: (el) => {
-    el.addEventListener('click', async (e) => {
-      const s = e.target.closest('[data-set]');
-      if (s) { const key = s.dataset.set; let v = s.dataset.val; if (key === 'weekStart') v = +v; S.settings[key] = v; saveSoon(); if (key === 'logMode') autoLog(); render(); el.innerHTML = build(); return; }
-      const w = e.target.closest('[data-switch]');
-      if (w) {
-        const key = w.dataset.switch;
-        if (key === 'notify' && !S.settings.notify) { try { const r = await Notification.requestPermission(); if (r !== 'granted') { toast('Notifications were not allowed'); el.innerHTML = build(); return; } } catch (err) { toast('Notifications aren’t available here'); return; } }
-        S.settings[key] = !S.settings[key]; saveSoon(); render(); el.innerHTML = build(); return;
-      }
-      const b = e.target.closest('[data-s]'); if (!b) return;
-      const act = b.dataset.s;
-      if (act === 'tags') { closeLayer(L); openTagManager(); }
-      if (act === 'focus-new') { closeLayer(L); openFocusEditor(); }
-      if (act === 'focus-edit') { const f = getFocus(b.dataset.id); closeLayer(L); if (f) openFocusEditor(f); }
-      if (act === 'retag-all') {
-        let n = 0;
-        commit('Tag To-Dos', () => S.todos.forEach((t) => {
-          if (t.trashed || t.isTemplate || t.isDraft || (!t.projectId && !t.areaId)) return;
-          const before = t.tags.join(); const keep = S.settings.inheritTags; S.settings.inheritTags = true; retag(t, new Set()); S.settings.inheritTags = keep;
-          if (t.tags.join() !== before) { touch(t); n++; }
-        }));
-        toast(n ? `Tagged ${plural(n, 'to-do')}` : 'Every to-do already has its project’s and area’s tags', n ? { undo: true } : {});
-        return;
-      }
-      if (act === 'backups') { closeLayer(L); openBackups(); }
-      if (act === 'export') { closeLayer(L); openExport(); }
-      if (act === 'import') { closeLayer(L); openImport(); }
-      if (act === 'update-check') {
-        if (upd.latest && newerVersion(upd.latest, APP_VERSION)) { applyUpdate(); return; }
-        b.textContent = 'Checking…'; b.disabled = true;
-        const v = await checkForUpdate(true);
-        b.disabled = false;
-        if (v) b.textContent = `Update to ${v}`;
-        else b.textContent = v === false ? 'You have the latest version' : 'Couldn’t check. Are you online?';
-        return;
-      }
-      if (act === 'sample-remove') { removeSample(); el.innerHTML = build(); }
-      if (act === 'sample-add') { commit('Sample To-Dos', () => seedSample()); el.innerHTML = build(); }
-      if (act === 'erase') { const ok = await confirmDialog({ title: 'Erase all data?', body: Y.enabled ? 'Every to-do, project, area and tag will be deleted here and on every device that syncs with this one. Export a backup first if you might want them back.' : 'Every to-do, project, area and tag in this browser will be deleted. Export a backup first if you might want them back.', ok: 'Erase Everything', danger: true }); if (ok) { await makeBackup('erase'); commit('Erase All', () => { const keep = S.settings; S = emptyState(); S.settings = keep; S.meta.sampleLoaded = true; }); navigate('inbox'); closeLayer(L); } }
-      if (act === 'fs-new') { await fileSyncCreate(); el.innerHTML = build(); }
-      if (act === 'fs-open') { await fileSyncOpen(); el.innerHTML = build(); }
-      if (act === 'fs-reconnect') { await fileSyncReconnect(); el.innerHTML = build(); }
-      if (act === 'fs-unlink') { await fileSyncUnlink(); el.innerHTML = build(); }
-      if (act === 'sync-setup') { closeLayer(L); openSyncSetup(); }
-      if (act === 'sync-join') { closeLayer(L); openSyncJoin(); }
-      if (act === 'sync-code') { closeLayer(L); openJoinCode(false); }
-      if (act === 'sync-check') {
-        b.disabled = true; b.textContent = 'Checking…';
-        try {
-          if (!Y.col) await syncStart();
-          const r = await syncCheckAll();
-          toast(!r ? 'Couldn’t reach Firebase. Try again when you’re online.' : !r.up && !r.down ? 'Everything matches your other devices.' : [r.down ? `${plural(r.down, 'change')} brought in` : '', r.up ? `${plural(r.up, 'item')} sent back up` : ''].filter(Boolean).join(', ') + '.');
-        } catch (e) { toast(friendlySyncError(e)); }
-        el.innerHTML = build(); return;
-      }
-      if (act === 'sync-now') { b.disabled = true; b.textContent = 'Syncing…'; await syncNow(); el.innerHTML = build(); }
-      if (act === 'sync-off') { if (await confirmSyncOff()) el.innerHTML = build(); }
-    });
-  } });
-}
+/* ---- Settings: see 42-settings.js ---- */
 function dropSampleData() {
   const sampleProjects = new Set(S.projects.filter((p) => p.sample).map((p) => p.id));
   S.projects.filter((p) => p.sample).forEach((p) => projDescendants(p).forEach((q) => sampleProjects.add(q.id))); // and anything you put inside them
@@ -505,9 +413,9 @@ function openShortcuts() {
   const or = (...ks) => ks.join('<span class="sc-or">or</span>');
   const pair = (a, b) => a + '<span class="sc-or">/</span>' + b;
   const rows = [
-    ['Create', [['New to-do', or(k('N'), k('Space'))], ['New sub-project (in a project)', k(SH, 'N')], ['Quick Entry', k('Q')], ['Quick Find', or(k('/'), k(M, 'F'))]]],
+    ['Create', [['New to-do', or(k('N'), k('Space'))], ['New sub-project (in a project)', k(SH, 'N')], ['New from a template', k(SH, 'T')], ['Quick Entry', k('Q')], ['Quick Find', or(k('/'), k(M, 'F'))]]],
     ['Selected to-dos', [['Open', k('Return')], ['Complete', or(k('K'), k(M, 'K'))], ['Cancel', k(OPT, 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Copy', k(M, 'C')], ['Paste after it', k(M, 'V')], ['Duplicate', k(M, 'D')], ['Move up / down', pair(k(M, '↑'), k(M, '↓'))], ['Delete', k('Delete')]]],
-    ['Navigate', [['Next / previous to-do', pair(k('↓'), k('↑'))], ['Extend selection', pair(k(SH, '↓'), k(SH, '↑'))], ['Inbox … Trash, Board', k('1') + '<span class="sc-or">to</span>' + k('8')], ['Show or hide the sidebar', IS_MAC ? k(CTL, M, 'S') : k('Ctrl', 'Alt', 'S')], ['Notepad', k('J')], ['Undo', k(M, 'Z')], ['Close / deselect', k('Esc')]]],
+    ['Navigate', [['Next / previous to-do', pair(k('↓'), k('↑'))], ['Extend selection', pair(k(SH, '↓'), k(SH, '↑'))], ['Inbox … Trash, Board, Templates', k('1') + '<span class="sc-or">to</span>' + k('9')], ['Show or hide the sidebar', IS_MAC ? k(CTL, M, 'S') : k('Ctrl', 'Alt', 'S')], ['Notepad', k('J')], ['Undo', k(M, 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing a to-do', [['Save and close', or(k('Return'), k(M, 'Return'))], ['Complete', k(M, 'K')], ['When…', k(M, 'S')], ['Deadline…', k(SH, M, 'D')], ['Add checklist', k(SH, M, 'C')], ['Move checklist item', pair(k(M, '↑'), k(M, '↓'))], ['Paste lines as to-dos (one each)', k(M, 'V')]]],
     ['In a note', [['Bold', k(M, 'B')], ['Italic', k(M, 'I')], ['Strikethrough', k(SH, M, 'X')], ['Code', k(M, 'E')], ['Link', k(M, 'K')], ['Checkbox, or tick it', k(SH, M, 'L')], ['Done, start a new note', k(M, 'Return')], ['Undo / redo', pair(k(M, 'Z'), k(SH, M, 'Z'))]]],
   ];
@@ -590,8 +498,8 @@ function openImport() {
       $('#im-file', el).addEventListener('change', (e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $('#im-ta', el).value = String(r.result).slice(0, 2000) + (String(r.result).length > 2000 ? '\n…' : ''); check(String(r.result)); }; r.readAsText(f); });
       go.addEventListener('click', async () => {
         if (!pending) return;
-        if (pending.kind === 'backup') { const data = pending.data; await makeBackup('import'); commit('Import', () => { const keepFs = S.meta && S.meta.fileName; S = normalizeState(data); if (keepFs) S.meta.fileName = keepFs; S.meta.sampleLoaded = true; }); closeLayer(L); navigate('today'); toast('Backup imported', { undo: true }); }
-        else { commit('Add To-Dos', () => { let o = topOrder(inboxItems()) - pending.lines.length; pending.lines.forEach((line) => { S.todos.push(makeTodo({ title: line, start: 'inbox', order: o++ })); }); }); closeLayer(L); navigate('inbox'); toast(`Added ${plural(pending.lines.length, 'to-do')}`, { undo: true }); }
+        if (pending.kind === 'backup') { const data = pending.data; await makeBackup('import'); commit('Import', () => { const keepFs = S.meta && S.meta.fileName; S = normalizeState(data); if (keepFs) S.meta.fileName = keepFs; S.meta.sampleLoaded = true; }); closeAllLayers(); navigate('today'); toast('Backup imported', { undo: true }); }
+        else { commit('Add To-Dos', () => { let o = topOrder(inboxItems()) - pending.lines.length; pending.lines.forEach((line) => { S.todos.push(makeTodo({ title: line, start: 'inbox', order: o++ })); }); }); closeAllLayers(); navigate('inbox'); toast(`Added ${plural(pending.lines.length, 'to-do')}`, { undo: true }); }
       });
     } });
 }

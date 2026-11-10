@@ -3,7 +3,9 @@ function navigate(key, opts = {}) {
   closeEditor({ noRender: true });
   if (key.startsWith('board:')) { switchBoard(key.slice(6)); key = 'board'; } // one of several Boards
   const [type, id] = key.split(':');
+  const left = ui.view.type === 'project' && ui.view.id !== id ? getP(ui.view.id) : null;
   ui.view = id ? { type, id } : { type };
+  if (left) dropEmptyBlueprint(left); // a new template you never named or filled in isn't kept
   ui.sel.clear(); ui.anchor = null; ui.tagFilter = null; ui.selectMode = false; ui.logbookLimit = 150; ui.notesEdit = null;
   ui.mobile = 'list';
   lsSet('sectis.view', key);
@@ -131,7 +133,12 @@ function handleAction(act, el, e) {
     case 'use-ptemplate': newProjectFromTemplate(id); return;
     case 'use-ttemplate': openAddTodoTemplateTo(id, el); return;
     case 'delete-template': deleteTemplate(id); return;
-    case 'templates-new': openMenu(el, [{ label: 'New Project Template', icon: 'project', fn: newProjectTemplate }, { label: 'New To-Do Template', icon: 'template', fn: newTodoTemplate }]); return;
+    case 'templates-new': openMenu(el, newTemplateMenuItems(el)); return;
+    case 'tpl-new-project': newProjectTemplate(); return;
+    case 'tpl-new-todo': newTodoTemplate(); return;
+    case 'tpl-from-project': openSaveProjectAsTemplate(el); return;
+    case 'tpl-menu': templateMenu(id, el); return;
+    case 'tpl-dup': duplicateTemplate(id); return;
     case 'bcol-add': newTodo({ sec: el.dataset.sec }); return;
     case 'bcol-menu': boardColMenu(el.dataset.col, el); return;
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
@@ -152,7 +159,7 @@ function handleAction(act, el, e) {
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
     case 'sync-now': syncNowFromCloud(); return;
-    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { label: 'New Smart List…', icon: 'funnel', fn: () => openSmartEditor() }, { label: 'New Focus…', icon: 'focus', fn: () => openFocusEditor() }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
+    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { label: 'New Smart List…', icon: 'funnel', fn: () => openSmartEditor() }, { label: 'New Focus…', icon: 'focus', fn: () => openFocusEditor() }, { sep: 1 }, { label: 'New from Template…', icon: 'template', hint: isCoarse() ? '' : '⇧T', fn: () => openTemplatePicker(el, { areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }]); return;
     case 'm-back': closeEditor({ noRender: true }); ui.mobile = 'home'; ui.sel.clear(); ui.selectMode = false; render(); return;
     case 'select-done': ui.selectMode = false; ui.sel.clear(); render(); return;
     case 'select-all': visibleRowIds().forEach((x) => ui.sel.add(x)); paintSelection(); return;
@@ -179,6 +186,7 @@ function endSelectAfter(L) {
 function todoMenu(id, el) {
   const t = getT(id); if (!t) return;
   const items = [];
+  if (t.trashed) { openMenu(el, [{ label: 'Put Back', icon: 'reopen', fn: () => restoreItems([id]) }]); return; } // in the Trash, that's all there is to do
   if (isTplChild(t)) {
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
@@ -186,8 +194,7 @@ function todoMenu(id, el) {
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ sep: 1 }, { label: 'Delete To-Do', icon: 'trash', danger: true, fn: () => trashItems([id]) });
   } else if (t.blueprint) {
-    items.push({ label: 'Add To…', icon: 'move', fn: () => openAddTodoTemplateTo(id, el) });
-    items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(id) });
+    items.push(...templateMenuItems(id, el, { page: ui.tplModal === id, more: [priorityMenuItem([id], el, '')] }));
   } else if (t.isTemplate) {
     items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(id, el) });
     items.push(priorityMenuItem([id], el, ''));
@@ -222,16 +229,24 @@ function todoMenu(id, el) {
 function projectMenu(p, el, extra = []) {
   if (!p) return;
   const items = [...extra];
-  if (!p.trashed) items.push(renameMenuItem('p', p.id));
+  if (p.trashed) { openMenu(el, [{ label: 'Put Back', icon: 'reopen', fn: () => restoreItems([p.id]) }]); return; } // in the Trash, that's all there is to do
+  items.push(renameMenuItem('p', p.id));
+  if (!p.isTemplate && projAncestors(p).some((q) => q.isTemplate)) { // a sub-project inside a template or a repeating project: a part of it, not something to schedule or complete
+    items.push({ label: 'New To-Do', icon: 'plus', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newTodo(); } });
+    items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) }, colorMenuItem('p', p, el));
+    items.push({ label: 'New Sub-Project', icon: 'project', fn: () => newSubProject(p.id) });
+    items.push({ sep: 1 }, { label: 'Delete Sub-Project', icon: 'trash', danger: true, fn: () => trashItems([p.id]) });
+    openMenu(el, items); return;
+  }
   if (isMobile() && p.status === 'open' && !p.trashed) items.push(selectModeItem(), { sep: 1 });
   const src = p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   if (p.blueprint && !p.trashed) {
-    items.push({ label: 'New Project from Template', icon: 'project', fn: () => newProjectFromTemplate(p.id) });
-    items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
-    items.push({ label: 'Default Area…', icon: 'area', fn: () => openMove([p.id], el, { title: 'Default Area', areasOnly: true, onPick: (tg) => commit('Default Area', () => { p.bpAreaId = tg.type === 'area' ? tg.id : null; touch(p); }) }) });
-    items.push({ label: 'New Sub-Project', icon: 'project', hint: '⇧N', fn: () => newSubProject(p.id) });
-    items.push({ label: 'All Templates', icon: 'template', fn: () => navigate('templates') });
-    items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(p.id) });
+    const here = ui.view.type === 'project' && ui.view.id === p.id;
+    items.push(...templateMenuItems(p.id, el, { page: here, more: [
+      { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) },
+      colorMenuItem('p', p, el),
+      ...(here ? [{ label: 'New To-Do', icon: 'plus', hint: 'N', fn: () => newTodo() }, { label: 'New Sub-Project', icon: 'project', hint: '⇧N', fn: () => newSubProject(p.id) }] : []),
+    ] }));
     openMenu(el, items); return;
   }
   if (p.isTemplate && !p.trashed) {
@@ -479,6 +494,7 @@ function fieldKeys(e) {
 }
 
 /* ---- keyboard shortcuts ---- */
+const NUM_NAV = ['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board', 'templates']; // 1 to 9
 const isTyping = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 document.addEventListener('keydown', (e) => {
   const mod = e.metaKey || e.ctrlKey, k = e.key, typing = isTyping(e.target);
@@ -513,7 +529,7 @@ document.addEventListener('keydown', (e) => {
     if (sp && parentOf(sp)) moveSubProject(sp, k === 'ArrowUp' ? -1 : 1); else nudge(todosSel, k === 'ArrowUp' ? -1 : 1);
     return;
   }
-  if (e.altKey && !mod && /^Digit[1-8]$/.test(e.code)) { e.preventDefault(); navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+e.code.slice(5) - 1]); return; }
+  if (e.altKey && !mod && /^Digit[1-9]$/.test(e.code)) { e.preventDefault(); navigate(NUM_NAV[+e.code.slice(5) - 1]); return; }
   if (e.altKey && !mod && e.code === 'KeyK') { e.preventDefault(); if (one.length) completeOrToggle(one, true); return; }
   if (mod || e.altKey) return;
   switch (key) {
@@ -522,6 +538,7 @@ document.addEventListener('keydown', (e) => {
     case 'j': e.preventDefault(); toggleNotepad(); return;
     case 'q': e.preventDefault(); openQuickEntry(); return;
     case '?': e.preventDefault(); openShortcuts(); return;
+    case 't': if (e.shiftKey) { e.preventDefault(); openTemplatePicker(null, { areaId: ui.view.type === 'area' ? ui.view.id : undefined }); return; } break;
     case ' ': case 'n':
       e.preventDefault();
       if (e.shiftKey) { // ⇧N: a sub-project in the project you're in (or the one selected)
@@ -535,7 +552,7 @@ document.addEventListener('keydown', (e) => {
     case 'Backspace': case 'Delete': if (one.length) { e.preventDefault(); trashItems(one); } return;
   }
   if (!one.length) {
-    if (/^[1-8]$/.test(key) && !e.shiftKey) { navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+key - 1]); }
+    if (/^[1-9]$/.test(key) && !e.shiftKey) { navigate(NUM_NAV[+key - 1]); }
     return;
   }
   switch (key) {
@@ -551,7 +568,7 @@ document.addEventListener('keydown', (e) => {
     case '#': e.preventDefault(); openTagPicker(one, anchorFor(one[0])); return;
     case 'm': e.preventDefault(); openMove(todosSel.length ? todosSel : one, anchorFor(one[0])); return;
     case 'r': e.preventDefault(); if (todosSel.length === 1) { const t = getT(todosSel[0]); if (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed) openTplModal(t.templateId); else openRepeat(t.id, anchorFor(t.id)); } return;
-    default: if (/^[1-8]$/.test(key) && !e.shiftKey) navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+key - 1]);
+    default: if (/^[1-9]$/.test(key) && !e.shiftKey) navigate(NUM_NAV[+key - 1]);
   }
 });
 function completeOrToggle(ids, cancel) { toggleComplete(ids, cancel ? 'canceled' : 'done'); }

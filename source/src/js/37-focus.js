@@ -246,7 +246,7 @@ function openFocusEditor(f = null) {
 /* the Focus part of Settings */
 function focusSettingsHTML() {
   const fs = (S.focuses || []).slice().sort(byOrder);
-  return `<p class="note" style="margin:0 0 10px">Show only some areas at a time, like Work or Home, in every list, count and Board. Switch at the top of the sidebar, or let a schedule do it. Focuses sync; which one is on is up to each device.</p>`
-    + fs.map((f) => `<div class="set-row"><span class="lbl">${esc(focusTitle(f))}${ui.focusRec && ui.focusRec.id === f.id ? ' <span class="fx-on">On</span>' : ''}<small>${esc(focusSummary(f))}</small></span><button class="btn" data-s="focus-edit" data-id="${f.id}">Edit…</button></div>`).join('')
-    + `<div class="set-btns"><button class="btn" data-s="focus-new">New Focus…</button></div>`;
+  return `<p class="set-lead">Show only some areas at a time, like Work or Home, in every list, count and Board. Switch at the top of the sidebar, or let a schedule do it. Focuses sync; which one is on is up to each device.</p>`
+    + setGroup('', fs.map((f) => setRow(`${esc(focusTitle(f))}${ui.focusRec && ui.focusRec.id === f.id ? ' <span class="fx-on">On</span>' : ''}`, esc(focusSummary(f)), `<button class="btn" data-s="focus-edit" data-id="${f.id}">Edit…</button>`)))
+    + `<div class="set-btns"><button class="btn${fs.length ? '' : ' primary'}" data-s="focus-new">New Focus…</button></div>`;
 }

@@ -68,7 +68,7 @@ async function openBackups() {
       if (!ok) return;
       await makeBackup('restore');
       restoreSnapshot(JSON.parse(raw));
-      closeLayer(L); navigate('today');
+      closeAllLayers(); navigate('today');
       toast(`Restored the backup from ${when(meta)}`, { undo: true });
     }) });
 }

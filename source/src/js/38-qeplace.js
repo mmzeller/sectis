@@ -65,7 +65,8 @@ function parsePlace(raw) {
   }
   return null;
 }
-function placeLabel(pl) {
+/* (named apart from placeLabel in 17-links.js, which names the place a to-do is in) */
+function qePlaceLabel(pl) {
   if (!pl) return '';
   if (pl.type === 'area') return aTitle(getA(pl.id));
   return getP(pl.id) ? projPath(getP(pl.id)) : 'New Project';

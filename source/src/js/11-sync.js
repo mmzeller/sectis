@@ -409,7 +409,7 @@ async function syncNowFromCloud() {
   const starting = Y.status === 'connecting' || (Y.col && !Y.pulled);
   await syncNow();
   if (starting || Y.status === 'connecting') toast('Still connecting. Your changes will sync in a moment.');
-  else if (Y.status === 'error') toast(Y.error || 'Sync didn’t work.', { action: 'Settings', fn: openSettings, ms: 7000 });
+  else if (Y.status === 'error') toast(Y.error || 'Sync didn’t work.', { action: 'Settings', fn: () => openSettings('sync'), ms: 7000 });
   else if (Y.status === 'offline') toast('You’re offline. Changes will sync when you reconnect.');
   else { const pend = Object.keys(Y.pending).length; toast(pend ? `Synced. ${plural(pend, 'change')} still waiting.` : 'Synced.'); }
 }
@@ -430,11 +430,19 @@ const SYNC_RULES = `match /sectis/{space}/items/{item} {
     && request.resource.data.c.size() < 500000;
 }`;
 function syncSettingsHTML() {
-  if (!syncAvailable()) return `<p class="note" style="margin:0">Sync works in the installed Sectis app (from GitHub Pages), not in this preview.</p>`;
-  if (!Y.enabled) return `<div class="set-row"><span class="lbl">Keep your Mac and iPhone in step through your own Firebase project. To-dos are encrypted before they leave this device.</span></div>
-    <div class="set-btns"><button class="btn primary" data-s="sync-setup">Set Up Sync…</button><button class="btn" data-s="sync-join">Join with a Code…</button></div>`;
-  return `<div class="set-row"><span class="lbl">Status<small id="sync-status">${syncStatusText()}</small></span></div>
-    <div class="set-btns"><button class="btn" data-s="sync-code">Add Another Device…</button><button class="btn" data-s="sync-now">Sync Now</button><button class="btn" data-s="sync-check" title="Compare everything on this device with what’s synced, and fix anything that’s out of step">Check Everything</button><button class="btn" data-s="sync-off">Turn Off on This Device…</button></div>`;
+  if (!syncAvailable()) return `<p class="set-lead">Sync keeps your Mac and iPhone in step through your own Firebase project. It works in the installed Sectis app (from GitHub Pages), not in this preview.</p>`;
+  if (!Y.enabled) return `<p class="set-lead">Keep your Mac and iPhone in step through your own Firebase project. To-dos are encrypted on this device before they leave it.</p>`
+    + setGroup('', [
+      setRow('Start syncing from this device', 'Paste your Firebase config here, then add your other devices with a code. About five minutes, once.', '<button class="btn primary" data-s="sync-setup">Set Up Sync…</button>'),
+      setRow('Another device already syncs', 'Copy the code from Settings → Sync on that device and paste it here.', '<button class="btn" data-s="sync-join">Join with a Code…</button>'),
+    ]);
+  return setGroup('', [
+    setRow('Status', `<span id="sync-status">${syncStatusText()}</span>`, '<button class="btn" data-s="sync-now">Sync Now</button>'),
+    setRow('Your other devices', 'Shows the code to paste on your iPhone or another Mac.', '<button class="btn" data-s="sync-code">Add Another Device…</button>'),
+    setRow('Something out of step?', 'Compares everything on this device with what’s synced, and fixes any differences.', '<button class="btn" data-s="sync-check">Check Everything</button>'),
+  ]) + setGroup('', [
+    setRow('Stop syncing here', 'This device keeps its to-dos but stops sending and receiving changes.', '<button class="btn" data-s="sync-off">Turn Off on This Device…</button>'),
+  ]);
 }
 function copyText(text, el, note) {
   const done = (msg) => { if (note) note.textContent = msg; };
@@ -486,7 +494,7 @@ function openSyncJoin() {
       const note = $('#jn-note', el), go = $('#jn-go', el);
       go.addEventListener('click', async () => {
         note.classList.remove('warn'); go.disabled = true; note.textContent = 'Connecting…';
-        try { const mode = await syncJoin($('#jn-ta', el).value); closeLayer(L); navigate('today'); toast(mode === 'replace' ? 'Synced. Your to-dos are here.' : 'Synced. Both lists are combined.'); }
+        try { const mode = await syncJoin($('#jn-ta', el).value); closeAllLayers(); navigate('today'); toast(mode === 'replace' ? 'Synced. Your to-dos are here.' : 'Synced. Both lists are combined.'); }
         catch (err) { if (Y.enabled && !Y.col) syncStopLocal(); note.textContent = err.quiet ? '' : (err.message || 'Couldn’t join.'); note.classList.add('warn'); go.disabled = false; }
       });
     } });

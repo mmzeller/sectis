@@ -465,13 +465,92 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .qe-dest { font-size: 12px; color: var(--muted); padding: 10px 0 0 25px; display: flex; gap: 6px; align-items: center; }
 .qe-dest .ic { width: 14px; height: 14px; }
 
-/* Settings */
-.set-sec { padding: 12px 0; border-top: 1px solid var(--line); }
-.set-sec:first-child { border-top: 0; padding-top: 0; }
-.set-sec h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 650; }
-.set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; flex-wrap: wrap; }
-.set-row .lbl { flex: 1; min-width: 160px; }
-.set-row .lbl small { display: block; color: var(--muted); font-size: 12px; }
+/* Settings: the panes listed on the left, the pane you're in on the right */
+.modal.settings { width: min(780px, calc(100vw - 32px)); height: min(620px, calc(100vh - 64px)); max-height: none; top: max(24px, calc(50vh - 330px)); overflow: hidden; display: flex; }
+.st { display: grid; grid-template-columns: 204px minmax(0, 1fr); width: 100%; min-height: 0; }
+.st-side { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 14px 10px 10px; background: var(--side); border-right: 1px solid var(--line); }
+.st-side-h { display: flex; align-items: center; gap: 8px; padding: 0 8px 10px; }
+.st-side-h h2, .st-head h2 { flex: 1; min-width: 0; margin: 0; font: 700 18px/1.3 var(--display); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-side-h .st-x { display: none; }
+.st-search { display: flex; align-items: center; gap: 7px; margin-bottom: 8px; padding: 6px 6px 6px 9px; border-radius: 8px; background: var(--hover); color: var(--muted); cursor: text; }
+.st-search:focus-within { box-shadow: 0 0 0 2px var(--accent); }
+.st-search > .ic { width: 15px; height: 15px; }
+.st-search input { flex: 1; min-width: 0; color: var(--fg); }
+.st-search input::placeholder { color: var(--muted); }
+.st-clear { display: inline-flex; flex: none; width: 18px; height: 18px; border-radius: 50%; align-items: center; justify-content: center; color: var(--muted); }
+.st-clear:hover { background: var(--line-strong); color: var(--fg); }
+.st-clear .ic { width: 11px; height: 11px; }
+.st-clear .ic svg { stroke-width: 2.6; }
+.st-tabs { display: flex; flex-direction: column; gap: 1px; flex: 1; min-height: 0; overflow-y: auto; }
+.st-tab { display: flex; align-items: center; gap: 9px; flex: none; min-height: 30px; padding: 4px 8px; border-radius: 7px; text-align: left; }
+.st-tab > span:not(.ic) { flex: 1; min-width: 0; }
+.st-tab .ic { width: 17px; height: 17px; color: var(--muted); }
+.st-tab .chev { display: none; }
+.st-tab:hover { background: var(--hover); }
+.st-tab.on { background: var(--sel); font-weight: 600; }
+.st-tab.on .ic { color: var(--accent); }
+.st-ver { padding: 8px 8px 0; font-size: 11.5px; color: var(--faint); }
+.st-main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.st-head { display: flex; align-items: center; gap: 8px; padding: 13px 12px 7px 24px; }
+.st-back { display: none; align-items: center; gap: 2px; margin-left: -8px; padding: 5px 8px 5px 2px; border-radius: 7px; color: var(--accent); font-weight: 600; white-space: nowrap; }
+.st-back:hover { background: var(--hover); }
+.st-back .ic { width: 18px; height: 18px; }
+.st-body { flex: 1; min-height: 0; overflow-y: auto; padding: 2px 24px 24px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.set-lead { margin: 4px 2px 14px; color: var(--muted); font-size: 13px; line-height: 1.5; max-width: 58ch; }
+.set-fine { margin-top: 16px; font-size: 12px; }
+.set-grp + .set-grp, .set-lead + .set-grp { margin-top: 18px; }
+.set-grp h3 { margin: 0 2px 6px; font-size: 12px; font-weight: 650; color: var(--muted); }
+.set-card { border: 1px solid var(--line-strong); border-radius: 10px; }
+.set-grp > .note { margin: 6px 2px 0; }
+.set-row { display: flex; align-items: center; gap: 16px; min-height: 44px; padding: 9px 12px; }
+.set-row + .set-row { border-top: 1px solid var(--line); }
+.set-row .lbl { flex: 1; min-width: 0; }
+.set-row .lbl > span { display: block; overflow-wrap: anywhere; }
+.set-row .lbl small { display: block; margin-top: 1px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.set-row .lbl small b { color: var(--fg); font-weight: 600; }
+.set-row.tog { cursor: pointer; }
+.set-ctl { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: 8px; max-width: 62%; }
+.set-ctl .btn { white-space: nowrap; }
+.btn.danger-quiet { color: var(--red); }
+.set-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.set-grp + .set-btns { margin-top: 12px; }
+.set-found + .set-found { margin-top: 22px; }
+.set-found-h { display: inline-flex; align-items: center; gap: 7px; margin: 2px 0 8px -6px; padding: 3px 6px; border-radius: 7px; font-weight: 650; }
+.set-found-h:hover { background: var(--hover); }
+.set-found-h .ic { width: 16px; height: 16px; color: var(--accent); }
+.set-found-h .chev { width: 12px; height: 12px; color: var(--faint); }
+.set-none { margin: 40px 0; text-align: center; color: var(--muted); }
+/* a narrow window: the list of panes first, then the pane you pick */
+@media (max-width: 640px), (max-width: 760px) and (pointer: coarse) {
+  .st { display: flex; flex-direction: column; }
+  .st-side { flex: none; border-right: 0; background: none; padding: 14px 14px 6px; }
+  .st-side-h { padding: 0 4px 10px; }
+  .st-side-h .st-x { display: inline-flex; }
+  .st-tabs { gap: 0; }
+  .st-tab { min-height: 44px; padding: 8px 6px; border-radius: 8px; font-size: 15px; }
+  .st-tab + .st-tab { box-shadow: 0 -1px 0 var(--line); }
+  .st-tab.on { background: none; font-weight: inherit; }
+  .st-tab.on .ic { color: var(--muted); }
+  .st-tab .chev { display: inline-flex; width: 14px; height: 14px; color: var(--faint); }
+  .st-ver { padding: 12px 6px 6px; }
+  .st-head { padding: 12px 10px 6px 16px; }
+  .st-back { display: inline-flex; }
+  .st-body { padding: 2px 16px 22px; }
+  .st.at-nav:not(.searching) .st-main { display: none; }
+  .st.at-nav:not(.searching) .st-side { flex: 1; }
+  .st:not(.at-nav):not(.searching) .st-side { display: none; }
+  .st.searching .st-tabs, .st.searching .st-ver, .st.searching .st-head { display: none; }
+  .st.searching .st-side { padding-bottom: 0; }
+  .st.searching .st-body { padding-top: 6px; }
+  .st-main { flex: 1; }
+  .set-row:has(.set-ctl .btn + .btn) { flex-direction: column; align-items: stretch; gap: 8px; }
+  .set-row:has(.set-ctl .btn + .btn) .set-ctl { max-width: none; justify-content: flex-start; }
+  .set-row.has-seg { flex-direction: column; align-items: stretch; gap: 8px; }
+  .set-row.has-seg .set-ctl { max-width: none; justify-content: flex-start; }
+  .set-row.has-seg .seg { display: flex; flex-wrap: nowrap; width: 100%; }
+  .set-row.has-seg .seg button { flex: 1; padding-inline: 4px; white-space: nowrap; }
+}
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) { .modal.settings { top: auto; width: auto; height: 92%; } .st-search input { font-size: 16px; } }
 .seg { display: inline-flex; background: var(--hover); border-radius: 8px; padding: 2px; flex-wrap: wrap; }
 .seg button { padding: 4px 10px; border-radius: 6px; font-size: 13px; color: var(--muted); }
 .seg button.on { background: var(--pop); color: var(--fg); font-weight: 600; box-shadow: 0 1px 2px rgba(0, 0, 0, .12); }
@@ -479,9 +558,6 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; }
 .switch.on { background: var(--accent); }
 .switch.on::after { transform: translateX(16px); }
-.set-btns { display: flex; flex-wrap: wrap; gap: 8px; }
-.about { color: var(--muted); font-size: 12px; padding-top: 12px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.about b { color: var(--fg); font-weight: 650; }
 .ta { width: 100%; min-height: 160px; font: 12px/1.4 var(--mono); padding: 10px; border-radius: 8px; background: var(--hover); resize: vertical; }
 .note { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
 .warn { color: var(--red); }
@@ -851,7 +927,7 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .board-pop .pick-i.in-area { padding-left: 30px; }
 .board-pop .pk-foot { padding: 8px 12px 4px; font-size: 11.5px; border-top: 1px solid var(--line); margin-top: 4px; }
 @media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
-  .sb-board-g { display: none; }
+  .sb-board-g .sb-board-i { display: none; } /* the Board is for wider screens; Templates stays */
   .content.board-view { padding-left: 0; padding-right: 0; }
   .board-view .lh { padding-left: 16px; padding-right: 16px; }
   .board { padding: 10px 16px 24px; scroll-snap-type: x mandatory; scroll-padding-left: 16px; }
@@ -905,13 +981,62 @@ body.col-resizing .bstack-add { opacity: 0 !important; }
 .bcol.sized { min-width: 0; }
 @media (pointer: coarse) { .bcol-resize, .bcol-resize-b, .bcol-resize-c, .bcol-grip, .bstack-add { display: none; } }
 
-/* templates list */
-.tpl-row { cursor: pointer; align-items: center; }
-.tpl-row:hover { background: var(--hover); }
-.tpl-row .tpl-ic { color: var(--c-template); }
+/* Templates: a row per template, with what you can do to it at the right */
+.tpl-row { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 7px 6px 7px 10px; border-radius: 8px; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.tpl-row:hover, .tpl-row:focus-visible { background: var(--hover); }
+.tpl-row .tpl-ic { width: 18px; height: 18px; color: var(--c-template); }
+.tpl-row[data-nav] .tpl-ic { color: var(--accent); }
 .tpl-row .r-title { font-weight: 600; }
-.tpl-use { padding: 5px 11px; font-size: 12.5px; white-space: nowrap; }
-.tpl-row .r-right { align-self: center; }
+.tpl-row .r-sub { margin-top: 0; }
+.tpl-acts { display: flex; align-items: center; gap: 2px; flex: none; }
+.tpl-use { margin-right: 4px; padding: 5px 11px; font-size: 12.5px; white-space: nowrap; background: var(--bg); box-shadow: inset 0 0 0 1px var(--line-strong); }
+.tpl-use:hover { background: var(--bg); box-shadow: inset 0 0 0 1px var(--accent); color: var(--accent); }
+.tpl-acts .ib { color: var(--faint); }
+.tpl-row:hover .tpl-acts .ib, .tpl-row:focus-within .tpl-acts .ib, #app.touch .tpl-acts .ib { color: var(--muted); }
+.tpl-acts .ib:hover { background: var(--line); color: var(--fg); }
+.tpl-acts .tpl-del:hover { background: color-mix(in srgb, var(--red) 12%, transparent); color: var(--red); }
+.tpl-acts .ib .ic { width: 17px; height: 17px; }
+.tpl-row.trashed-row { cursor: default; }
+.tpl-row.trashed-row[data-nav] { cursor: pointer; }
+.tpl-row.trashed-row .r-title { color: var(--muted); }
+.tpl-row.trashed-row .tpl-ic { color: var(--faint); }
+.tpl-list > .tpl-h:first-child { margin-top: 6px; }
+.tpl-find { display: flex; align-items: center; gap: 8px; margin: 16px 10px 0; padding: 7px 11px; border-radius: 9px; background: var(--hover); color: var(--muted); cursor: text; }
+.tpl-find:focus-within { box-shadow: 0 0 0 2px var(--accent); }
+.tpl-find .ic { width: 15px; height: 15px; }
+.tpl-find input { flex: 1; min-width: 0; color: var(--fg); }
+.tpl-find input::placeholder { color: var(--muted); }
+.tpl-nomatch { margin: 40px 10px; text-align: center; color: var(--muted); }
+.tpl-empty p { max-width: 44ch; }
+.tpl-empty b { color: var(--fg); font-weight: 650; font-size: 15px; }
+.tpl-empty-btns { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
+.tpl-empty-btns .btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px 7px 10px; }
+.tpl-empty .tpl-empty-btns .ic { width: 15px; height: 15px; opacity: 1; }
+.tpl-empty-or { margin-top: 8px !important; font-size: 13px; }
+/* the template's window */
+.modal-f.tpl-f { align-items: center; }
+.tpl-f-gap { flex: 1; }
+.c-tpl { align-items: flex-start; line-height: 1.4; }
+.c-tpl .ic { margin-top: 1px; flex: none; }
+/* New from Template */
+.pop.tp-pop { width: 320px; }
+.tp-pop .pick-i { align-items: flex-start; padding-block: 7px; }
+.tp-pop .pick-i .ic { margin-top: 1px; color: var(--c-template); }
+.tp-pop .pick-i > span:not(.ic) { min-width: 0; overflow-wrap: anywhere; }
+.tp-pop .pick-in { margin-top: 1px; }
+.tp-none { margin: 2px 8px 8px; color: var(--muted); font-size: 13px; line-height: 1.45; }
+/* the way back from a template's page */
+.crumbs.crumbs-back { margin-top: -18px; padding-bottom: 6px; }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
+  .crumbs.crumbs-back { margin-top: 0; padding-left: 40px; }
+  .rp-banner span { flex: 1 1 200px; }
+  .tpl-row { padding-left: 4px; gap: 10px; min-height: 54px; }
+  .tpl-acts .tpl-del { display: none; } /* Delete is in the ••• menu */
+  .tpl-acts .ib { width: 36px; height: 36px; }
+  .tpl-use { padding: 7px 12px; font-size: 13.5px; }
+  .tpl-find input { font-size: 16px; }
+  .modal-f.tpl-f .btn { padding-inline: 12px; }
+}
 
 /* a project's headings as columns */
 .lh-board.on { color: var(--accent); background: var(--accent-tint); }
@@ -1464,7 +1589,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.46.1';
+const APP_VERSION = '1.47.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1668,6 +1793,7 @@ const I = {
   sidebar: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="2.5"/><path d="M9.5 4.5v15M5.8 8.2h1.6M5.8 11.2h1.6"/>'),
   focus: svg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><circle class="fill" cx="12" cy="12" r="1.4"/>'),
   bolt: svg('<path d="M13 3 5 13.5h6L10 21l8-10.5h-6z"/>'),
+  info: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.2"/><circle class="fill" cx="12" cy="7.9" r="1.15"/>'),
   mic: svg('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/>'),
 };
 const ic = (name, cls = '') => `<span class="ic ${cls}">${I[name] || ''}</span>`;
@@ -2784,10 +2910,12 @@ function renderSidebar() {
   // the project you have open, and the projects it's in, stay unfolded
   const vp = v.type === 'project' && getP(v.id), openPath = new Set(vp ? [vp.id, ...projAncestors(vp).map((q) => q.id)] : []);
   const sbAreaProjects = (a, list) => (ui.sbCollapsed.has(a.id) ? list.filter((p) => openPath.has(p.id)) : list);
-  const on = (key) => (v.type + (v.id ? ':' + v.id : '')) === key ? ' on' : '';
-  const item = (key, cnt, extra = '') => {
+  // a template's own page (or a sub-project's inside one) counts as being in Templates
+  const inTpl = !!vp && [vp, ...projAncestors(vp)].some((q) => q.blueprint);
+  const on = (key) => ((v.type + (v.id ? ':' + v.id : '')) === key || (key === 'templates' && inTpl) ? ' on' : '');
+  const item = (key, cnt, extra = '', tip = '') => {
     const L = LISTS[key];
-    return `<button class="sb-item${on(key)}" data-nav="${key}" data-drop-list="${key}"><span class="ic" style="color:${L.color}">${I[L.icon]}</span><span class="sb-name">${L.title}</span>${extra}${cnt ? `<span class="sb-count">${cnt}</span>` : ''}</button>`;
+    return `<button class="sb-item${on(key)}" data-nav="${key}" data-drop-list="${key}"${tip ? ` title="${tip}"` : ''}><span class="ic" style="color:${L.color}">${I[L.icon]}</span><span class="sb-name">${L.title}</span>${extra}${cnt ? `<span class="sb-count">${cnt}</span>` : ''}</button>`;
   };
   // a project's sub-projects sit under it, folded away until you open them
   const sbKids = (p) => S.projects.filter((q) => q.parentId === p.id && q !== p && !q.trashed && !q.isTemplate && q.status === 'open' && q.start !== 'someday').sort(byOrder);
@@ -2805,7 +2933,7 @@ function renderSidebar() {
   html += `<div class="sb-group">${item('today', c.today, c.due ? `<span class="sb-due" title="Deadlines due">${c.due}</span>` : '')}${item('upcoming')}${(() => { const dc = deadlineCounts(); return item('deadlines', dc.soon, dc.overdue ? `<span class="sb-due" title="Overdue">${dc.overdue}</span>` : ''); })()}${item('timeline')}${item('anytime')}${item('someday')}${c.waiting || ui.view.type === 'waiting' ? item('waiting', c.waiting) : ''}</div>`;
   html += `<div class="sb-group">${item('logbook')}${item('trash')}</div>`;
   // the Board, or each Board once there are several; drop a project or area on one to add it
-  html += `<div class="sb-group sb-board-g">${(ui.boards || []).map((b) => `<button class="sb-item${v.type === 'board' && b.id === ui.boardId ? ' on' : ''}" data-nav="board:${b.id}" data-drop-list="board:${b.id}" title="${esc(b.name || 'Board')}${ui.boards.length > 1 ? '' : ' (8)'}. Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">${esc(b.name || 'Board')}</span></button>`).join('')}</div>`;
+  html += `<div class="sb-group sb-board-g">${(ui.boards || []).map((b) => `<button class="sb-item sb-board-i${v.type === 'board' && b.id === ui.boardId ? ' on' : ''}" data-nav="board:${b.id}" data-drop-list="board:${b.id}" title="${esc(b.name || 'Board')}${ui.boards.length > 1 ? '' : ' (8)'}. Drop a project or area here to add it."><span class="ic" style="color:var(--c-board)">${I.columns}</span><span class="sb-name">${esc(b.name || 'Board')}</span></button>`).join('')}${item('templates', 0, '', `Templates (9)${isCoarse() ? '' : '. Drop a project or to-do here to save it as a template.'}`)}</div>`;
   const smarts = (S.smart || []).slice().sort(byOrder);
   if (smarts.length) html += `<div class="sb-group sb-smart-g">${smarts.map((sl) => `<button class="sb-item${on('smart:' + sl.id)}" data-nav="smart:${sl.id}" data-drop-list="smart:${sl.id}" data-drag="smart" data-kind="smart" data-id="${sl.id}" data-sb="1" title="${esc(smartSummary(sl))}"><span class="ic" style="color:var(--c-smart)">${I.funnel}</span><span class="sb-name">${esc(smartTitle(sl))}</span>${cnt(smartCount(sl))}</button>`).join('')}</div>`;
   const loose = ui.focusRec && ui.focusRec.loose === false ? [] : sbProjects(null);
@@ -2976,12 +3104,12 @@ function cardHTML(t) {
     `<button class="ib" data-action="tags" data-id="${t.id}" title="Tags (#)" aria-label="Tags">${ic('tag')}</button>`,
     !ckOpen ? `<button class="ib" data-action="ck-open" data-id="${t.id}" title="Checklist" aria-label="Checklist">${ic('checklist')}</button>` : '',
     !t.deadline && !tpl && !tplChild ? `<button class="ib" data-action="deadline" data-id="${t.id}" title="Deadline (D)" aria-label="Deadline">${ic('flag')}</button>` : '',
-    !prio(t) && !tplChild && !t.blueprint ? `<button class="ib" data-action="priority" data-id="${t.id}" title="Priority (P)" aria-label="Priority">${ic('priority')}</button>` : '',
+    !prio(t) && !tplChild ? `<button class="ib" data-action="priority" data-id="${t.id}" title="Priority (P)" aria-label="Priority">${ic('priority')}</button>` : '',
     !t.when && t.start !== 'someday' && !tpl && !tplChild ? `<button class="ib" data-action="when" data-id="${t.id}" title="When (S)" aria-label="When">${ic('calendar')}</button>` : '',
     `<button class="ib" data-action="todo-menu" data-id="${t.id}" title="More" aria-label="More">${ic('more')}</button>`,
   ].join('');
   return `<div class="card" data-id="${t.id}" data-kind="todo">
-    ${tpl ? (t.blueprint ? `<div class="c-tpl">${ic('template')}<span>To-do template. New to-dos made from it get this title, notes, checklist and tags.</span></div>` : `<div class="c-tpl">${ic('repeat')}<span>Repeating to-do. Changes apply to the copies it makes from now on.</span></div>`) : ''}
+    ${tpl ? (t.blueprint ? `<div class="c-tpl">${ic('template')}<span>New to-dos made from this template get its title, notes, checklist, tags and priority.</span></div>` : `<div class="c-tpl">${ic('repeat')}<span>Repeating to-do. Changes apply to the copies it makes from now on.</span></div>`) : ''}
     <div class="c-top">${tpl || tplChild ? `<span class="cb tpl-cb" aria-hidden="true"></span>` : checkboxHTML(t)}<textarea class="c-title" data-edit="title" data-id="${t.id}" data-fkey="title-${t.id}" placeholder="New To-Do" enterkeyhint="done" aria-label="Title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(t.title)}</textarea></div>
     <div class="c-body">${notesBlockHTML('notes', t.id, `notes-${t.id}`, t.notes, 'c-notes', 'Notes')}${ck}${tags}
     <div class="c-foot"><div class="c-chips">${chips}</div><div class="c-tools">${tools}</div></div></div></div>`;
@@ -3186,11 +3314,13 @@ function viewLogbook() {
 function viewTrash() {
   // what's inside a project in the Trash comes back with it, so only the project shows
   const binned = (p) => !!p && (p.trashed || projAncestors(p).some((q) => q.trashed));
-  const projs = S.projects.filter((p) => p.trashed && !binned(parentOf(p))).sort((a, b) => (b.trashedAt || 0) - (a.trashedAt || 0));
-  const todos = S.todos.filter((t) => t.trashed && !t.isTemplate && !binned(t.projectId && getP(t.projectId))).sort((a, b) => (b.trashedAt || 0) - (a.trashedAt || 0));
-  const n = projs.length + todos.length;
+  const newest = (a, b) => (b.trashedAt || 0) - (a.trashedAt || 0);
+  const projs = S.projects.filter((p) => p.trashed && !p.blueprint && !binned(parentOf(p))).sort(newest);
+  const todos = S.todos.filter((t) => t.trashed && !t.isTemplate && !binned(t.projectId && getP(t.projectId))).sort(newest);
+  const tpls = S.projects.filter((p) => p.trashed && p.blueprint).concat(S.todos.filter((t) => t.trashed && t.blueprint)).sort(newest); // deleted templates
+  const n = projs.length + todos.length + tpls.length;
   const head = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-trash)">${I.trash}</span><h1 class="lh-title">Trash</h1>${n ? `<button class="btn" data-action="empty-trash">Empty Trash</button>` : ''}</div>`;
-  return head + `<div class="list">${projs.length ? `<div class="sec" data-sec="trash">${projs.map((p) => projRowHTML(p, { parent: true })).join('')}</div>` : ''}${secHTML('trash', todos, { parent: true })}</div>` + (n ? '' : emptyHTML('trash', 'Trash is empty', 'Deleted to-dos and projects wait here until you empty the Trash.'));
+  return head + `<div class="list">${projs.length ? `<div class="sec" data-sec="trash">${projs.map((p) => projRowHTML(p, { parent: true })).join('')}</div>` : ''}${secHTML('trash', todos, { parent: true })}${trashedTemplatesHTML(tpls)}</div>` + (n ? '' : emptyHTML('trash', 'Trash is empty', 'Deleted to-dos, projects and templates wait here until you empty the Trash.'));
 }
 function templatesIn(filter) { return S.todos.filter((t) => t.isTemplate && !t.blueprint && !t.trashed && filter(t)).sort(byOrder); }
 function projectTemplatesIn(filter) { return S.projects.filter((p) => p.isTemplate && !p.blueprint && !p.trashed && filter(p)).sort(byOrder); }
@@ -3208,9 +3338,12 @@ function viewProject(p) {
   const ctx = { when: true, tpl: !!p.isTemplate };
   const src = !p.isTemplate && p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   const meta = whenChipHTML(p) + (src ? `<span class="chip repeat"><button class="chip-main" data-nav="project:${src.id}">${ic('repeat')}<span>${esc(ruleSummary(src.repeat))}</span></button></span>` : '') + deadlineChipHTML(p) + priorityChipHTML(p) + inTagOrder(p.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="tags" data-id="${p.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${p.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
-  // a sub-project shows where it is: its area, then the projects it's in
-  let html = isSub(p) ? `<nav class="crumbs" aria-label="Where this project is">${[...(areaOf(p) ? [`<button class="crumb" data-nav="area:${areaOf(p).id}">${areaIc(areaOf(p), 'crumb-ic')}<span>${esc(aTitle(areaOf(p)))}</span></button>`] : []),
-    ...projAncestors(p).reverse().map((q) => `<button class="crumb" data-nav="project:${q.id}" data-drop-list="project:${q.id}">${projIc(q, 'crumb-ic', projectProgress(q).frac)}<span>${esc(pTitle(q))}</span></button>`)].join('<span class="crumb-sep" aria-hidden="true">›</span>')}</nav>` : '';
+  // a sub-project shows where it is: its area, then the projects it's in; a template, the way back to Templates
+  const inTpl = !p.trashed && [p, ...projAncestors(p)].some((q) => q.blueprint);
+  const crumbs = [...(inTpl ? [`<button class="crumb" data-nav="templates"><span class="ic crumb-ic" style="color:var(--c-template)">${I.template}</span><span>Templates</span></button>`] : []),
+    ...(isSub(p) ? [...(areaOf(p) ? [`<button class="crumb" data-nav="area:${areaOf(p).id}">${areaIc(areaOf(p), 'crumb-ic')}<span>${esc(aTitle(areaOf(p)))}</span></button>`] : []),
+      ...projAncestors(p).reverse().map((q) => `<button class="crumb" data-nav="project:${q.id}" data-drop-list="project:${q.id}">${q.blueprint ? `<span class="ic crumb-ic" style="color:var(--c-template)">${I.template}</span>` : projIc(q, 'crumb-ic', projectProgress(q).frac)}<span>${esc(pTitle(q))}</span></button>`)] : [])];
+  let html = crumbs.length ? `<nav class="crumbs${inTpl && !isSub(p) ? ' crumbs-back' : ''}" aria-label="Where this project is">${crumbs.join('<span class="crumb-sep" aria-hidden="true">›</span>')}${inTpl && !isSub(p) ? '<span class="crumb-sep" aria-hidden="true">›</span>' : ''}</nav>` : '';
   html += `<div class="lh">${p.blueprint ? `<span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span>` : `<span class="ic lh-ic pie-lg${p.trashed || p.isTemplate ? '' : ' can-click'}"${colorStyle(p)}${p.trashed || p.isTemplate ? '' : ` role="button" title="${p.status === 'open' ? 'Complete Project' : 'Reopen Project'}"`}>${pieSVG(pr.frac)}</span>`}<textarea class="lh-title" data-edit="project-title" data-id="${p.id}" data-fkey="ptitle" placeholder="New Project" aria-label="Project title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(p.title)}</textarea>${p.trashed ? '' : `<button class="ib lh-board${projectBoardOn(p) ? ' on' : ''}" data-action="proj-board" data-id="${p.id}" aria-pressed="${projectBoardOn(p)}" title="${projectBoardOn(p) ? 'Show as a list' : 'Show sub-projects as a board'}" aria-label="${projectBoardOn(p) ? 'Show as a list' : 'Show sub-projects as a board'}">${ic('columns')}</button>`}<button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="proj-menu" data-id="${p.id}" aria-label="Project options" title="Project options">${ic('more')}</button></div>`;
   if (p.trashed) html += `<div class="lh-banner">This project is in the Trash. <button class="link-btn" data-action="restore" data-id="${p.id}">Put Back</button></div>`;
   else if (p.blueprint) html += `<div class="lh-banner rp-banner">${ic('template')}<span><b>Project template.</b> New projects made from it get these to-dos, sub-projects and checklists${p.bpAreaId && getA(p.bpAreaId) ? ` and go in ${esc(aTitle(getA(p.bpAreaId)))}` : ''}. Editing it doesn’t change projects already made.</span><button class="link-btn" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div>`;
@@ -3235,7 +3368,8 @@ function viewProject(p) {
   }
   if (!p.isTemplate) html += repeatingSectionHTML([...projectTemplatesIn((q) => q.parentId === p.id), ...templatesIn((t) => t.projectId === p.id)]);
   html += loggedFooterHTML(p.id, logged);
-  if (!todosAll.length && !hasSubs && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and sub-projects you add here.');
+  if (!todosAll.length && !hasSubs && p.blueprint && !p.trashed && !projectBoardOn(p)) html += emptyHTML('template', p.title ? 'Add what every copy starts with' : 'Name it, then add what every copy starts with', `Press N or the + button to add a to-do${isMobile() ? ', and add sub-projects from the ••• menu' : ', ⇧N to add a sub-project'}. Each new project made from this template starts with them.`);
+  else if (!todosAll.length && !hasSubs && p.isTemplate && !projectBoardOn(p)) html += emptyHTML('repeat', 'Add the steps', 'Each new copy of this project starts with the to-dos and sub-projects you add here.');
   else if (!todosAll.length && !hasSubs && !projectBoardOn(p)) html += p.trashed || p.status !== 'open' ? emptyHTML('project', 'No to-dos', p.trashed ? 'Put the project back to add to-dos to it.' : 'Reopen the project to add to-dos to it.') : emptyHTML('project', 'No to-dos yet', `Press N or the + button to add the first one. To split the project into parts, add sub-projects${isMobile() ? ' from the ••• menu' : ' with ⇧N or the ••• menu'}; each can hold its own to-dos, notes and sub-projects.`);
   return html;
 }
@@ -3502,12 +3636,13 @@ function renderTplModal() {
   if (!t || t.trashed || !t.isTemplate) { closeTplModal(); return; }
   let L = ui.tplLayer;
   if (!L || !L.el.isConnected) {
-    L = ui.tplLayer = openLayer({ modal: true, cls: 'tpl-modal', html: '', onClose: () => { ui.tplModal = null; ui.tplLayer = null; render(); } });
+    L = ui.tplLayer = openLayer({ modal: true, cls: 'tpl-modal', html: '', onClose: () => { ui.tplModal = null; ui.tplLayer = null; dropEmptyBlueprint(getT(L.tid)); render(); } }); // (a new template left blank isn't kept)
   }
+  L.tid = t.id;
   if (t.blueprint) {
     L.el.innerHTML = `<div class="modal-h"><h2>To-Do Template</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>
-      <div class="modal-b">${cardHTML(t)}<p class="note">Use it from any list’s ••• menu (<b>New To-Do from Template</b>), or with <b>Add To…</b> below.</p></div>
-      <div class="modal-f"><button class="btn" data-action="delete-template" data-id="${t.id}">Delete Template</button><button class="btn" data-action="use-ttemplate" data-id="${t.id}">Add To…</button><button class="btn primary" data-action="close-layer">Done</button></div>`;
+      <div class="modal-b">${cardHTML(t)}<p class="note">Use it with <b>Add To…</b> here, or from any list: ${isCoarse() ? 'its ••• menu has <b>New To-Do from Template</b>' : 'press <kbd>⇧</kbd> <kbd>T</kbd>, or choose <b>New To-Do from Template</b> in its ••• menu'}.</p></div>
+      <div class="modal-f tpl-f"><button class="btn danger-quiet" data-action="delete-template" data-id="${t.id}">Delete</button><button class="btn" data-action="tpl-dup" data-id="${t.id}">Duplicate</button><span class="tpl-f-gap"></span><button class="btn" data-action="use-ttemplate" data-id="${t.id}">Add To…</button><button class="btn primary" data-action="close-layer">Done</button></div>`;
     return;
   }
   const upcoming = []; let nd = t.next;
@@ -3553,6 +3688,9 @@ function closeLayer(L = layers[layers.length - 1]) {
   const i = layers.indexOf(L); if (i < 0) return;
   layers.splice(i, 1); L.el.remove(); L.scrim.remove();
   if (L.onClose) L.onClose();
+  // the window underneath (Settings, say) can catch up with what changed while it was covered
+  const under = layers[layers.length - 1];
+  if (under && under.onReveal && under.el.isConnected) under.onReveal();
 }
 function closeAllLayers() { while (layers.length) closeLayer(); }
 const topLayer = () => layers[layers.length - 1];
@@ -3735,11 +3873,14 @@ function openTagPicker(ids, anchor, kind = 'item') {
 
 /* ---- Move picker ----
    To-dos go to the Inbox, an area or a project (sub-projects listed under theirs). Projects go to
-   an area, to no area, or inside another project; opts.areasOnly leaves the projects out. */
+   an area, to no area, or inside another project; opts.areasOnly leaves the projects out.
+   With opts.onPick it's a picker for anything that needs a place: ids can be empty, opts.cur
+   ({ areaId } or { projectId }) says which place is ticked, opts.noInbox and opts.noAreas leave
+   those out (areas then only head their projects), opts.placeholder names what you're finding. */
 function openMove(ids, anchor, opts = {}) {
   const items = itemsFor(ids);
-  const projectsOnly = items.length && items.every((x) => x.type === 'project');
-  const cur = items[0] || {};
+  const projectsOnly = items.length ? items.every((x) => x.type === 'project') : !!opts.areasOnly;
+  const cur = opts.cur || items[0] || {};
   const check = `<span class="check">${ic('check')}</span>`;
   const build = (q = '') => {
     const ql = q.trim().toLowerCase(); const m = (s) => !ql || (s || '').toLowerCase().includes(ql);
@@ -3764,13 +3905,14 @@ function openMove(ids, anchor, opts = {}) {
     out += projRows(null);
     S.areas.slice().sort(byOrder).forEach((a) => {
       const pr = projRows(a.id);
-      if (m(aTitle(a))) out += `<button class="pick-i a" data-to="area:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span></button>`;
+      if (!opts.noAreas && m(aTitle(a))) out += `<button class="pick-i a" data-to="area:${a.id}">${ic('area')}<span>${esc(aTitle(a))}</span></button>`;
       else if (pr) out += `<div class="menu-h">${esc(aTitle(a))}</div>`;
       out += pr;
     });
-    return out || '<p class="note" style="padding:6px 10px">No matching lists.</p>';
+    return out || `<p class="note" style="padding:6px 10px">${opts.noAreas ? 'No matching projects.' : 'No matching lists.'}</p>`;
   };
-  const L = openLayer({ anchor, cls: 'move-pop', html: `<div class="pk-h">${esc(opts.title || 'Move')}</div><input class="pk-in" id="mv-in" placeholder="Find a list" autocomplete="off" aria-label="Find a list"><div class="pick-list" id="mv-list">${build()}</div>`,
+  const find = esc(opts.placeholder || 'Find a list');
+  const L = openLayer({ anchor, cls: 'move-pop', html: `<div class="pk-h">${esc(opts.title || 'Move')}</div><input class="pk-in" id="mv-in" placeholder="${find}" autocomplete="off" aria-label="${find}"><div class="pick-list" id="mv-list">${build()}</div>`,
     onMount: (el) => {
       const inp = $('#mv-in', el), list = $('#mv-list', el);
       const nav = listKeys(el, '.pick-i', inp);
@@ -4158,6 +4300,7 @@ function dropOnList(ids, key, kind, anchorEl) {
     case 'deadlines': case 'timeline': openWhen(ids, anchorEl, 'deadline'); break;
     case 'tag': { const items = itemsFor(ids).filter((x) => !x.tags.includes(id)); if (items.length && getTag(id)) { commit('Tags', () => items.forEach((x) => { x.tags = x.tags.concat(id); touch(x); })); toast(`Tagged ${items.length > 1 ? plural(items.length, 'item') : `“${items[0].title || 'New To-Do'}”`} #${tagTitle(id)}`, { undo: true }); } break; }
     case 'trash': trashItems(ids); break;
+    case 'templates': saveAsTemplates(ids); break; // copies: what you dragged stays where it was
     case 'project': if (kind === 'todo') moveItems(ids, { type: 'project', id }); break;
     case 'area': moveItems(ids, { type: 'area', id }); break;
     default: break;
@@ -4178,7 +4321,9 @@ function navigate(key, opts = {}) {
   closeEditor({ noRender: true });
   if (key.startsWith('board:')) { switchBoard(key.slice(6)); key = 'board'; } // one of several Boards
   const [type, id] = key.split(':');
+  const left = ui.view.type === 'project' && ui.view.id !== id ? getP(ui.view.id) : null;
   ui.view = id ? { type, id } : { type };
+  if (left) dropEmptyBlueprint(left); // a new template you never named or filled in isn't kept
   ui.sel.clear(); ui.anchor = null; ui.tagFilter = null; ui.selectMode = false; ui.logbookLimit = 150; ui.notesEdit = null;
   ui.mobile = 'list';
   lsSet('sectis.view', key);
@@ -4306,7 +4451,12 @@ function handleAction(act, el, e) {
     case 'use-ptemplate': newProjectFromTemplate(id); return;
     case 'use-ttemplate': openAddTodoTemplateTo(id, el); return;
     case 'delete-template': deleteTemplate(id); return;
-    case 'templates-new': openMenu(el, [{ label: 'New Project Template', icon: 'project', fn: newProjectTemplate }, { label: 'New To-Do Template', icon: 'template', fn: newTodoTemplate }]); return;
+    case 'templates-new': openMenu(el, newTemplateMenuItems(el)); return;
+    case 'tpl-new-project': newProjectTemplate(); return;
+    case 'tpl-new-todo': newTodoTemplate(); return;
+    case 'tpl-from-project': openSaveProjectAsTemplate(el); return;
+    case 'tpl-menu': templateMenu(id, el); return;
+    case 'tpl-dup': duplicateTemplate(id); return;
     case 'bcol-add': newTodo({ sec: el.dataset.sec }); return;
     case 'bcol-menu': boardColMenu(el.dataset.col, el); return;
     case 'expand-all': setExpanded(areaProjectIds(id), true); return;
@@ -4327,7 +4477,7 @@ function handleAction(act, el, e) {
     case 'quick-entry': openQuickEntry(); return;
     case 'settings': openSettings(); return;
     case 'sync-now': syncNowFromCloud(); return;
-    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { label: 'New Smart List…', icon: 'funnel', fn: () => openSmartEditor() }, { label: 'New Focus…', icon: 'focus', fn: () => openFocusEditor() }, { sep: 1 }, { label: 'New Project from Template…', icon: 'template', fn: () => openTemplatePicker(el, { kinds: ['project'], areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }, { label: 'Templates', icon: 'template', fn: () => navigate('templates') }]); return;
+    case 'new-list': openMenu(el, [{ label: 'New Project', icon: 'project', fn: () => newProject(ui.view.type === 'area' ? ui.view.id : null) }, { label: 'New Area', icon: 'area', fn: newArea }, { label: 'New Smart List…', icon: 'funnel', fn: () => openSmartEditor() }, { label: 'New Focus…', icon: 'focus', fn: () => openFocusEditor() }, { sep: 1 }, { label: 'New from Template…', icon: 'template', hint: isCoarse() ? '' : '⇧T', fn: () => openTemplatePicker(el, { areaId: ui.view.type === 'area' ? ui.view.id : undefined }) }]); return;
     case 'm-back': closeEditor({ noRender: true }); ui.mobile = 'home'; ui.sel.clear(); ui.selectMode = false; render(); return;
     case 'select-done': ui.selectMode = false; ui.sel.clear(); render(); return;
     case 'select-all': visibleRowIds().forEach((x) => ui.sel.add(x)); paintSelection(); return;
@@ -4354,6 +4504,7 @@ function endSelectAfter(L) {
 function todoMenu(id, el) {
   const t = getT(id); if (!t) return;
   const items = [];
+  if (t.trashed) { openMenu(el, [{ label: 'Put Back', icon: 'reopen', fn: () => restoreItems([id]) }]); return; } // in the Trash, that's all there is to do
   if (isTplChild(t)) {
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
@@ -4361,8 +4512,7 @@ function todoMenu(id, el) {
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ sep: 1 }, { label: 'Delete To-Do', icon: 'trash', danger: true, fn: () => trashItems([id]) });
   } else if (t.blueprint) {
-    items.push({ label: 'Add To…', icon: 'move', fn: () => openAddTodoTemplateTo(id, el) });
-    items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(id) });
+    items.push(...templateMenuItems(id, el, { page: ui.tplModal === id, more: [priorityMenuItem([id], el, '')] }));
   } else if (t.isTemplate) {
     items.push({ label: 'Change Repeat…', icon: 'repeat', fn: () => openRepeat(id, el) });
     items.push(priorityMenuItem([id], el, ''));
@@ -4397,16 +4547,24 @@ function todoMenu(id, el) {
 function projectMenu(p, el, extra = []) {
   if (!p) return;
   const items = [...extra];
-  if (!p.trashed) items.push(renameMenuItem('p', p.id));
+  if (p.trashed) { openMenu(el, [{ label: 'Put Back', icon: 'reopen', fn: () => restoreItems([p.id]) }]); return; } // in the Trash, that's all there is to do
+  items.push(renameMenuItem('p', p.id));
+  if (!p.isTemplate && projAncestors(p).some((q) => q.isTemplate)) { // a sub-project inside a template or a repeating project: a part of it, not something to schedule or complete
+    items.push({ label: 'New To-Do', icon: 'plus', fn: () => { if (!(ui.view.type === 'project' && ui.view.id === p.id)) navigate('project:' + p.id); newTodo(); } });
+    items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) }, colorMenuItem('p', p, el));
+    items.push({ label: 'New Sub-Project', icon: 'project', fn: () => newSubProject(p.id) });
+    items.push({ sep: 1 }, { label: 'Delete Sub-Project', icon: 'trash', danger: true, fn: () => trashItems([p.id]) });
+    openMenu(el, items); return;
+  }
   if (isMobile() && p.status === 'open' && !p.trashed) items.push(selectModeItem(), { sep: 1 });
   const src = p.templateId && getP(p.templateId) && !getP(p.templateId).trashed ? getP(p.templateId) : null;
   if (p.blueprint && !p.trashed) {
-    items.push({ label: 'New Project from Template', icon: 'project', fn: () => newProjectFromTemplate(p.id) });
-    items.push({ label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) });
-    items.push({ label: 'Default Area…', icon: 'area', fn: () => openMove([p.id], el, { title: 'Default Area', areasOnly: true, onPick: (tg) => commit('Default Area', () => { p.bpAreaId = tg.type === 'area' ? tg.id : null; touch(p); }) }) });
-    items.push({ label: 'New Sub-Project', icon: 'project', hint: '⇧N', fn: () => newSubProject(p.id) });
-    items.push({ label: 'All Templates', icon: 'template', fn: () => navigate('templates') });
-    items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(p.id) });
+    const here = ui.view.type === 'project' && ui.view.id === p.id;
+    items.push(...templateMenuItems(p.id, el, { page: here, more: [
+      { label: 'Tags…', icon: 'tag', fn: () => openTagPicker([p.id], el) },
+      colorMenuItem('p', p, el),
+      ...(here ? [{ label: 'New To-Do', icon: 'plus', hint: 'N', fn: () => newTodo() }, { label: 'New Sub-Project', icon: 'project', hint: '⇧N', fn: () => newSubProject(p.id) }] : []),
+    ] }));
     openMenu(el, items); return;
   }
   if (p.isTemplate && !p.trashed) {
@@ -4654,6 +4812,7 @@ function fieldKeys(e) {
 }
 
 /* ---- keyboard shortcuts ---- */
+const NUM_NAV = ['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board', 'templates']; // 1 to 9
 const isTyping = (el) => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
 document.addEventListener('keydown', (e) => {
   const mod = e.metaKey || e.ctrlKey, k = e.key, typing = isTyping(e.target);
@@ -4688,7 +4847,7 @@ document.addEventListener('keydown', (e) => {
     if (sp && parentOf(sp)) moveSubProject(sp, k === 'ArrowUp' ? -1 : 1); else nudge(todosSel, k === 'ArrowUp' ? -1 : 1);
     return;
   }
-  if (e.altKey && !mod && /^Digit[1-8]$/.test(e.code)) { e.preventDefault(); navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+e.code.slice(5) - 1]); return; }
+  if (e.altKey && !mod && /^Digit[1-9]$/.test(e.code)) { e.preventDefault(); navigate(NUM_NAV[+e.code.slice(5) - 1]); return; }
   if (e.altKey && !mod && e.code === 'KeyK') { e.preventDefault(); if (one.length) completeOrToggle(one, true); return; }
   if (mod || e.altKey) return;
   switch (key) {
@@ -4697,6 +4856,7 @@ document.addEventListener('keydown', (e) => {
     case 'j': e.preventDefault(); toggleNotepad(); return;
     case 'q': e.preventDefault(); openQuickEntry(); return;
     case '?': e.preventDefault(); openShortcuts(); return;
+    case 't': if (e.shiftKey) { e.preventDefault(); openTemplatePicker(null, { areaId: ui.view.type === 'area' ? ui.view.id : undefined }); return; } break;
     case ' ': case 'n':
       e.preventDefault();
       if (e.shiftKey) { // ⇧N: a sub-project in the project you're in (or the one selected)
@@ -4710,7 +4870,7 @@ document.addEventListener('keydown', (e) => {
     case 'Backspace': case 'Delete': if (one.length) { e.preventDefault(); trashItems(one); } return;
   }
   if (!one.length) {
-    if (/^[1-8]$/.test(key) && !e.shiftKey) { navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+key - 1]); }
+    if (/^[1-9]$/.test(key) && !e.shiftKey) { navigate(NUM_NAV[+key - 1]); }
     return;
   }
   switch (key) {
@@ -4726,7 +4886,7 @@ document.addEventListener('keydown', (e) => {
     case '#': e.preventDefault(); openTagPicker(one, anchorFor(one[0])); return;
     case 'm': e.preventDefault(); openMove(todosSel.length ? todosSel : one, anchorFor(one[0])); return;
     case 'r': e.preventDefault(); if (todosSel.length === 1) { const t = getT(todosSel[0]); if (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed) openTplModal(t.templateId); else openRepeat(t.id, anchorFor(t.id)); } return;
-    default: if (/^[1-8]$/.test(key) && !e.shiftKey) navigate(['inbox', 'today', 'upcoming', 'anytime', 'someday', 'logbook', 'trash', 'board'][+key - 1]);
+    default: if (/^[1-9]$/.test(key) && !e.shiftKey) navigate(NUM_NAV[+key - 1]);
   }
 });
 function completeOrToggle(ids, cancel) { toggleComplete(ids, cancel ? 'canceled' : 'done'); }
@@ -4756,7 +4916,7 @@ function nudge(ids, dir) {
   commit('Reorder', () => { x[ok] = orderBetween(prev ? prev[ok] : null, next ? next[ok] : null)[0]; });
 }
 
-/* ===================== Quick Find, Quick Entry, Settings, Tags, Shortcuts, Backup ===================== */
+/* ===================== Quick Find, Quick Entry, Tags, Shortcuts, Backup ===================== */
 
 /* ---- Quick Find ---- */
 function findResults(q, includeLog) {
@@ -4890,7 +5050,7 @@ function openQuickEntry(prefill = '', preset = null) {
         parsed = S.settings.parseEntry ? parseEntry(ti.value) : null;
         const chips = [];
         const placeOK = parsed && parsed.place && !ignore.place && !x.projectId && !x.areaId; // not once you've chosen a list
-        if (placeOK) chips.push(`<span class="qe-p qe-place">${placeIcon(parsed.place)}${esc(placeLabel(parsed.place))}<button data-ign="place" aria-label="Don’t file it there">${ic('x')}</button></span>`);
+        if (placeOK) chips.push(`<span class="qe-p qe-place">${placeIcon(parsed.place)}${esc(qePlaceLabel(parsed.place))}<button data-ign="place" aria-label="Don’t file it there">${ic('x')}</button></span>`);
         if (parsed && parsed.when && !ignore.when && x.start === 'inbox' && !x.when) chips.push(`<span class="qe-p">${ic('calendar')}${esc(parsed.when.date ? fmtRel(parsed.when.date) : describeParsed({ special: parsed.when }))}<button data-ign="when" aria-label="Ignore date">${ic('x')}</button></span>`);
         if (parsed && parsed.deadline && !ignore.deadline && !x.deadline) chips.push(`<span class="qe-p">${ic('flag')}Deadline ${esc(fmtRel(parsed.deadline))}<button data-ign="deadline" aria-label="Ignore deadline">${ic('x')}</button></span>`);
         if (parsed && parsed.priority && !ignore.priority && !prio(x)) chips.push(`<span class="qe-p"><b class="pri-bangs p${parsed.priority}">${'!'.repeat(parsed.priority)}</b>${PRIORITY_NAMES[parsed.priority]} Priority<button data-ign="priority" aria-label="Ignore priority">${ic('x')}</button></span>`);
@@ -4957,99 +5117,7 @@ function rebuildTitle(raw, pz, ignore) {
   return t.trim() || raw.trim();
 }
 
-/* ---- Settings ---- */
-function openSettings() {
-  if (ui.editing) closeEditor({ noRender: false });
-  const seg = (key, opts) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-set="${key}" data-val="${v}" class="${String(S.settings[key]) === String(v) ? 'on' : ''}">${l}</button>`).join('')}</div>`;
-  const sw = (key) => `<button class="switch${S.settings[key] ? ' on' : ''}" data-switch="${key}" role="switch" aria-checked="${!!S.settings[key]}" aria-label="${key}"></button>`;
-  const hasSample = S.todos.some((t) => t.sample) || S.projects.some((p) => p.sample) || S.areas.some((a) => a.sample);
-  const notifState = !('Notification' in window) || IN_FRAME ? 'unavailable' : Notification.permission;
-  const fsOK = fileSyncSupported();
-  const build = () => `<div class="modal-h"><h2>Settings</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b">
-    <div class="set-sec"><h3>Appearance</h3><div class="set-row"><span class="lbl">Theme</span>${seg('theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']])}</div><div class="set-row"><span class="lbl">Row spacing<small>Compact fits more to-dos on screen, handy on the Board. Each device keeps its own.</small></span>${seg('density', [['comfortable', 'Comfortable'], ['compact', 'Compact']])}</div></div>
-    <div class="set-sec"><h3>Lists</h3>
-      <div class="set-row"><span class="lbl">Move completed items to the Logbook<small>Completed to-dos stay visible, checked, until then.</small></span>${seg('logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']])}</div>
-      <div class="set-row"><span class="lbl">Keep higher priorities on top<small>Lists you haven’t sorted another way show High, then Medium, then Low, then the rest. Drag or use ⌘↑ / ⌘↓ to arrange them within each priority. Each list’s Sort By… still changes it.</small></span>${sw('prioTop')}</div>
-      <div class="set-row"><span class="lbl">Completed to-dos<small>Move to Bottom puts checked to-dos below the rest of their list. Unchecking one puts it back where it was.</small></span>${seg('doneSink', [['bottom', 'Move to Bottom'], ['stay', 'Stay in Place']])}</div>
-      <div class="set-row"><span class="lbl">Logged to-dos in projects and areas<small>At the Bottom keeps them in one list at the end, behind Show logged items. Where They Were shows each one in its project or sub-project, just below the completed to-dos, with the day it was done.</small></span>${seg('loggedPlace', [['bottom', 'At the Bottom'], ['inline', 'Where They Were']])}</div>
-      <div class="set-row"><span class="lbl">Group Today by project and area</span>${sw('groupToday')}</div>
-      <div class="set-row"><span class="lbl">To-dos take on the tags of their project and area<small>When you add or move a to-do into a project or area, it gets that place’s tags. Moving it elsewhere swaps them.</small></span>${sw('inheritTags')}</div>
-      <div class="set-row"><span class="lbl">Tags shown in lists<small>Own Only hides the tags a to-do already gets from its project or area, so lists stay clean. Open a to-do to see all of its tags.</small></span>${seg('rowTags', [['own', 'Own Only'], ['all', 'All'], ['none', 'None']])}</div>
-      <div class="set-row"><span class="lbl">Tag to-dos already in projects and areas<small>Adds each project’s and area’s tags to the to-dos inside it now. You can undo it.</small></span><button class="btn" data-s="retag-all">Tag Them Now</button></div>
-      <div class="set-row"><span class="lbl">Week starts on</span>${seg('weekStart', [[0, 'Sunday'], [1, 'Monday']])}</div>
-      <div class="set-row"><span class="lbl">Quick Entry reads dates, tags and places<small>“Pay rent friday @Home #Bills !oct 31” sets When, the area, a tag and a deadline.</small></span>${sw('parseEntry')}</div></div>
-    <div class="set-sec"><h3>Focus</h3>${focusSettingsHTML()}</div>
-    <div class="set-sec"><h3>Sync</h3>${syncSettingsHTML()}</div>
-    <div class="set-sec"><h3>Reminders</h3>
-      <div class="set-row"><span class="lbl">System notifications<small>${notifState === 'unavailable' ? 'Not available here. Reminders still show inside Sectis while it is open.' : notifState === 'denied' ? 'Blocked in your browser settings. Reminders still show inside Sectis.' : 'Reminders fire while Sectis is open, in a tab or as an installed app.'}</small></span>${notifState === 'unavailable' || notifState === 'denied' ? '' : sw('notify')}</div></div>
-    <div class="set-sec"><h3>Tags</h3><div class="set-btns"><button class="btn" data-s="tags">Manage Tags…</button></div></div>
-    <div class="set-sec"><h3>Your data</h3>
-      <p class="note" style="margin:0 0 10px">Your to-dos are saved in this browser on this device. Nothing is sent anywhere.</p>
-      <div class="set-btns"><button class="btn" data-s="backups">Backups…</button><button class="btn" data-s="export">${'Export Backup…'}</button><button class="btn" data-s="import">Import…</button></div>
-      ${fsOK ? `<div class="set-row" style="margin-top:10px"><span class="lbl">Data file<small>${fileSync.name ? `Saving to <b>${esc(fileSync.name)}</b>${fileSync.needsPermission ? ' (click Reconnect to allow access)' : ''}` : 'Keep your to-dos in a file, for example on a thumb drive next to Sectis.'}</small></span><div class="set-btns">${fileSync.name ? `${fileSync.needsPermission ? '<button class="btn primary" data-s="fs-reconnect">Reconnect</button>' : ''}<button class="btn" data-s="fs-unlink">Disconnect</button>` : '<button class="btn" data-s="fs-new">Create File…</button><button class="btn" data-s="fs-open">Open File…</button>'}</div></div>` : ''}
-      <div class="set-btns" style="margin-top:12px">${hasSample ? '<button class="btn" data-s="sample-remove">Remove Sample To-Dos</button>' : '<button class="btn" data-s="sample-add">Add Sample To-Dos</button>'}<button class="btn" data-s="erase" style="color:var(--red)">Erase All Data…</button></div></div>
-    <div class="about"><span><b>Sectis</b> version ${APP_VERSION}${updatesAvailable() ? ` · <button class="link-btn" data-s="update-check" id="upd-btn">${upd.latest && newerVersion(upd.latest, APP_VERSION) ? `Update to ${esc(upd.latest)}` : 'Check for Updates'}</button>` : ''}</span><span>Press <kbd>?</kbd> for keyboard shortcuts</span></div></div>`;
-  const L = openLayer({ modal: true, html: build(), onMount: (el) => {
-    el.addEventListener('click', async (e) => {
-      const s = e.target.closest('[data-set]');
-      if (s) { const key = s.dataset.set; let v = s.dataset.val; if (key === 'weekStart') v = +v; S.settings[key] = v; saveSoon(); if (key === 'logMode') autoLog(); render(); el.innerHTML = build(); return; }
-      const w = e.target.closest('[data-switch]');
-      if (w) {
-        const key = w.dataset.switch;
-        if (key === 'notify' && !S.settings.notify) { try { const r = await Notification.requestPermission(); if (r !== 'granted') { toast('Notifications were not allowed'); el.innerHTML = build(); return; } } catch (err) { toast('Notifications aren’t available here'); return; } }
-        S.settings[key] = !S.settings[key]; saveSoon(); render(); el.innerHTML = build(); return;
-      }
-      const b = e.target.closest('[data-s]'); if (!b) return;
-      const act = b.dataset.s;
-      if (act === 'tags') { closeLayer(L); openTagManager(); }
-      if (act === 'focus-new') { closeLayer(L); openFocusEditor(); }
-      if (act === 'focus-edit') { const f = getFocus(b.dataset.id); closeLayer(L); if (f) openFocusEditor(f); }
-      if (act === 'retag-all') {
-        let n = 0;
-        commit('Tag To-Dos', () => S.todos.forEach((t) => {
-          if (t.trashed || t.isTemplate || t.isDraft || (!t.projectId && !t.areaId)) return;
-          const before = t.tags.join(); const keep = S.settings.inheritTags; S.settings.inheritTags = true; retag(t, new Set()); S.settings.inheritTags = keep;
-          if (t.tags.join() !== before) { touch(t); n++; }
-        }));
-        toast(n ? `Tagged ${plural(n, 'to-do')}` : 'Every to-do already has its project’s and area’s tags', n ? { undo: true } : {});
-        return;
-      }
-      if (act === 'backups') { closeLayer(L); openBackups(); }
-      if (act === 'export') { closeLayer(L); openExport(); }
-      if (act === 'import') { closeLayer(L); openImport(); }
-      if (act === 'update-check') {
-        if (upd.latest && newerVersion(upd.latest, APP_VERSION)) { applyUpdate(); return; }
-        b.textContent = 'Checking…'; b.disabled = true;
-        const v = await checkForUpdate(true);
-        b.disabled = false;
-        if (v) b.textContent = `Update to ${v}`;
-        else b.textContent = v === false ? 'You have the latest version' : 'Couldn’t check. Are you online?';
-        return;
-      }
-      if (act === 'sample-remove') { removeSample(); el.innerHTML = build(); }
-      if (act === 'sample-add') { commit('Sample To-Dos', () => seedSample()); el.innerHTML = build(); }
-      if (act === 'erase') { const ok = await confirmDialog({ title: 'Erase all data?', body: Y.enabled ? 'Every to-do, project, area and tag will be deleted here and on every device that syncs with this one. Export a backup first if you might want them back.' : 'Every to-do, project, area and tag in this browser will be deleted. Export a backup first if you might want them back.', ok: 'Erase Everything', danger: true }); if (ok) { await makeBackup('erase'); commit('Erase All', () => { const keep = S.settings; S = emptyState(); S.settings = keep; S.meta.sampleLoaded = true; }); navigate('inbox'); closeLayer(L); } }
-      if (act === 'fs-new') { await fileSyncCreate(); el.innerHTML = build(); }
-      if (act === 'fs-open') { await fileSyncOpen(); el.innerHTML = build(); }
-      if (act === 'fs-reconnect') { await fileSyncReconnect(); el.innerHTML = build(); }
-      if (act === 'fs-unlink') { await fileSyncUnlink(); el.innerHTML = build(); }
-      if (act === 'sync-setup') { closeLayer(L); openSyncSetup(); }
-      if (act === 'sync-join') { closeLayer(L); openSyncJoin(); }
-      if (act === 'sync-code') { closeLayer(L); openJoinCode(false); }
-      if (act === 'sync-check') {
-        b.disabled = true; b.textContent = 'Checking…';
-        try {
-          if (!Y.col) await syncStart();
-          const r = await syncCheckAll();
-          toast(!r ? 'Couldn’t reach Firebase. Try again when you’re online.' : !r.up && !r.down ? 'Everything matches your other devices.' : [r.down ? `${plural(r.down, 'change')} brought in` : '', r.up ? `${plural(r.up, 'item')} sent back up` : ''].filter(Boolean).join(', ') + '.');
-        } catch (e) { toast(friendlySyncError(e)); }
-        el.innerHTML = build(); return;
-      }
-      if (act === 'sync-now') { b.disabled = true; b.textContent = 'Syncing…'; await syncNow(); el.innerHTML = build(); }
-      if (act === 'sync-off') { if (await confirmSyncOff()) el.innerHTML = build(); }
-    });
-  } });
-}
+/* ---- Settings: see 42-settings.js ---- */
 function dropSampleData() {
   const sampleProjects = new Set(S.projects.filter((p) => p.sample).map((p) => p.id));
   S.projects.filter((p) => p.sample).forEach((p) => projDescendants(p).forEach((q) => sampleProjects.add(q.id))); // and anything you put inside them
@@ -5263,9 +5331,9 @@ function openShortcuts() {
   const or = (...ks) => ks.join('<span class="sc-or">or</span>');
   const pair = (a, b) => a + '<span class="sc-or">/</span>' + b;
   const rows = [
-    ['Create', [['New to-do', or(k('N'), k('Space'))], ['New sub-project (in a project)', k(SH, 'N')], ['Quick Entry', k('Q')], ['Quick Find', or(k('/'), k(M, 'F'))]]],
+    ['Create', [['New to-do', or(k('N'), k('Space'))], ['New sub-project (in a project)', k(SH, 'N')], ['New from a template', k(SH, 'T')], ['Quick Entry', k('Q')], ['Quick Find', or(k('/'), k(M, 'F'))]]],
     ['Selected to-dos', [['Open', k('Return')], ['Complete', or(k('K'), k(M, 'K'))], ['Cancel', k(OPT, 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Copy', k(M, 'C')], ['Paste after it', k(M, 'V')], ['Duplicate', k(M, 'D')], ['Move up / down', pair(k(M, '↑'), k(M, '↓'))], ['Delete', k('Delete')]]],
-    ['Navigate', [['Next / previous to-do', pair(k('↓'), k('↑'))], ['Extend selection', pair(k(SH, '↓'), k(SH, '↑'))], ['Inbox … Trash, Board', k('1') + '<span class="sc-or">to</span>' + k('8')], ['Show or hide the sidebar', IS_MAC ? k(CTL, M, 'S') : k('Ctrl', 'Alt', 'S')], ['Notepad', k('J')], ['Undo', k(M, 'Z')], ['Close / deselect', k('Esc')]]],
+    ['Navigate', [['Next / previous to-do', pair(k('↓'), k('↑'))], ['Extend selection', pair(k(SH, '↓'), k(SH, '↑'))], ['Inbox … Trash, Board, Templates', k('1') + '<span class="sc-or">to</span>' + k('9')], ['Show or hide the sidebar', IS_MAC ? k(CTL, M, 'S') : k('Ctrl', 'Alt', 'S')], ['Notepad', k('J')], ['Undo', k(M, 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing a to-do', [['Save and close', or(k('Return'), k(M, 'Return'))], ['Complete', k(M, 'K')], ['When…', k(M, 'S')], ['Deadline…', k(SH, M, 'D')], ['Add checklist', k(SH, M, 'C')], ['Move checklist item', pair(k(M, '↑'), k(M, '↓'))], ['Paste lines as to-dos (one each)', k(M, 'V')]]],
     ['In a note', [['Bold', k(M, 'B')], ['Italic', k(M, 'I')], ['Strikethrough', k(SH, M, 'X')], ['Code', k(M, 'E')], ['Link', k(M, 'K')], ['Checkbox, or tick it', k(SH, M, 'L')], ['Done, start a new note', k(M, 'Return')], ['Undo / redo', pair(k(M, 'Z'), k(SH, M, 'Z'))]]],
   ];
@@ -5348,8 +5416,8 @@ function openImport() {
       $('#im-file', el).addEventListener('change', (e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { $('#im-ta', el).value = String(r.result).slice(0, 2000) + (String(r.result).length > 2000 ? '\n…' : ''); check(String(r.result)); }; r.readAsText(f); });
       go.addEventListener('click', async () => {
         if (!pending) return;
-        if (pending.kind === 'backup') { const data = pending.data; await makeBackup('import'); commit('Import', () => { const keepFs = S.meta && S.meta.fileName; S = normalizeState(data); if (keepFs) S.meta.fileName = keepFs; S.meta.sampleLoaded = true; }); closeLayer(L); navigate('today'); toast('Backup imported', { undo: true }); }
-        else { commit('Add To-Dos', () => { let o = topOrder(inboxItems()) - pending.lines.length; pending.lines.forEach((line) => { S.todos.push(makeTodo({ title: line, start: 'inbox', order: o++ })); }); }); closeLayer(L); navigate('inbox'); toast(`Added ${plural(pending.lines.length, 'to-do')}`, { undo: true }); }
+        if (pending.kind === 'backup') { const data = pending.data; await makeBackup('import'); commit('Import', () => { const keepFs = S.meta && S.meta.fileName; S = normalizeState(data); if (keepFs) S.meta.fileName = keepFs; S.meta.sampleLoaded = true; }); closeAllLayers(); navigate('today'); toast('Backup imported', { undo: true }); }
+        else { commit('Add To-Dos', () => { let o = topOrder(inboxItems()) - pending.lines.length; pending.lines.forEach((line) => { S.todos.push(makeTodo({ title: line, start: 'inbox', order: o++ })); }); }); closeAllLayers(); navigate('inbox'); toast(`Added ${plural(pending.lines.length, 'to-do')}`, { undo: true }); }
       });
     } });
 }
@@ -5765,7 +5833,7 @@ async function syncNowFromCloud() {
   const starting = Y.status === 'connecting' || (Y.col && !Y.pulled);
   await syncNow();
   if (starting || Y.status === 'connecting') toast('Still connecting. Your changes will sync in a moment.');
-  else if (Y.status === 'error') toast(Y.error || 'Sync didn’t work.', { action: 'Settings', fn: openSettings, ms: 7000 });
+  else if (Y.status === 'error') toast(Y.error || 'Sync didn’t work.', { action: 'Settings', fn: () => openSettings('sync'), ms: 7000 });
   else if (Y.status === 'offline') toast('You’re offline. Changes will sync when you reconnect.');
   else { const pend = Object.keys(Y.pending).length; toast(pend ? `Synced. ${plural(pend, 'change')} still waiting.` : 'Synced.'); }
 }
@@ -5786,11 +5854,19 @@ const SYNC_RULES = `match /sectis/{space}/items/{item} {
     && request.resource.data.c.size() < 500000;
 }`;
 function syncSettingsHTML() {
-  if (!syncAvailable()) return `<p class="note" style="margin:0">Sync works in the installed Sectis app (from GitHub Pages), not in this preview.</p>`;
-  if (!Y.enabled) return `<div class="set-row"><span class="lbl">Keep your Mac and iPhone in step through your own Firebase project. To-dos are encrypted before they leave this device.</span></div>
-    <div class="set-btns"><button class="btn primary" data-s="sync-setup">Set Up Sync…</button><button class="btn" data-s="sync-join">Join with a Code…</button></div>`;
-  return `<div class="set-row"><span class="lbl">Status<small id="sync-status">${syncStatusText()}</small></span></div>
-    <div class="set-btns"><button class="btn" data-s="sync-code">Add Another Device…</button><button class="btn" data-s="sync-now">Sync Now</button><button class="btn" data-s="sync-check" title="Compare everything on this device with what’s synced, and fix anything that’s out of step">Check Everything</button><button class="btn" data-s="sync-off">Turn Off on This Device…</button></div>`;
+  if (!syncAvailable()) return `<p class="set-lead">Sync keeps your Mac and iPhone in step through your own Firebase project. It works in the installed Sectis app (from GitHub Pages), not in this preview.</p>`;
+  if (!Y.enabled) return `<p class="set-lead">Keep your Mac and iPhone in step through your own Firebase project. To-dos are encrypted on this device before they leave it.</p>`
+    + setGroup('', [
+      setRow('Start syncing from this device', 'Paste your Firebase config here, then add your other devices with a code. About five minutes, once.', '<button class="btn primary" data-s="sync-setup">Set Up Sync…</button>'),
+      setRow('Another device already syncs', 'Copy the code from Settings → Sync on that device and paste it here.', '<button class="btn" data-s="sync-join">Join with a Code…</button>'),
+    ]);
+  return setGroup('', [
+    setRow('Status', `<span id="sync-status">${syncStatusText()}</span>`, '<button class="btn" data-s="sync-now">Sync Now</button>'),
+    setRow('Your other devices', 'Shows the code to paste on your iPhone or another Mac.', '<button class="btn" data-s="sync-code">Add Another Device…</button>'),
+    setRow('Something out of step?', 'Compares everything on this device with what’s synced, and fixes any differences.', '<button class="btn" data-s="sync-check">Check Everything</button>'),
+  ]) + setGroup('', [
+    setRow('Stop syncing here', 'This device keeps its to-dos but stops sending and receiving changes.', '<button class="btn" data-s="sync-off">Turn Off on This Device…</button>'),
+  ]);
 }
 function copyText(text, el, note) {
   const done = (msg) => { if (note) note.textContent = msg; };
@@ -5842,7 +5918,7 @@ function openSyncJoin() {
       const note = $('#jn-note', el), go = $('#jn-go', el);
       go.addEventListener('click', async () => {
         note.classList.remove('warn'); go.disabled = true; note.textContent = 'Connecting…';
-        try { const mode = await syncJoin($('#jn-ta', el).value); closeLayer(L); navigate('today'); toast(mode === 'replace' ? 'Synced. Your to-dos are here.' : 'Synced. Both lists are combined.'); }
+        try { const mode = await syncJoin($('#jn-ta', el).value); closeAllLayers(); navigate('today'); toast(mode === 'replace' ? 'Synced. Your to-dos are here.' : 'Synced. Both lists are combined.'); }
         catch (err) { if (Y.enabled && !Y.col) syncStopLocal(); note.textContent = err.quiet ? '' : (err.message || 'Couldn’t join.'); note.classList.add('warn'); go.disabled = false; }
       });
     } });
@@ -7008,7 +7084,7 @@ async function openBackups() {
       if (!ok) return;
       await makeBackup('restore');
       restoreSnapshot(JSON.parse(raw));
-      closeLayer(L); navigate('today');
+      closeAllLayers(); navigate('today');
       toast(`Restored the backup from ${when(meta)}`, { undo: true });
     }) });
 }
@@ -7985,11 +8061,21 @@ function openBoardPicker(anchor, opts = {}) {
    A template is a hidden project (with its to-dos and sub-projects) or a hidden to-do (with its
    checklist) that you copy whenever you need a fresh one. They're stored like repeating
    templates (isTemplate) with blueprint: true and no repeat rule, so they sync like anything
-   else and stay out of every list. A project template remembers a default area (bpAreaId). */
+   else and stay out of every list. A project template remembers a default area (bpAreaId).
+
+   Templates has its own place in the sidebar. On that page: New Template (a blank project or
+   to-do, or one of your projects saved as one), and each template's row makes a copy, opens it
+   for editing, duplicates it or deletes it (the buttons on the row, its ••• menu, a right-click
+   or the keyboard). Dropping a project or to-dos on Templates in the sidebar saves them as
+   templates. ⇧T, + New List and the ••• menus open the picker (openTemplatePicker) to make
+   something from one wherever you are. A deleted template goes to the Trash, where Put Back
+   brings it back; a new one you never named or filled in isn't kept at all. */
 function isBlueprint(x) { return !!(x && x.isTemplate && x.blueprint); }
 function projectBlueprints() { return S.projects.filter((p) => isBlueprint(p) && !p.trashed).sort((a, b) => pTitle(a).localeCompare(pTitle(b))); }
 function todoBlueprints() { return S.todos.filter((t) => isBlueprint(t) && !t.trashed).sort((a, b) => (a.title || 'New To-Do').localeCompare(b.title || 'New To-Do')); }
 const freshChecklist = (list) => (list || []).map((c) => ({ id: uid(), title: c.title, done: false }));
+const keepColor = (p) => (placeColor(p) ? { color: p.color } : {});
+const tplName = (x) => (x.type === 'project' ? pTitle(x) : x.title || 'New To-Do');
 
 /* copy a project's to-dos and sub-projects (with theirs) into another project */
 function copyProjectContents(from, to, opts = {}, seen = new Set([from.id])) {
@@ -8003,27 +8089,42 @@ function copyProjectContents(from, to, opts = {}, seen = new Set([from.id])) {
   });
   childProjects(from).filter((q) => !q.trashed && !q.isTemplate && !seen.has(q.id) && (opts.all || q.status === 'open')).sort(byOrder).forEach((q) => {
     seen.add(q.id);
-    const c = makeProject({ title: q.title, notes: q.notes, tags: q.tags.slice(), priority: q.priority || 0, parentId: to.id, start: q.start === 'someday' ? 'someday' : 'anytime', order: q.order });
+    const c = makeProject(Object.assign({ title: q.title, notes: q.notes, tags: q.tags.slice(), priority: q.priority || 0, parentId: to.id, start: q.start === 'someday' ? 'someday' : 'anytime', order: q.order }, keepColor(q)));
     S.projects.push(c); idx.project.set(c.id, c);
     copyProjectContents(q, c, opts, seen);
   });
 }
+function makeProjectBlueprint(p) {
+  const bp = makeProject(Object.assign({ title: p.title, notes: p.notes, tags: p.tags.slice(), priority: p.priority || 0, areaId: null, bpAreaId: (areaOf(p) || {}).id || null, isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.projects) }, keepColor(p)));
+  S.projects.push(bp); idx.project.set(bp.id, bp);
+  copyProjectContents(p, bp, { all: true });
+  return bp;
+}
+function makeTodoBlueprint(t) {
+  const bp = makeTodo({ title: t.title, notes: t.notes, tags: t.tags.slice(), priority: t.priority || 0, checklist: freshChecklist(t.checklist), isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.todos.filter(isBlueprint)) });
+  S.todos.push(bp); idx.todo.set(bp.id, bp);
+  return bp;
+}
+const showTemplates = () => { if (ui.view.type !== 'templates') navigate('templates'); };
 function saveProjectAsTemplate(p) {
   let bp;
-  commit('Save as Template', () => {
-    bp = makeProject({ title: p.title, notes: p.notes, tags: p.tags.slice(), priority: p.priority || 0, areaId: null, bpAreaId: p.areaId || null, isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.projects) });
-    S.projects.push(bp); idx.project.set(bp.id, bp);
-    copyProjectContents(p, bp, { all: true });
-  });
+  commit('Save as Template', () => { bp = makeProjectBlueprint(p); });
   toast(`Saved “${pTitle(p)}” as a template`, { action: 'Edit Template', fn: () => navigate('project:' + bp.id) });
+  return bp;
 }
 function saveTodoAsTemplate(t) {
   let bp;
-  commit('Save as Template', () => {
-    bp = makeTodo({ title: t.title, notes: t.notes, tags: t.tags.slice(), priority: t.priority || 0, checklist: freshChecklist(t.checklist), isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.todos.filter(isBlueprint)) });
-    S.todos.push(bp);
-  });
-  toast(`Saved “${t.title || 'New To-Do'}” as a template`, { action: 'Show Templates', fn: () => navigate('templates') });
+  commit('Save as Template', () => { bp = makeTodoBlueprint(t); });
+  toast(`Saved “${t.title || 'New To-Do'}” as a template`, { action: 'Edit Template', fn: () => { showTemplates(); openTplModal(bp.id); } });
+  return bp;
+}
+/* several at once (dropped on Templates in the sidebar): the projects and to-dos themselves stay where they are */
+function saveAsTemplates(ids) {
+  const items = itemsFor(ids).filter((x) => !x.trashed && !x.isTemplate && !isTplChild(x) && !(x.type === 'project' && deadAbove(x)));
+  if (!items.length) { toast('That’s already a template'); return; }
+  if (items.length === 1) { if (items[0].type === 'project') saveProjectAsTemplate(items[0]); else saveTodoAsTemplate(items[0]); return; }
+  commit('Save as Templates', () => items.forEach((x) => (x.type === 'project' ? makeProjectBlueprint(x) : makeTodoBlueprint(x))));
+  toast(`Saved ${items.length} templates`, { action: 'Show Templates', fn: showTemplates });
 }
 function newProjectTemplate() {
   let bp;
@@ -8031,6 +8132,7 @@ function newProjectTemplate() {
   navigate('project:' + bp.id); ui.focusAfter = '[data-fkey="ptitle"]'; render();
 }
 function newTodoTemplate() {
+  showTemplates();
   let bp;
   commit('New Template', () => { bp = makeTodo({ title: '', isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.todos.filter(isBlueprint)) }); S.todos.push(bp); }, { render: false });
   ui.focusAfter = `[data-fkey="title-${bp.id}"]`;
@@ -8042,7 +8144,7 @@ function newProjectFromTemplate(id, areaId) {
   const area = areaId !== undefined ? areaId : (bp.bpAreaId && getA(bp.bpAreaId) ? bp.bpAreaId : null);
   let p;
   commit('New Project from Template', () => {
-    p = makeProject({ title: bp.title, notes: bp.notes, tags: bp.tags.slice(), priority: bp.priority || 0, areaId: area, start: 'anytime', order: endOrder(S.projects) });
+    p = makeProject(Object.assign({ title: bp.title, notes: bp.notes, tags: bp.tags.slice(), priority: bp.priority || 0, areaId: area, start: 'anytime', order: endOrder(S.projects) }, keepColor(bp)));
     S.projects.push(p); idx.project.set(p.id, p);
     copyProjectContents(bp, p);
   });
@@ -8077,60 +8179,211 @@ function newTodoFromTemplate(id, target) {
   else { render(); toast(`Added “${t.title || 'New To-Do'}” to ${placeLabel(t)}`, { action: 'Show', fn: () => revealTodo(t.id) }); }
   return t;
 }
-/* the "from template" menu; opts.kinds limits it to 'project' or 'todo', opts.sec / opts.areaId say where */
+/* what a template holds, in a line: "4 to-dos · 2 sub-projects · Goes in Home" */
+function tplSummary(x, opts = {}) {
+  if (x.type === 'project') {
+    const subs = projDescendants(x).filter((q) => !q.trashed && !q.isTemplate), inside = new Set([x.id, ...subs.map((q) => q.id)]);
+    const n = S.todos.filter((t) => inside.has(t.projectId) && !t.trashed && !t.isTemplate && !t.isDraft).length;
+    const area = x.bpAreaId && getA(x.bpAreaId);
+    return [plural(n, 'to-do'), subs.length ? plural(subs.length, 'sub-project') : '', area && !opts.noArea ? 'Goes in ' + aTitle(area) : ''].filter(Boolean).join(' · ');
+  }
+  return [x.checklist.length ? plural(x.checklist.length, 'checklist item') : '', x.notes && x.notes.trim() ? 'Notes' : '', prio(x) ? PRIORITY_NAMES[prio(x)] + ' priority' : ''].filter(Boolean).join(' · ');
+}
+/* Make something from a template: a small window with a search box, the project templates,
+   then the to-do templates. opts.kinds limits it to 'project' or 'todo'; opts.sec says which
+   section a to-do goes in, opts.areaId which area a project goes in. */
 function openTemplatePicker(anchor, opts = {}) {
-  const kinds = opts.kinds || ['project', 'todo'];
+  const kinds = opts.kinds || ['project', 'todo'], only = kinds.length === 1 ? kinds[0] : null;
   const projs = kinds.includes('project') ? projectBlueprints() : [], todos = kinds.includes('todo') ? todoBlueprints() : [];
-  if (!projs.length && !todos.length) {
-    toast(kinds.length === 1 && kinds[0] === 'project' ? 'No project templates yet. Use Save as Template in a project’s ••• menu.' : 'No templates yet. Use Save as Template in a project’s or to-do’s ••• menu.', { action: 'Templates', fn: () => navigate('templates') });
-    return null;
-  }
-  const items = [];
-  if (projs.length) { items.push({ header: 'New Project' }); projs.forEach((p) => items.push({ label: pTitle(p), icon: 'project', fn: () => newProjectFromTemplate(p.id, opts.areaId) })); }
-  if (todos.length) {
-    if (items.length) items.push({ sep: 1 });
-    items.push({ header: 'New To-Do' });
-    todos.forEach((t) => items.push({ label: t.title || 'New To-Do', icon: 'template', fn: () => newTodoFromTemplate(t.id, opts.sec ? { sec: opts.sec } : null) }));
-  }
-  items.push({ sep: 1 }, { label: 'Manage Templates', icon: 'template', fn: () => navigate('templates') });
-  return openMenu(anchor, items);
+  const none = !projs.length && !todos.length;
+  const build = (q = '') => {
+    const ql = q.trim().toLowerCase(), m = (x) => !ql || tplName(x).toLowerCase().includes(ql);
+    const ps = projs.filter(m), ts = todos.filter(m);
+    const item = (x) => `<button class="pick-i tp-i" data-tp="${x.id}">${ic(x.type === 'project' ? 'project' : 'template')}<span>${esc(tplName(x))}${tplSummary(x) ? `<small class="pick-in">${esc(tplSummary(x))}</small>` : ''}</span></button>`;
+    let out = '';
+    if (ps.length) out += (only ? '' : '<div class="menu-h">New Project</div>') + ps.map(item).join('');
+    if (ts.length) out += (only ? '' : '<div class="menu-h">New To-Do</div>') + ts.map(item).join('');
+    return out || `<p class="note" style="padding:6px 10px">No templates named that.</p>`;
+  };
+  const empty = `<p class="tp-none">${only === 'project' ? 'No project templates yet.' : only === 'todo' ? 'No to-do templates yet.' : 'No templates yet.'} Save ${only === 'todo' ? 'a to-do' : only === 'project' ? 'a project' : 'a project or a to-do'} as one from its ••• menu, or start one from scratch.</p>`;
+  const foot = (none && kinds.includes('project') ? `<button class="menu-i" data-tpx="new-p">${ic('plus')}<span>New Project Template</span></button>` : '')
+    + (none && kinds.includes('todo') ? `<button class="menu-i" data-tpx="new-t">${ic('plus')}<span>New To-Do Template</span></button>` : '')
+    + `<button class="menu-i" data-tpx="manage">${ic('template')}<span>${none ? 'Go to Templates' : 'Manage Templates'}</span></button>`;
+  const L = openLayer({ anchor, cls: 'move-pop tp-pop', html: `<div class="pk-h">${only === 'project' ? 'New Project from Template' : only === 'todo' ? 'New To-Do from Template' : 'New from Template'}</div>${none ? empty : `<input class="pk-in" id="tp-in" placeholder="Find a template" autocomplete="off" aria-label="Find a template"><div class="pick-list" id="tp-list">${build()}</div>`}<div class="pk-sep"></div>${foot}`,
+    onMount: (el) => {
+      const inp = $('#tp-in', el), list = $('#tp-list', el);
+      const nav = listKeys(el, '.pick-i, .menu-i', inp || undefined);
+      if (inp) { inp.addEventListener('input', () => { list.innerHTML = build(inp.value); nav.first(); }); if (!isCoarse()) inp.focus({ preventScroll: true }); }
+      el.addEventListener('click', (e) => {
+        const x = e.target.closest('[data-tpx]');
+        if (x) { closeLayer(L); if (x.dataset.tpx === 'new-p') newProjectTemplate(); else if (x.dataset.tpx === 'new-t') newTodoTemplate(); else navigate('templates'); return; }
+        const b = e.target.closest('[data-tp]'); if (!b) return;
+        closeLayer(L);
+        const t = itemById(b.dataset.tp); if (!isBlueprint(t)) return;
+        if (t.type === 'project') newProjectFromTemplate(t.id, opts.areaId);
+        else newTodoFromTemplate(t.id, opts.sec ? { sec: opts.sec } : null);
+      });
+    } });
+  return L;
 }
 function openAddTodoTemplateTo(id, anchor) {
   return openMove([], anchor, { title: 'Add To', onPick: (target) => newTodoFromTemplate(id, target) });
 }
-function deleteTemplate(id) {
-  const x = itemById(id); if (!x) return;
+const tplArea = (bp) => (bp && bp.bpAreaId && getA(bp.bpAreaId)) || null;
+/* a project template in an area you choose this once */
+function openProjectTemplateIn(id, anchor) {
+  const bp = getP(id); if (!bp) return null;
+  return openMove([], anchor, { title: 'New Project In', areasOnly: true, placeholder: 'Find an area', cur: { areaId: (tplArea(bp) || {}).id || null }, onPick: (tg) => newProjectFromTemplate(id, tg.type === 'area' ? tg.id : null) });
+}
+/* the area new projects from this template go in */
+function openTemplateArea(id, anchor) {
+  const bp = getP(id); if (!bp) return null;
+  return openMove([], anchor, { title: 'New Projects Go In', areasOnly: true, placeholder: 'Find an area', cur: { areaId: (tplArea(bp) || {}).id || null }, onPick: (tg) => commit('Template Area', () => { bp.bpAreaId = tg.type === 'area' ? tg.id : null; touch(bp); }) });
+}
+function editTemplate(id) {
+  const x = itemById(id); if (!isBlueprint(x)) return;
+  if (x.type === 'project') navigate('project:' + id); else { showTemplates(); openTplModal(id); }
+}
+function duplicateTemplate(id) {
+  const x = itemById(id); if (!isBlueprint(x)) return;
   closeTplModal();
-  trashItems([id]);
-  if (ui.view.type === 'project' && ui.view.id === id) navigate('templates');
+  commit('Duplicate Template', () => {
+    if (x.type === 'project') {
+      const c = makeProject(Object.assign({ title: pTitle(x) + ' copy', notes: x.notes, tags: x.tags.slice(), priority: x.priority || 0, areaId: null, bpAreaId: x.bpAreaId || null, isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.projects) }, keepColor(x)));
+      S.projects.push(c); idx.project.set(c.id, c);
+      copyProjectContents(x, c, { all: true });
+    } else {
+      S.todos.push(makeTodo({ title: tplName(x) + ' copy', notes: x.notes, tags: x.tags.slice(), priority: x.priority || 0, checklist: freshChecklist(x.checklist), isTemplate: true, blueprint: true, start: 'anytime', order: endOrder(S.todos.filter(isBlueprint)) }));
+    }
+  }, { render: false });
+  if (ui.view.type !== 'templates') navigate('templates'); else render();
+  toast(`Duplicated “${tplName(x)}”`, { undo: true });
+}
+/* a new template you never named or put anything in */
+function isEmptyBlueprint(x) {
+  if (!isBlueprint(x) || x.trashed || itemById(x.id) !== x) return false;
+  if (x.title || (x.notes || '').trim() || x.tags.length) return false;
+  if (x.type === 'project') return !S.todos.some((t) => t.projectId === x.id && !t.trashed) && !childProjects(x).length;
+  return !x.checklist.length;
+}
+/* …isn't kept: leaving it (another page, closing its window) takes it away again */
+function dropEmptyBlueprint(x) {
+  if (!isEmptyBlueprint(x)) return false;
+  if (x.type === 'project') { S.todos = S.todos.filter((t) => t.projectId !== x.id); S.projects = S.projects.filter((p) => p !== x); }
+  else S.todos = S.todos.filter((t) => t !== x);
+  const top = undoStack[undoStack.length - 1]; if (top && top.label === 'New Template') undoStack.pop();
+  reindex(); saveSoon(); return true;
+}
+/* to the Trash, where Put Back brings it back */
+function deleteTemplate(id) {
+  const x = itemById(id); if (!isBlueprint(x) || x.trashed) return;
+  const vp = ui.view.type === 'project' && getP(ui.view.id), inside = !!vp && (vp.id === id || projAncestors(vp).some((q) => q.id === id));
+  const empty = isEmptyBlueprint(x);
+  closeTplModal(); // (an empty to-do template goes as its window closes)
+  if (empty) { if (inside) navigate('templates'); else { dropEmptyBlueprint(x); render(); } return; }
+  commit('Delete Template', () => { x.trashed = true; x.trashedAt = Date.now(); touch(x); }, { render: !inside });
+  if (inside) navigate('templates');
+  toast(`Moved the template “${tplName(x)}” to the Trash`, { undo: true });
+}
+/* pick one of your projects to save as a template */
+function openSaveProjectAsTemplate(anchor) {
+  if (!S.projects.some((p) => !p.trashed && !p.isTemplate && p.status === 'open' && !deadAbove(p))) { toast('There are no open projects to save as a template yet'); return null; }
+  return openMove([], anchor, { title: 'Save as Template', noInbox: true, noAreas: true, placeholder: 'Find a project', onPick: (tg) => { const p = tg.type === 'project' && getP(tg.id); if (p) { saveProjectAsTemplate(p); showTemplates(); } } });
+}
+function newTemplateMenuItems(anchor) {
+  return [
+    { label: 'New Project Template', icon: 'project', fn: newProjectTemplate },
+    { label: 'New To-Do Template', icon: 'template', fn: newTodoTemplate },
+    { sep: 1 },
+    { label: 'From One of Your Projects…', icon: 'copy', fn: () => openSaveProjectAsTemplate(anchor && anchor.isConnected ? anchor : null) },
+  ];
+}
+/* what you can do with a template. opts.page: it's the page (or window) you're on, so no
+   header and no Edit; its own menu adds what only makes sense there. */
+function templateMenuItems(id, anchor, opts = {}) {
+  const x = itemById(id); if (!isBlueprint(x)) return [];
+  const at = () => (anchor && anchor.isConnected === false ? null : anchor);
+  const items = opts.page ? [] : [{ header: tplName(x) }];
+  if (x.type === 'project') {
+    const area = tplArea(x);
+    items.push({ label: area ? `New Project in ${aTitle(area)}` : 'New Project', icon: 'project', fn: () => newProjectFromTemplate(id) });
+    if (S.areas.length) items.push({ label: 'New Project In…', icon: 'area', fn: () => openProjectTemplateIn(id, at()) });
+    items.push({ sep: 1 });
+    if (!opts.page) items.push({ label: 'Edit Template', icon: 'pencil', fn: () => editTemplate(id) });
+    if (S.areas.length) items.push({ label: 'New Projects Go In…', icon: 'area', hint: area ? aTitle(area) : 'No Area', fn: () => openTemplateArea(id, at()) });
+  } else {
+    items.push({ label: 'Add To…', icon: 'move', fn: () => openAddTodoTemplateTo(id, at()) });
+    items.push({ label: 'Add to Inbox', icon: 'inbox', fn: () => newTodoFromTemplate(id, { type: 'inbox' }) });
+    items.push({ sep: 1 });
+    if (!opts.page) items.push({ label: 'Edit Template', icon: 'pencil', fn: () => editTemplate(id) });
+  }
+  if (opts.more) items.push(...opts.more);
+  items.push({ label: 'Duplicate Template', icon: 'copy', fn: () => duplicateTemplate(id) });
+  if (opts.page && x.type === 'project') items.push({ label: 'All Templates', icon: 'template', fn: () => navigate('templates') });
+  items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(id) });
+  return items;
+}
+/* a template's own menu: on its row, or by right-clicking it */
+function templateMenu(id, anchor) {
+  const items = templateMenuItems(id, anchor);
+  return items.length ? openMenu(anchor, items) : null;
 }
 
-/* ---- the Templates list ---- */
-function viewTemplates() {
-  const projs = projectBlueprints(), todos = todoBlueprints();
-  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span><h1 class="lh-title">Templates</h1><button class="btn board-add" data-action="templates-new">${ic('plus')}<span>New Template</span></button></div>
-    <div class="lh-sub">Copy a whole project, or a to-do with its checklist, whenever you need a fresh one.</div><div class="list">`;
-  if (projs.length) {
-    html += `<div class="sec-h"><span>Projects</span></div>`;
-    html += projs.map((p) => {
-      const subs = projDescendants(p).filter((q) => !q.trashed && !q.isTemplate), inside = new Set([p.id, ...subs.map((q) => q.id)]);
-      const n = S.todos.filter((t) => inside.has(t.projectId) && !t.trashed && !t.isTemplate && !t.isDraft).length;
-      const area = p.bpAreaId && getA(p.bpAreaId);
-      const sub = [plural(n, 'to-do'), subs.length ? plural(subs.length, 'sub-project') : '', area ? 'Goes in ' + aTitle(area) : ''].filter(Boolean).join(' · ');
-      return `<div class="row tpl-row" data-nav="project:${p.id}" title="Edit this template">${ic('project', 'r-ic tpl-ic')}<div class="r-main"><div class="r-line"><span class="r-title${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${tagPills(p)}</div><div class="r-sub">${esc(sub)}</div></div><div class="r-right"><button class="btn tpl-use" data-action="use-ptemplate" data-id="${p.id}">New Project</button></div></div>`;
-    }).join('');
-  }
-  if (todos.length) {
-    html += `<div class="sec-h"><span>To-Dos</span></div>`;
-    html += todos.map((t) => {
-      const sub = [t.checklist.length ? plural(t.checklist.length, 'checklist item') : '', t.notes && t.notes.trim() ? 'Notes' : ''].filter(Boolean).join(' · ');
-      return `<div class="row tpl-row" data-tpl="${t.id}" title="Edit this template">${ic('template', 'r-ic tpl-ic')}<div class="r-main"><div class="r-line"><span class="r-title${t.title ? '' : ' untitled'}">${esc(t.title || 'New To-Do')}</span>${tagPills(t)}</div>${sub ? `<div class="r-sub">${esc(sub)}</div>` : ''}</div><div class="r-right"><button class="btn tpl-use" data-action="use-ttemplate" data-id="${t.id}">Add To…</button></div></div>`;
-    }).join('');
-  }
-  html += '</div>';
-  if (!projs.length && !todos.length) html += emptyHTML('template', 'No templates yet', 'Choose <b>Save as Template</b> from a project’s or to-do’s ••• menu, or click <b>New Template</b>. Then use it from the <b>+ New List</b> menu or any list’s ••• menu.');
-  return html;
+/* ---- the Templates page ---- */
+function tplRowHTML(x) {
+  const isP = x.type === 'project', area = isP && tplArea(x);
+  const use = isP ? (area ? `Make a new project from this template, in ${aTitle(area)}` : 'Make a new project from this template') : 'Add a to-do from this template to a list';
+  return `<div class="tpl-row" ${isP ? `data-nav="project:${x.id}"` : `data-tpl="${x.id}"`} data-tplrow="${x.id}" tabindex="0" role="button" aria-label="Edit the template ${esc(tplName(x))}">${ic(isP ? 'project' : 'template', 'tpl-ic')}<div class="r-main"><div class="r-line"><span class="r-title${x.title ? '' : ' untitled'}">${esc(tplName(x))}</span>${tagPills(x)}</div>${tplSummary(x) ? `<div class="r-sub">${esc(tplSummary(x))}</div>` : ''}</div><div class="tpl-acts"><button class="btn tpl-use" data-action="${isP ? 'use-ptemplate' : 'use-ttemplate'}" data-id="${x.id}" title="${esc(use)}">${isP ? 'New Project' : 'Add To…'}</button><button class="ib tpl-del" data-action="delete-template" data-id="${x.id}" aria-label="Delete the template ${esc(tplName(x))}" title="Delete this template">${ic('trash')}</button><button class="ib tpl-more" data-action="tpl-menu" data-id="${x.id}" aria-label="More for the template ${esc(tplName(x))}" title="More">${ic('more')}</button></div></div>`;
 }
+function tplListHTML() {
+  const ql = (ui.tplQuery || '').trim().toLowerCase();
+  const m = (x) => !ql || [tplName(x), x.notes || '', ...(x.tags || []).map(tagTitle)].join(' ').toLowerCase().includes(ql);
+  const projs = projectBlueprints().filter(m), todos = todoBlueprints().filter(m);
+  let html = '';
+  if (projs.length) html += `<div class="sec-h tpl-h"><span>Projects</span><span class="ghost-count">${projs.length}</span></div>${projs.map(tplRowHTML).join('')}`;
+  if (todos.length) html += `<div class="sec-h tpl-h"><span>To-Dos</span><span class="ghost-count">${todos.length}</span></div>${todos.map(tplRowHTML).join('')}`;
+  return html || `<p class="tpl-nomatch">No templates match “${esc((ui.tplQuery || '').trim())}”.</p>`;
+}
+function viewTemplates() {
+  const n = projectBlueprints().length + todoBlueprints().length;
+  let html = `<div class="lh"><span class="ic lh-ic" style="color:var(--c-template)">${I.template}</span><h1 class="lh-title">Templates</h1>${n ? `<button class="btn primary board-add" data-action="templates-new">${ic('plus')}<span>New Template</span></button>` : ''}</div>
+    <div class="lh-sub">Projects and to-dos you can make a fresh copy of whenever you need one.</div>`;
+  if (!n) {
+    ui.tplQuery = '';
+    return html + `<div class="empty tpl-empty">${ic('template')}<p><b>No templates yet</b></p><p>A project template keeps its to-dos, sub-projects and checklists. A to-do template keeps its notes and checklist.</p><div class="tpl-empty-btns"><button class="btn primary" data-action="tpl-new-project">${ic('plus')}<span>Project Template</span></button><button class="btn" data-action="tpl-new-todo">${ic('plus')}<span>To-Do Template</span></button></div><p class="tpl-empty-or">Already have a project that fits? <button class="link-btn" data-action="tpl-from-project">Save it as a template</button>${isCoarse() ? '' : ', or drag it onto Templates in the sidebar'}.</p></div>`;
+  }
+  if (n > 6 || ui.tplQuery) html += `<label class="tpl-find">${ic('search')}<input id="tpl-q" data-fkey="tpl-q" type="text" placeholder="Find a template" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Find a template" value="${esc(ui.tplQuery || '')}"></label>`;
+  return html + `<div class="list tpl-list" id="tpl-list">${tplListHTML()}</div>`;
+}
+/* templates in the Trash: a row each, with Put Back */
+function trashedTemplatesHTML(list) {
+  if (!list.length) return '';
+  return `<div class="sec-h tpl-h"><span>Templates</span><span class="ghost-count">${list.length}</span></div>` + list.map((x) => {
+    const isP = x.type === 'project';
+    return `<div class="tpl-row trashed-row"${isP ? ` data-nav="project:${x.id}" title="Open it to see what’s in it"` : ''}>${ic(isP ? 'project' : 'template', 'tpl-ic')}<div class="r-main"><div class="r-line"><span class="r-title${x.title ? '' : ' untitled'}">${esc(tplName(x))}</span></div><div class="r-sub">${esc([isP ? 'Project template' : 'To-do template', tplSummary(x, { noArea: true })].filter(Boolean).join(' · '))}</div></div><div class="tpl-acts"><button class="restore" data-action="restore" data-id="${x.id}">Put Back</button></div></div>`;
+  }).join('');
+}
+/* typing in the Templates page's search box redraws just its list */
+document.addEventListener('input', (e) => {
+  if (!e.target || e.target.id !== 'tpl-q') return;
+  ui.tplQuery = e.target.value;
+  const list = $('#tpl-list'); if (list) list.innerHTML = tplListHTML();
+});
+/* a template's row with the keyboard: Return edits it, ⌫ deletes it, ↑ ↓ move between rows */
+document.addEventListener('keydown', (e) => {
+  const t = e.target;
+  if (t && t.id === 'tpl-q') {
+    if (e.key === 'Escape' && t.value) { e.preventDefault(); e.stopImmediatePropagation(); t.value = ''; ui.tplQuery = ''; const list = $('#tpl-list'); if (list) list.innerHTML = tplListHTML(); }
+    else if (e.key === 'ArrowDown') { const r = $('#content .tpl-row'); if (r) { e.preventDefault(); e.stopImmediatePropagation(); r.focus(); } }
+    return;
+  }
+  if (!t || !t.matches || !t.matches('#content .tpl-row[data-tplrow]') || e.metaKey || e.ctrlKey || e.altKey || layers.length) return;
+  const id = t.dataset.tplrow, rows = $$('#content .tpl-row[data-tplrow]'), i = rows.indexOf(t);
+  const stop = () => { e.preventDefault(); e.stopImmediatePropagation(); };
+  if (e.key === 'Enter' || e.key === ' ') { stop(); editTemplate(id); }
+  else if (e.key === 'Backspace' || e.key === 'Delete') { stop(); deleteTemplate(id); const left = $$('#content .tpl-row[data-tplrow]'), again = left[Math.min(i, left.length - 1)]; if (again) again.focus(); }
+  else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { stop(); const n = rows[i + (e.key === 'ArrowDown' ? 1 : -1)] || (e.key === 'ArrowUp' ? $('#tpl-q') : null); if (n) n.focus(); }
+}, true);
 
 /* ===================== Waiting For =====================
    A to-do can wait on someone (waitFor: a name; waitSince: the day it started waiting).
@@ -9878,9 +10131,9 @@ function openFocusEditor(f = null) {
 /* the Focus part of Settings */
 function focusSettingsHTML() {
   const fs = (S.focuses || []).slice().sort(byOrder);
-  return `<p class="note" style="margin:0 0 10px">Show only some areas at a time, like Work or Home, in every list, count and Board. Switch at the top of the sidebar, or let a schedule do it. Focuses sync; which one is on is up to each device.</p>`
-    + fs.map((f) => `<div class="set-row"><span class="lbl">${esc(focusTitle(f))}${ui.focusRec && ui.focusRec.id === f.id ? ' <span class="fx-on">On</span>' : ''}<small>${esc(focusSummary(f))}</small></span><button class="btn" data-s="focus-edit" data-id="${f.id}">Edit…</button></div>`).join('')
-    + `<div class="set-btns"><button class="btn" data-s="focus-new">New Focus…</button></div>`;
+  return `<p class="set-lead">Show only some areas at a time, like Work or Home, in every list, count and Board. Switch at the top of the sidebar, or let a schedule do it. Focuses sync; which one is on is up to each device.</p>`
+    + setGroup('', fs.map((f) => setRow(`${esc(focusTitle(f))}${ui.focusRec && ui.focusRec.id === f.id ? ' <span class="fx-on">On</span>' : ''}`, esc(focusSummary(f)), `<button class="btn" data-s="focus-edit" data-id="${f.id}">Edit…</button>`)))
+    + `<div class="set-btns"><button class="btn${fs.length ? '' : ' primary'}" data-s="focus-new">New Focus…</button></div>`;
 }
 
 /* ===================== Quick Entry: @ files a to-do =====================
@@ -9950,7 +10203,8 @@ function parsePlace(raw) {
   }
   return null;
 }
-function placeLabel(pl) {
+/* (named apart from placeLabel in 17-links.js, which names the place a to-do is in) */
+function qePlaceLabel(pl) {
   if (!pl) return '';
   if (pl.type === 'area') return aTitle(getA(pl.id));
   return getP(pl.id) ? projPath(getP(pl.id)) : 'New Project';
@@ -11079,7 +11333,8 @@ document.addEventListener('keydown', (e) => {
 }, true);
 
 /* ---- clicks ---- */
-async function copyText(v) {
+/* (named apart from copyText in 11-sync.js, which the Share, Report, Backups and Sync windows use to say "Copied.") */
+async function copyValue(v) {
   try { await navigator.clipboard.writeText(v); return true; } catch (e) {
     const ta = document.createElement('textarea'); ta.value = v; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
     let ok = false; try { ok = document.execCommand('copy'); } catch (err) { /* ignore */ }
@@ -11097,7 +11352,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest && e.target.closest('#notepad [data-copy], #np-stickies [data-copy]'); if (!b) return;
   e.preventDefault(); e.stopPropagation();
   const v = b.dataset.copy;
-  copyText(v).then((ok) => {
+  copyValue(v).then((ok) => {
     toast(ok ? `Copied ${v.length > 40 ? v.slice(0, 39) + '…' : v}` : 'Couldn’t copy');
     if (ok) { b.classList.add('copied'); setTimeout(() => b.classList.remove('copied'), 1200); }
   });
@@ -11130,7 +11385,7 @@ function noteMenu(n, el) {
     ...(n.archived ? [] : [{ label: n.pinned ? 'Unpin' : 'Pin to Top', icon: 'pin', fn: () => { commit(n.pinned ? 'Unpin Note' : 'Pin Note', () => { n.pinned = !n.pinned; }); renderNotepad(); } }]),
     { label: picked ? 'Make To-Do of Selection' : 'Make To-Do', icon: 'circle', fn: () => noteToTodo(n.id, picked) },
     ...(lines > 1 ? [{ label: picked ? 'One To-Do per Selected Line' : 'One To-Do per Line', icon: 'checklist', hint: String(lines), fn: () => noteToTodos(n.id, picked) }] : []),
-    { label: 'Copy Text', icon: 'copy', fn: () => { copyText(n.text).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy')); } },
+    { label: 'Copy Text', icon: 'copy', fn: () => { copyValue(n.text).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy')); } },
     ...(isMobile() || n.archived ? [] : [stickyOf(n.id) ? { label: 'Hide Sticky', icon: 'popout', fn: () => hideSticky(n.id) } : { label: 'Show as Sticky', icon: 'popout', fn: () => showSticky(n.id) }]),
     { label: 'Attach To…', icon: 'move', fn: () => openNotePlaces(n.id, el) },
     ...(hc && !noteOn(n, here) ? [
@@ -11404,6 +11659,7 @@ document.addEventListener('pointerdown', (e) => {
    - a project's sub-project (its row or its column) → that sub-project's menu, like any project's
    - a project or area named anywhere (Anytime's groups, the Timeline, a note's chip) → its menu
    - a repeating to-do's preview in Upcoming → its repeat menu
+   - a template on the Templates page → the template's menu (in the Trash: Put Back)
    - a day in Upcoming, or This Evening → New To-Do there, or Paste
    - the sidebar's lists, smart lists and Board → their menus
    - an open to-do (away from its text fields) → the to-do's menu; a checklist item → the item's
@@ -11422,6 +11678,7 @@ function listMenu(key, at) {
   if (key === 'board') { items.push(...boardsMenuItems()); openMenu(at, items); return; }
   if (key === 'logbook') items.push({ label: 'Log Completed Now', icon: 'logbook', fn: logCompletedNow });
   if (key === 'trash') items.push({ label: 'Empty Trash…', icon: 'trash', danger: true, fn: () => { go(); emptyTrash(); } });
+  if (key === 'templates') { items.push(...newTemplateMenuItems(null), { sep: 1 }, { label: 'New from Template…', icon: 'template', hint: '⇧T', fn: () => openTemplatePicker(at) }); openMenu(at, items); return; }
   if (BOARD_LISTS.includes(key)) items.push(...boardMenuItems('l', key, false, at));
   if (key !== 'trash') items.push({ label: 'Share List…', icon: 'share', fn: () => { go(); openShare({ type: 'view' }); } });
   if (!['trash', 'logbook'].includes(key)) items.push({ label: 'Status Report…', icon: 'report', fn: () => { go(); openReport({ type: 'all' }); } });
@@ -11480,6 +11737,10 @@ document.addEventListener('contextmenu', (e) => {
   if (tchip && getTag(tchip.dataset.tag)) return take(() => tagChipMenu(getTag(tchip.dataset.tag), at));
   const hc = t.closest('#content .hcol[data-hcol^="h:"] .bcol-h'); // a sub-project's column on its project's board
   if (hc) { const b = hc.querySelector('[data-action="hcol-menu"]'); if (b) return take(() => hcolMenu(b)); }
+  const trow = t.closest('#content .tpl-row[data-tplrow]'); // a template on the Templates page
+  if (trow && isBlueprint(itemById(trow.dataset.tplrow))) return take(() => templateMenu(trow.dataset.tplrow, at));
+  const binned = t.closest('#content .tpl-row.trashed-row'); // a template in the Trash
+  if (binned) { const b = binned.querySelector('[data-action="restore"]'), x = b && itemById(b.dataset.id); if (x) return take(() => openMenu(at, [{ header: tplName(x) }, { label: 'Put Back', icon: 'reopen', fn: () => restoreItems([x.id]) }])); }
   const ghost = t.closest('#content [data-tpl]');
   if (ghost && getT(ghost.dataset.tpl)) return take(() => todoMenu(ghost.dataset.tpl, at));
   const day = t.closest('#content .day-h[data-zone^="upcoming:"]:not(.month)');
@@ -11547,6 +11808,253 @@ document.addEventListener('click', (e) => {
   }
   sbLastClick = { key, t: now };
 }, true);
+
+/* ===================== Settings =====================
+   One window with a pane per subject: the list on the left picks the pane on the right. In a
+   narrow window, and on iPhone, the list comes first and each pane opens over it.
+   - Search finds a setting by any word in its name or description, across every pane.
+   - Windows opened from here (Manage Tags, Backups, a focus, sync set-up) open over Settings
+     and come back to the same pane when they close.
+   - openSettings('sync') (or any pane's id) opens straight to that pane. */
+const SET_PANES = [
+  { id: 'general', title: 'General', icon: 'sliders' },
+  { id: 'lists', title: 'Lists', icon: 'checklist' },
+  { id: 'tags', title: 'Tags', icon: 'tag' },
+  { id: 'focus', title: 'Focus', icon: 'focus' },
+  { id: 'sync', title: 'Sync', icon: 'cloud' },
+  { id: 'data', title: 'Your Data', icon: 'archive' },
+  { id: 'about', title: 'About', icon: 'info' },
+];
+ui.setPane = 'general'; // the pane you were last in, while Sectis stays open
+
+/* one setting: its name and a line about it on the left, its control on the right */
+function setRow(label, desc, ctl, cls = '') {
+  return `<div class="set-row${cls ? ' ' + cls : ''}"><div class="lbl"><span>${label}</span>${desc ? `<small>${desc}</small>` : ''}</div>${ctl ? `<div class="set-ctl">${ctl}</div>` : ''}</div>`;
+}
+/* settings that belong together, in one outlined box under a small heading */
+function setGroup(title, rows, note = '') {
+  const list = rows.filter(Boolean);
+  if (!list.length) return '';
+  return `<section class="set-grp">${title ? `<h3>${title}</h3>` : ''}<div class="set-card">${list.join('')}</div>${note ? `<p class="note">${note}</p>` : ''}</section>`;
+}
+
+function openSettings(pane) {
+  if (ui.editing) closeEditor({ noRender: false });
+  const known = (id) => typeof id === 'string' && SET_PANES.some((p) => p.id === id);
+  let cur = known(pane) ? pane : known(ui.setPane) ? ui.setPane : 'general';
+  let atNav = !known(pane); // a narrow window starts at the list, unless a pane was asked for
+  let q = '';
+  const seg = (key, opts, label) => `<div class="seg" role="group" aria-label="${esc(label)}">${opts.map(([v, l]) => { const on = String(S.settings[key]) === String(v); return `<button data-set="${key}" data-val="${v}" class="${on ? 'on' : ''}" aria-pressed="${on}">${l}</button>`; }).join('')}</div>`;
+  const sw = (key, label) => `<button class="switch${S.settings[key] ? ' on' : ''}" data-switch="${key}" role="switch" aria-checked="${!!S.settings[key]}" aria-label="${esc(label)}"></button>`;
+  const segRow = (label, desc, key, opts) => setRow(label, desc, seg(key, opts, label), 'has-seg');
+  const swRow = (label, desc, key) => setRow(label, desc, sw(key, label), 'tog');
+  const PANE = {
+    general: () => {
+      const notif = !('Notification' in window) || IN_FRAME ? 'unavailable' : Notification.permission;
+      return setGroup('Appearance', [
+        segRow('Theme', '', 'theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]),
+        segRow('Row spacing', 'Compact fits more to-dos on screen. Each device keeps its own.', 'density', [['comfortable', 'Comfortable'], ['compact', 'Compact']]),
+      ]) + setGroup('Dates and typing', [
+        segRow('Week starts on', '', 'weekStart', [[0, 'Sunday'], [1, 'Monday']]),
+        swRow('Quick Entry reads dates, tags and places', '“Pay rent friday @Home #Bills !oct 31” sets When, the area, a tag and a deadline.', 'parseEntry'),
+      ]) + setGroup('Reminders', [
+        notif === 'unavailable' ? setRow('System notifications', 'Not available here. Reminders still show inside Sectis while it is open.')
+          : notif === 'denied' ? setRow('System notifications', 'Blocked in your browser’s settings. Reminders still show inside Sectis.')
+            : swRow('System notifications', 'Show reminders as banners while Sectis is open, in a tab or as an installed app.', 'notify'),
+      ]);
+    },
+    lists: () => setGroup('Order', [
+      swRow('Keep higher priorities on top', 'High, then Medium, then Low, in every list you haven’t sorted another way. You can still arrange to-dos within each priority.', 'prioTop'),
+      swRow('Group Today by project and area', '', 'groupToday'),
+    ]) + setGroup('Completed to-dos', [
+      segRow('When you check one off', 'Move to Bottom puts it below the rest of its list. Unchecking it puts it back where it was.', 'doneSink', [['bottom', 'Move to Bottom'], ['stay', 'Stay in Place']]),
+      segRow('Move completed items to the Logbook', 'Until then they stay in their list, checked.', 'logMode', [['immediate', 'Immediately'], ['daily', 'Daily'], ['manual', 'Manually']]),
+      segRow('Logged to-dos in projects and areas', 'At the Bottom keeps them at the end, behind Show logged items. Where They Were lists each one in its project or sub-project, with the day it was done.', 'loggedPlace', [['bottom', 'At the Bottom'], ['inline', 'Where They Were']]),
+    ]),
+    tags: () => {
+      const n = S.tags.filter((t) => !t.group).length;
+      return setGroup('', [
+        setRow('Your tags', n ? `${plural(n, 'tag')}. Rename, color, group and reorder them.` : 'No tags yet. Make some here, or press # on a to-do.', '<button class="btn" data-s="tags">Manage Tags…</button>'),
+      ]) + setGroup('In lists', [
+        segRow('Tags shown in lists', 'Own Only leaves out the tags a to-do gets from its project or area. Open a to-do to see them all.', 'rowTags', [['own', 'Own Only'], ['all', 'All'], ['none', 'None']]),
+      ]) + setGroup('Projects and areas', [
+        swRow('To-dos take on the tags of their project and area', 'Adding or moving a to-do into a project or area gives it that place’s tags. Moving it elsewhere swaps them.', 'inheritTags'),
+        setRow('Tag to-dos already in projects and areas', 'Adds each project’s and area’s tags to the to-dos inside it now. You can undo it.', '<button class="btn" data-s="retag-all">Tag Them Now</button>'),
+      ]);
+    },
+    focus: () => focusSettingsHTML(),
+    sync: () => syncSettingsHTML(),
+    data: () => {
+      const hasSample = S.todos.some((t) => t.sample) || S.projects.some((p) => p.sample) || S.areas.some((a) => a.sample);
+      const file = !fileSyncSupported() ? '' : fileSync.name
+        ? setRow('Data file', `Saving to <b>${esc(fileSync.name)}</b>${fileSync.needsPermission ? '. Click Reconnect to allow access.' : '.'}`, `${fileSync.needsPermission ? '<button class="btn primary" data-s="fs-reconnect">Reconnect</button>' : ''}<button class="btn" data-s="fs-unlink">Disconnect</button>`)
+        : setRow('Data file', 'Keep your to-dos in a file, for example on a thumb drive next to Sectis.', '<button class="btn" data-s="fs-new">Create File…</button><button class="btn" data-s="fs-open">Open File…</button>');
+      return `<p class="set-lead">${Y.enabled ? 'Your to-dos are saved in this browser on this device, and synced, encrypted, through your own Firebase project.' : 'Your to-dos are saved in this browser on this device. Nothing is sent anywhere.'}</p>`
+        + setGroup('Backups', [
+          setRow('Automatic backups', 'A copy every day for 14 days, and one before big changes.', '<button class="btn" data-s="backups">Backups…</button>'),
+          setRow('Export', 'Save everything as a file you can keep somewhere safe.', '<button class="btn" data-s="export">Export Backup…</button>'),
+          setRow('Import', 'Bring in a backup file, or paste a list to add as to-dos.', '<button class="btn" data-s="import">Import…</button>'),
+          file,
+        ]) + setGroup('Start over', [
+          hasSample ? setRow('Sample to-dos', 'The tour and examples Sectis started with.', '<button class="btn" data-s="sample-remove">Remove Sample To-Dos</button>')
+            : setRow('Sample to-dos', 'Bring back the tour and examples Sectis started with.', '<button class="btn" data-s="sample-add">Add Sample To-Dos</button>'),
+          setRow('Erase all data', Y.enabled ? 'Deletes every to-do, project, area and tag here and on every device that syncs with this one.' : 'Deletes every to-do, project, area and tag in this browser.', '<button class="btn danger-quiet" data-s="erase">Erase All Data…</button>'),
+        ]);
+    },
+    about: () => {
+      const canUpdate = updatesAvailable(), newer = canUpdate && upd.latest && newerVersion(upd.latest, APP_VERSION);
+      return setGroup('', [
+        setRow('Sectis', `Version ${APP_VERSION}${canUpdate ? '. Sectis checks for updates when you bring it to the front.' : ''}`, canUpdate ? `<button class="btn${newer ? ' primary' : ''}" data-s="update-check" id="upd-btn">${newer ? `Update to ${esc(upd.latest)}` : 'Check for Updates'}</button>` : ''),
+        setRow('Keyboard shortcuts', `Press <kbd>?</kbd> on any list to see them all.`, '<button class="btn" data-s="shortcuts">Show Shortcuts</button>'),
+      ]) + `<p class="set-lead set-fine">A private to-do app. No account, and nothing leaves this device unless you turn on sync.</p>`;
+    },
+  };
+  const title = (id) => (SET_PANES.find((p) => p.id === id) || SET_PANES[0]).title;
+  const words = () => q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  /* every pane, cut down to the settings whose text has all the words */
+  const searchHTML = () => {
+    const ws = words(), tmp = document.createElement('div');
+    const has = (text) => ws.every((w) => text.toLowerCase().includes(w));
+    let out = '';
+    SET_PANES.forEach((p) => {
+      tmp.innerHTML = PANE[p.id]();
+      if (!has(p.title)) {
+        $$('.set-lead, .set-btns', tmp).forEach((n) => n.remove());
+        $$('.set-grp', tmp).forEach((g) => {
+          const h = $('h3', g);
+          if (h && has(h.textContent)) return;
+          $$('.set-row', g).forEach((r) => { if (!has(r.textContent)) r.remove(); });
+          if (!$('.set-row', g)) g.remove(); else { const n = $('.note', g); if (n) n.remove(); }
+        });
+      }
+      if ($('.set-grp', tmp)) out += `<div class="set-found"><button class="set-found-h" data-pane="${p.id}" title="Open ${esc(p.title)}">${ic(p.icon)}<span>${esc(p.title)}</span>${ic('chevR', 'chev')}</button>${tmp.innerHTML}</div>`;
+    });
+    return out || `<p class="set-none">No settings match “${esc(q.trim())}”.</p>`;
+  };
+  const shell = `<div class="st">
+    <div class="st-side">
+      <div class="st-side-h"><h2>Settings</h2><button class="ib st-x" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>
+      <label class="st-search">${ic('search')}<input id="st-q" type="text" placeholder="Search settings" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Search settings" enterkeyhint="search"><button class="st-clear" data-st="clear" aria-label="Clear search" hidden>${ic('x')}</button></label>
+      <nav class="st-tabs" aria-label="Settings sections">${SET_PANES.map((p) => `<button class="st-tab" data-pane="${p.id}">${ic(p.icon)}<span>${p.title}</span>${ic('chevR', 'chev')}</button>`).join('')}</nav>
+      <div class="st-ver">Sectis ${APP_VERSION}</div>
+    </div>
+    <div class="st-main">
+      <div class="st-head"><button class="st-back" data-st="back" aria-label="Back to Settings">${ic('chevL')}<span>Settings</span></button><h2 id="st-title"></h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>
+      <div class="st-body" id="st-body"></div>
+    </div></div>`;
+  const L = openLayer({ modal: true, cls: 'settings', html: shell, onMount: (el, layer) => {
+    const root = $('.st', el), body = $('#st-body', el), inp = $('#st-q', el);
+    el.setAttribute('aria-label', 'Settings');
+    /* the control that had the keyboard keeps it when the pane is redrawn */
+    const focusKey = (a) => {
+      if (!a || !a.dataset || !body.contains(a)) return null;
+      if (a.dataset.set) return `[data-set="${a.dataset.set}"][data-val="${a.dataset.val}"]`;
+      if (a.dataset.switch) return `[data-switch="${a.dataset.switch}"]`;
+      if (a.dataset.s) return `[data-s="${a.dataset.s}"]${a.dataset.id ? `[data-id="${a.dataset.id}"]` : ''}`;
+      return null;
+    };
+    const paint = (keep) => {
+      if (!el.isConnected) return;
+      const searching = !!q.trim(), top = keep ? body.scrollTop : 0, fk = keep ? focusKey(document.activeElement) : null;
+      root.classList.toggle('at-nav', atNav);
+      root.classList.toggle('searching', searching);
+      $('.st-clear', el).hidden = !q;
+      $$('.st-tab', el).forEach((b) => { const on = !searching && b.dataset.pane === cur; b.classList.toggle('on', on); if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+      $('#st-title', el).textContent = searching ? 'Search' : title(cur);
+      body.innerHTML = searching ? searchHTML() : PANE[cur]();
+      body.scrollTop = top;
+      if (fk) { const f = $(fk, body); if (f) f.focus({ preventScroll: true }); }
+    };
+    const show = (id) => { cur = id; ui.setPane = id; atNav = false; q = ''; inp.value = ''; paint(false); };
+    layer.onReveal = () => paint(true); // a window opened from here has closed
+    paint(false);
+    inp.addEventListener('input', () => { q = inp.value; paint(false); });
+    el.addEventListener('keydown', (e) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (e.key === 'Escape' && q) { e.preventDefault(); e.stopPropagation(); q = ''; inp.value = ''; paint(false); return; }
+      if ((mod && e.key.toLowerCase() === 'f') || (e.key === '/' && e.target !== inp && !mod)) { e.preventDefault(); e.stopPropagation(); inp.focus(); inp.select(); return; }
+      // ↑ ↓ walk the panes while the list has the keyboard
+      const tab = e.target.closest && e.target.closest('.st-tab');
+      if (tab && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+        e.preventDefault();
+        const tabs = $$('.st-tab', el), i = tabs.indexOf(tab), n = tabs[clamp(i + (e.key === 'ArrowDown' ? 1 : -1), 0, tabs.length - 1)];
+        if (n && n !== tab) { show(n.dataset.pane); n.focus(); }
+      }
+    });
+    el.addEventListener('click', async (e) => {
+      const t = e.target.closest('[data-pane]');
+      if (t) { show(t.dataset.pane); return; }
+      const st = e.target.closest('[data-st]');
+      if (st) { if (st.dataset.st === 'back') { atNav = true; paint(false); } else { q = ''; inp.value = ''; paint(false); inp.focus(); } return; }
+      const s = e.target.closest('[data-set]');
+      if (s) { const key = s.dataset.set; let v = s.dataset.val; if (key === 'weekStart') v = +v; S.settings[key] = v; saveSoon(); if (key === 'logMode') autoLog(); render(); paint(true); return; }
+      // a switch, or anywhere on its row
+      const togRow = e.target.closest('.set-row.tog');
+      const w = e.target.closest('[data-switch]') || (togRow && !e.target.closest('button, a, input') ? $('[data-switch]', togRow) : null);
+      if (w) {
+        const key = w.dataset.switch;
+        if (key === 'notify' && !S.settings.notify) { try { const r = await Notification.requestPermission(); if (r !== 'granted') { toast('Notifications were not allowed'); paint(true); return; } } catch (err) { toast('Notifications aren’t available here'); return; } }
+        S.settings[key] = !S.settings[key]; saveSoon(); render(); paint(true);
+        return;
+      }
+      const b = e.target.closest('[data-s]'); if (!b) return;
+      const act = b.dataset.s;
+      if (act === 'tags') { openTagManager(); return; }
+      if (act === 'shortcuts') { openShortcuts(); return; }
+      if (act === 'focus-new') { openFocusEditor(); return; }
+      if (act === 'focus-edit') { const f = getFocus(b.dataset.id); if (f) openFocusEditor(f); return; }
+      if (act === 'retag-all') {
+        let n = 0;
+        commit('Tag To-Dos', () => S.todos.forEach((t) => {
+          if (t.trashed || t.isTemplate || t.isDraft || (!t.projectId && !t.areaId)) return;
+          const before = t.tags.join(); const keep = S.settings.inheritTags; S.settings.inheritTags = true; retag(t, new Set()); S.settings.inheritTags = keep;
+          if (t.tags.join() !== before) { touch(t); n++; }
+        }));
+        toast(n ? `Tagged ${plural(n, 'to-do')}` : 'Every to-do already has its project’s and area’s tags', n ? { undo: true } : {});
+        return;
+      }
+      if (act === 'backups') { openBackups(); return; }
+      if (act === 'export') { openExport(); return; }
+      if (act === 'import') { openImport(); return; }
+      if (act === 'update-check') {
+        if (upd.latest && newerVersion(upd.latest, APP_VERSION)) { applyUpdate(); return; }
+        b.textContent = 'Checking…'; b.disabled = true;
+        const v = await checkForUpdate(true);
+        if (!b.isConnected) return;
+        b.disabled = false;
+        if (v) { b.textContent = `Update to ${v}`; b.classList.add('primary'); }
+        else b.textContent = v === false ? 'You have the latest version' : 'Couldn’t check. Are you online?';
+        return;
+      }
+      if (act === 'sample-remove') { removeSample(); paint(true); return; }
+      if (act === 'sample-add') { commit('Sample To-Dos', () => seedSample()); paint(true); return; }
+      if (act === 'erase') {
+        const ok = await confirmDialog({ title: 'Erase all data?', body: Y.enabled ? 'Every to-do, project, area and tag will be deleted here and on every device that syncs with this one. Export a backup first if you might want them back.' : 'Every to-do, project, area and tag in this browser will be deleted. Export a backup first if you might want them back.', ok: 'Erase Everything', danger: true });
+        if (ok) { await makeBackup('erase'); commit('Erase All', () => { const keep = S.settings; S = emptyState(); S.settings = keep; S.meta.sampleLoaded = true; }); navigate('inbox'); closeLayer(L); }
+        return;
+      }
+      if (act === 'fs-new') { await fileSyncCreate(); paint(true); return; }
+      if (act === 'fs-open') { await fileSyncOpen(); paint(true); return; }
+      if (act === 'fs-reconnect') { await fileSyncReconnect(); paint(true); return; }
+      if (act === 'fs-unlink') { await fileSyncUnlink(); paint(true); return; }
+      if (act === 'sync-setup') { openSyncSetup(); return; }
+      if (act === 'sync-join') { openSyncJoin(); return; }
+      if (act === 'sync-code') { openJoinCode(false); return; }
+      if (act === 'sync-check') {
+        b.disabled = true; b.textContent = 'Checking…';
+        try {
+          if (!Y.col) await syncStart();
+          const r = await syncCheckAll();
+          toast(!r ? 'Couldn’t reach Firebase. Try again when you’re online.' : !r.up && !r.down ? 'Everything matches your other devices.' : [r.down ? `${plural(r.down, 'change')} brought in` : '', r.up ? `${plural(r.up, 'item')} sent back up` : ''].filter(Boolean).join(', ') + '.');
+        } catch (err) { toast(friendlySyncError(err)); }
+        paint(true); return;
+      }
+      if (act === 'sync-now') { b.disabled = true; b.textContent = 'Syncing…'; await syncNow(); paint(true); return; }
+      if (act === 'sync-off') { if (await confirmSyncOff()) paint(true); }
+    });
+  } });
+  return L;
+}
 
 /* ===================== Start ===================== */
 init();

@@ -2,7 +2,7 @@
 
 A private to-do app modeled on Things 3. It runs in any modern browser on a Mac or iPhone, works offline, and keeps your data on your own device. There is no account and nothing is sent anywhere.
 
-Version 1.46.1
+Version 1.47.0
 
 ## What's in it
 
@@ -24,8 +24,9 @@ Version 1.46.1
 - **Checklists** you can reorder by dragging the grip (or ⌘↑ / ⌘↓), and any item can become its own to-do from its ••• menu. **Copy Checklist** in a to-do's ••• or right-click menu, then **Paste Checklist** on another to-do, or on several selected at once, to add the same items (unchecked; ones a to-do already has are skipped). The items go to your clipboard too, so you can paste them into any checklist's Add item box
 - **Copy and paste to-dos**: select one or several and press `⌘C` (or **Copy To-Do** in the ••• or right-click menu), then select a to-do anywhere and press `⌘V` (or **Paste**) to put copies after it, in its project, sub-project or list; with nothing selected they go into the list you're in. Copies keep the title, notes, tags, checklist (unchecked), deadline and priority. **Paste as Checklist** turns copied to-dos into checklist items on the selected to-dos instead. Lines of text copied in another app paste as one to-do each. Copying something else replaces what's copied, and **Clear Copied Items** in the menu forgets it. On iPhone, Paste is in a to-do's menu and in a list's ••• menu
 - **Repeating to-dos and projects**, on a schedule (every weekday, the last Friday of each month…) or a set time after you finish the last one. A repeating project makes a fresh copy with all its to-dos and sub-projects each time
-- **Automatic backups**: each device keeps a daily copy for 14 days, plus a copy before big changes. Restore from **Settings → Backups**
-- **Templates**: **Save as Template** in a project's ••• menu keeps its to-dos, sub-projects and checklists to reuse; **New Project from Template…** (in **+ New List**) makes a fresh copy, in the template's area. To-dos with checklists can be templates too: **New To-Do from Template…** in any list's ••• menu, or **Add To-Do from Template…** in a project's. Edit them all under **+ New List → Templates**
+- **Automatic backups**: each device keeps a daily copy for 14 days, plus a copy before big changes. Restore from **Settings → Your Data → Backups**
+- **Templates** has its own place in the sidebar (`9`). **New Template** starts a blank project or to-do template, or saves one of your projects as one; so does **Save as Template** in any project's or to-do's ••• menu, or dragging a project or to-do onto Templates in the sidebar (what you dragged stays where it was). A project template keeps its to-dos, sub-projects and checklists and remembers the area new projects go in; a to-do template keeps its notes, checklist, tags and priority. Each template's row has **New Project** or **Add To…** to use it, a trash button to delete it, and a ••• menu (also a right-click) to edit, duplicate, choose its area or delete; with the keyboard, `↑` `↓` move between templates, `Return` opens one and `⌫` deletes it. Click a template to edit it. Press `⇧T` anywhere (or **+ New List → New from Template…**, or a list's ••• menu) to search your templates and make a project or to-do from one: a to-do lands in the list you're in. A deleted template goes to the Trash, where **Put Back** returns it; a new template you never name or fill in isn't kept. Editing a template doesn't change what was already made from it
+- **Settings** is one window with a pane per subject (General, Lists, Tags, Focus, Sync, Your Data, About) and a search box that finds any setting by a word in its name or description. Windows opened from it, such as Manage Tags or Backups, come back to the pane you were in. On iPhone and in narrow windows the list of panes comes first
 - **Sub-projects as a board** (Mac): the columns button at the top of a project shows each of its sub-projects as a column, laid out like the Board, with its own to-dos in the first one. Drag a column by its name (or the grip on its top edge) to move it, beside the others or stacked under one; the sub-projects follow, left to right and top to bottom. **Add Sub-Project Below** (point under a column, or its ••• menu) puts a new one right under it. Drag cards between columns to move them into another sub-project, click a name to open it, and drag a column's edges or corner to resize it
 - **Waiting For**: press `W` (or ••• → **Waiting For…**) to note who a to-do is waiting on and when to follow up. The **Waiting** list groups them by person, and each comes back to Today on its follow-up date
 - **Status report**: ••• → **Status Report…** in any list, area, project or the Board gives what got done, what's coming up and who you're waiting on for this week, last week or the last 7 or 30 days, ready to copy, email, share or print
@@ -69,7 +70,7 @@ Copy this folder anywhere and double-click `index.html`. Everything works withou
 By default your to-dos are saved inside that browser on that Mac. To keep them **on the drive itself**, use Chrome or Edge:
 
 1. Open Sectis from the drive in Chrome or Edge.
-2. Go to **Settings → Your data → Create File…** and save `sectis-data.json` on the thumb drive, next to Sectis.
+2. Go to **Settings → Your Data → Create File…** and save `sectis-data.json` on the thumb drive, next to Sectis.
 3. Sectis now saves every change to that file. On another Mac, open Sectis from the drive in Chrome or Edge and choose **Open File…** once to pick up the same file.
 
 Safari can't write to files like this. In Safari, use **Export Backup** and **Import** to carry your data between Macs.
@@ -151,8 +152,8 @@ Sectis opens at a to-do, project or area from its address: add `#todo:ID`, `#pro
 ## Your data
 
 - Stored locally in the browser (or the data file above). Nothing leaves your device unless you turn on sync, and then only in encrypted form.
-- Clearing your browser's website data deletes it, so export a backup now and then (**Settings → Export Backup**).
-- The sample to-dos can be removed in **Settings → Remove Sample To-Dos**.
+- Clearing your browser's website data deletes it, so export a backup now and then (**Settings → Your Data → Export Backup**).
+- The sample to-dos can be removed in **Settings → Your Data → Remove Sample To-Dos**.
 
 ## Updates
 
@@ -168,13 +169,14 @@ The installed app checks for a new version when you bring it to the front (and e
 | --- | --- |
 | New to-do | `N` or `Space` |
 | New sub-project in a project | `⇧N` |
+| New project or to-do from a template | `⇧T` |
 | Quick Entry / Quick Find | `Q` / `/` or `⌘F` |
 | Open selected to-do | `Return` |
 | Complete / Cancel | `K` or `⌘K` / `⌥K` |
 | Today / This Evening / Anytime / Someday | `T` / `E` / `A` / `O` |
 | When / Deadline / Priority / Tags / Move / Repeat / Waiting For | `S` / `D` / `P` / `#` / `M` / `R` / `W` |
 | Move up or down | `⌘↑` `⌘↓` |
-| Go to Inbox … Trash, Board | `1` … `8` |
+| Go to Inbox … Trash, Board, Templates | `1` … `9` |
 | Show or hide the sidebar | `⌃⌘S` |
 | Notepad | `J` |
 | In a note: bold / italic / strikethrough / code / link / checkbox | `⌘B` / `⌘I` / `⇧⌘X` / `⌘E` / `⌘K` / `⇧⌘L` |

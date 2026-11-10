@@ -399,7 +399,8 @@ document.addEventListener('keydown', (e) => {
 }, true);
 
 /* ---- clicks ---- */
-async function copyText(v) {
+/* (named apart from copyText in 11-sync.js, which the Share, Report, Backups and Sync windows use to say "Copied.") */
+async function copyValue(v) {
   try { await navigator.clipboard.writeText(v); return true; } catch (e) {
     const ta = document.createElement('textarea'); ta.value = v; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select();
     let ok = false; try { ok = document.execCommand('copy'); } catch (err) { /* ignore */ }
@@ -417,7 +418,7 @@ document.addEventListener('click', (e) => {
   const b = e.target.closest && e.target.closest('#notepad [data-copy], #np-stickies [data-copy]'); if (!b) return;
   e.preventDefault(); e.stopPropagation();
   const v = b.dataset.copy;
-  copyText(v).then((ok) => {
+  copyValue(v).then((ok) => {
     toast(ok ? `Copied ${v.length > 40 ? v.slice(0, 39) + '…' : v}` : 'Couldn’t copy');
     if (ok) { b.classList.add('copied'); setTimeout(() => b.classList.remove('copied'), 1200); }
   });
@@ -450,7 +451,7 @@ function noteMenu(n, el) {
     ...(n.archived ? [] : [{ label: n.pinned ? 'Unpin' : 'Pin to Top', icon: 'pin', fn: () => { commit(n.pinned ? 'Unpin Note' : 'Pin Note', () => { n.pinned = !n.pinned; }); renderNotepad(); } }]),
     { label: picked ? 'Make To-Do of Selection' : 'Make To-Do', icon: 'circle', fn: () => noteToTodo(n.id, picked) },
     ...(lines > 1 ? [{ label: picked ? 'One To-Do per Selected Line' : 'One To-Do per Line', icon: 'checklist', hint: String(lines), fn: () => noteToTodos(n.id, picked) }] : []),
-    { label: 'Copy Text', icon: 'copy', fn: () => { copyText(n.text).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy')); } },
+    { label: 'Copy Text', icon: 'copy', fn: () => { copyValue(n.text).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy')); } },
     ...(isMobile() || n.archived ? [] : [stickyOf(n.id) ? { label: 'Hide Sticky', icon: 'popout', fn: () => hideSticky(n.id) } : { label: 'Show as Sticky', icon: 'popout', fn: () => showSticky(n.id) }]),
     { label: 'Attach To…', icon: 'move', fn: () => openNotePlaces(n.id, el) },
     ...(hc && !noteOn(n, here) ? [
