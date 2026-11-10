@@ -673,11 +673,14 @@ document.addEventListener('pointerdown', (e) => {
   const r0 = np.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY, maxW = app.classList.contains('np-dock') ? npDockMax() : Math.min(NP_W_MAX, app.clientWidth - 44);
   let w = r0.width, rect = null;
   npSizing(float ? NP_CURSORS[dir] : 'col-resize'); h.classList.add('on');
+  const docked = !float && app.classList.contains('np-dock');
+  if (docked) { document.documentElement.style.setProperty('--npg', Math.round(r0.width) + 'px'); app.classList.add('np-drag'); }
   npTrack((ev) => {
     if (!float) { w = clamp(r0.width - (ev.clientX - x0), NP_W_MIN, maxW); setNpWidth(w); return; }
     rect = edgeRect(r0, dir, ev.clientX - x0, ev.clientY - y0, NP_W_MIN, NP_H_MIN); setNpGeom(rect);
   }, () => {
     npSizing(null); h.classList.remove('on');
+    if (docked) { app.classList.remove('np-drag'); document.documentElement.style.removeProperty('--npg'); }
     if (float) { if (rect) saveNpRect(rect); }
     else if (Math.abs(w - r0.width) > 1) { npW = Math.round(w); lsSet('sectis.npw', String(npW)); }
     rewrapAfterNp();

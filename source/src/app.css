@@ -1307,8 +1307,10 @@ body.tl-dragging, body.tl-dragging * { cursor: grabbing !important; user-select:
 .app > .np { grid-column: 3; grid-row: 1; }
 .np { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--side, var(--bg)); border-left: 1px solid var(--line); }
 .np[hidden] { display: none !important; }
-.app.np-dock { grid-template-columns: var(--sbw, 268px) minmax(0, 1fr) var(--npw); }
-.app.np-dock.sb-off { grid-template-columns: 0 minmax(0, 1fr) var(--npw); }
+.app.np-dock { grid-template-columns: var(--sbw, 268px) minmax(0, 1fr) var(--npg, var(--npw)); }
+.app.np-dock.sb-off { grid-template-columns: 0 minmax(0, 1fr) var(--npg, var(--npw)); }
+/* while its edge is dragged the list stays put (one reflow on release, not one a frame) */
+.app.np-dock.np-drag .np { position: absolute; z-index: 36; top: 0; right: 0; bottom: 0; width: var(--npw); }
 .app.np-over .np { position: absolute; z-index: 36; top: 0; right: 0; bottom: 0; width: min(var(--npw), calc(100% - 44px)); box-shadow: var(--shadow-pop); animation: npIn .16s ease-out; }
 .app.np-over > .np, .app.np-float > .np { grid-column: auto; grid-row: auto; } /* placed against the whole window, not the (missing) third column, which left it a sliver */
 @keyframes npIn { from { transform: translateX(24px); opacity: .5; } }
