@@ -1395,6 +1395,19 @@ body.np-sizing, body.np-sizing * { cursor: var(--np-cur) !important; user-select
 .np-view > :last-child { margin-bottom: 0; }
 .np-view[hidden], .np-text[hidden], .np-more[hidden] { display: none !important; }
 .np-card.folded .np-view { max-height: 150px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 70%, transparent); mask-image: linear-gradient(to bottom, #000 70%, transparent); }
+/* a note's own height (drag the bar at its foot) */
+.np-card { position: relative; }
+.np-card.sized .np-view { height: var(--nh); max-height: none; overflow: hidden; }
+.np-card.sized.clip .np-view { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 36px), transparent); }
+.np-card.sized .np-text { min-height: var(--nh); }
+.np-grip { position: absolute; z-index: 2; left: 18px; right: 18px; bottom: -6px; height: 12px; cursor: ns-resize; touch-action: none; }
+.np-grip::after { content: ""; position: absolute; left: 50%; top: 4px; width: 30px; height: 4px; margin-left: -15px; border-radius: 2px; background: var(--line-strong); opacity: 0; transition: opacity .12s, background .12s, width .12s, margin .12s; }
+.np-card:hover > .np-grip::after, .np-card:focus-within > .np-grip::after { opacity: 1; }
+.np-grip:hover::after, .np-grip.on::after { opacity: 1; background: var(--accent); width: 44px; margin-left: -22px; }
+.np-card.np-sizing-note { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.np-card.np-at-full > .np-grip::after { background: var(--c-logbook); }
+#app.touch .np-grip { height: 22px; bottom: -11px; left: 30%; right: 30%; }
+#app.touch .np-grip::after { top: 9px; opacity: 1; }
 .np-more { display: block; margin: 3px 0 0; padding: 0; font-size: 12px; font-weight: 600; color: var(--accent); background: none; }
 .np-more:hover { text-decoration: underline; }
 .np-val { display: inline; padding: 0 3px 0 4px; margin: 0 1px; border-radius: 5px; background: color-mix(in srgb, var(--c-note) 15%, transparent); color: var(--fg); font: .92em/1.5 var(--mono); cursor: copy; overflow-wrap: anywhere; text-align: left; box-decoration-break: clone; -webkit-box-decoration-break: clone; }

@@ -9,7 +9,9 @@
    checkboxes you can tick), and stay formatted while you type in one (14-liveedit.js: the line
    you're on shows its Markdown). The things you keep notes for (serial
    numbers, IP and MAC addresses, license keys, phone numbers…) get a one-click copy button,
-   and phone numbers call. A long note shows its first lines, with Show More.
+   and phone numbers call. A long note shows its first lines, with Show More. Drag the bar at a
+   note's foot to make it any height: shorter, its full length (it snaps there), or longer, to
+   leave room to write. Double-click the bar, or ••• → Automatic Height, for the usual again.
    ••• on a note: Pin to Top, Make To-Do (the selected text, or the note: first line as the
    title, the rest as notes, into the Inbox), One To-Do per Line (each line, or each list item,
    becomes its own Inbox to-do), Copy Text, Show as Sticky, Move to This Page, Archive, Delete.
@@ -38,6 +40,16 @@ ui.np = {
 const NP_DOCK_AT = 1100;
 const NP_W_MIN = 260, NP_W_MAX = 720, NP_H_MIN = 220, NP_PAD = 6, NP_SNAP = 28;
 const NP_FOLD_AT = 150; // how much of a long note shows before Show More
+/* a note's own height, on this device: px, or 'full' (always all of it); none: the usual */
+const NP_NH_MIN = 36, NP_NH_MAX = 4000, NP_NH_SNAP = 12;
+let npNoteH = (() => { try { const o = JSON.parse(lsGet('sectis.npNoteH') || '{}'); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; } })();
+function setNoteHeight(id, h) {
+  if (h) npNoteH[id] = h === 'full' ? 'full' : Math.round(h); else delete npNoteH[id];
+  const have = new Set((S && S.notes || []).map((n) => n.id));
+  Object.keys(npNoteH).forEach((k) => { if (!have.has(k)) delete npNoteH[k]; }); // notes that are gone
+  lsSet('sectis.npNoteH', Object.keys(npNoteH).length ? JSON.stringify(npNoteH) : '');
+}
+const noteSized = (id) => typeof npNoteH[id] === 'number' && npNoteH[id] > 0;
 const NP_MD = { values: true, tasks: true };
 const NP_ST = { w: 240, h: 190, minW: 170, minH: 110 };
 let npW = +lsGet('sectis.npw') || 0; // its width at the side (0: the usual 340)
@@ -184,12 +196,13 @@ function noteCardHTML(n, o = {}) {
   const editing = ui.np.editing === n.id, places = noteKeys(n).map((k) => [k, noteCtx(k)]).filter(([, c]) => c);
   const [key, main] = places.find(([k]) => k === o.here) || places[0] || [null, null]; // in a page's group: that page first
   const c = o.noCtx ? null : main, others = places.filter(([k]) => k !== key);
-  return `<div class="np-card${n.pinned && !n.archived ? ' pinned' : ''}${n.archived ? ' archived' : ''}" data-note="${n.id}">`
+  return `<div class="np-card${n.pinned && !n.archived ? ' pinned' : ''}${n.archived ? ' archived' : ''}${noteSized(n.id) ? ' sized' : ''}" data-note="${n.id}"${noteSized(n.id) ? ` style="--nh:${npNoteH[n.id]}px"` : ''}>`
     + `<div class="np-view md" data-np-view="${n.id}"${editing ? ' hidden' : ''}>${editing ? '' : renderMarkdown(n.text, NP_MD)}</div>`
     + npEditorHTML(n.id, 'note-' + n.id, 'Note', editing ? n.text : null)
     + `<button class="np-more" data-np-fold="${n.id}" hidden>${ui.np.expanded.has(n.id) ? 'Show Less' : 'Show More'}</button>`
     + `<div class="np-meta">${n.pinned && !n.archived ? `<span class="np-pin" title="Pinned">${ic('pin')}</span>` : ''}${n.archived && o.archTag ? `<span class="np-arch" title="Archived">${ic('archive')}</span>` : ''}${stickyOf(n.id) && !isMobile() ? `<span class="np-pin" title="Showing as a sticky">${ic('popout')}</span>` : ''}${c ? `<button class="np-ctx" data-nav="${esc(key)}" title="${places.length > 1 ? 'On' : 'Written on'} ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : ''}${others.length && key ? `<button class="np-ctx np-more-ctx" data-np-places="${n.id}" title="Also on ${esc(others.map(([, x]) => x.label).join(', '))}">${o.noCtx ? `Also on ${others.length === 1 ? esc(others[0][1].label) : others.length + ' more'}` : '+' + others.length}</button>` : ''}<span class="np-time" title="${esc(new Date(n.modifiedAt || n.createdAt).toLocaleString())}">${esc(noteWhen(n.modifiedAt || n.createdAt))}</span><span class="spacer"></span>`
-    + `<button class="np-todo" data-np-todo="${n.id}" title="Make a to-do of this note, or of the text you've selected in it">${ic('plus')}<span>To-Do</span></button><button class="ib" data-np-more="${n.id}" aria-label="More" title="More">${ic('more')}</button></div></div>`;
+    + `<button class="np-todo" data-np-todo="${n.id}" title="Make a to-do of this note, or of the text you've selected in it">${ic('plus')}<span>To-Do</span></button><button class="ib" data-np-more="${n.id}" aria-label="More" title="More">${ic('more')}</button></div>`
+    + `<div class="np-grip" data-np-grip="${n.id}" aria-hidden="true" title="Drag to make this note shorter or longer. Double-click for the usual height."></div></div>`;
 }
 /* a note's live editor; text null: hidden and empty until you click into the note */
 const npEditorHTML = (id, fkey, label, text, ph) => `<div class="np-text le${text ? '' : ' le-empty'}" contenteditable="true" role="textbox" aria-multiline="true" data-np-text="${id}" data-fkey="${fkey}" aria-label="${label}" spellcheck="true"${ph ? ` data-placeholder="${esc(ph)}"` : ''}${text == null ? ' hidden' : ''}>${text == null ? '' : leHTML(text)}</div>`;
@@ -269,9 +282,18 @@ function npMeasureFolds(root) {
   if (!root) return;
   $$('.np-card[data-note]', root).forEach((card) => {
     const v = $('.np-view', card), b = $('.np-more', card); if (!v || !b) return;
-    card.classList.remove('folded');
+    const id = card.dataset.note, nh = npNoteH[id];
+    card.classList.remove('folded', 'clip');
+    card.classList.toggle('sized', noteSized(id));
+    if (noteSized(id)) card.style.setProperty('--nh', nh + 'px'); else card.style.removeProperty('--nh');
     if (v.hidden) { b.hidden = true; return; }
-    const open = ui.np.expanded.has(card.dataset.note), tall = v.scrollHeight > NP_FOLD_AT + 30;
+    if (nh === 'full') { b.hidden = true; return; } // dragged to its full length: all of it, always
+    if (noteSized(id)) { // its own height: what doesn't fit fades, with Show All
+      const clip = v.scrollHeight > v.clientHeight + 2;
+      card.classList.toggle('clip', clip); b.hidden = !clip; b.textContent = 'Show All';
+      return;
+    }
+    const open = ui.np.expanded.has(id), tall = v.scrollHeight > NP_FOLD_AT + 30;
     b.hidden = !tall; b.textContent = open ? 'Show Less' : 'Show More';
     card.classList.toggle('folded', tall && !open);
   });
@@ -430,7 +452,12 @@ $('#notepad').addEventListener('click', (e) => {
   if (b.dataset.np === 'menu') { notepadMenu(b); return; }
   if (b.dataset.np === 'back') { ui.np.arch = false; ui.np.q = ''; renderNotepad(); return; }
   if (b.dataset.npPage) { ui.np.page = b.dataset.npPage === '1'; renderNotepad(); return; }
-  if (b.dataset.npFold) { const id = b.dataset.npFold; if (ui.np.expanded.has(id)) ui.np.expanded.delete(id); else ui.np.expanded.add(id); npMeasureFolds(b.closest('.np-card').parentElement); return; }
+  if (b.dataset.npFold) {
+    const id = b.dataset.npFold;
+    if (noteSized(id)) { setNoteHeight(id, 'full'); ui.np.expanded.add(id); } // Show All: its full length, from now on
+    else if (ui.np.expanded.has(id)) ui.np.expanded.delete(id); else ui.np.expanded.add(id);
+    npMeasureFolds(b.closest('.np-card').parentElement); return;
+  }
   if (b.dataset.nav) { if (!npStays()) closeNotepad(); navigate(b.dataset.nav); return; } // to the page it was written on
   if (b.dataset.npTodo) { noteToTodo(b.dataset.npTodo); return; }
   if (b.dataset.npMore) { noteMenu(getNote(b.dataset.npMore), b); }
@@ -452,6 +479,7 @@ function noteMenu(n, el) {
     { label: picked ? 'Make To-Do of Selection' : 'Make To-Do', icon: 'circle', fn: () => noteToTodo(n.id, picked) },
     ...(lines > 1 ? [{ label: picked ? 'One To-Do per Selected Line' : 'One To-Do per Line', icon: 'checklist', hint: String(lines), fn: () => noteToTodos(n.id, picked) }] : []),
     { label: 'Copy Text', icon: 'copy', fn: () => { copyValue(n.text).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy')); } },
+    ...(npNoteH[n.id] ? [{ label: 'Automatic Height', icon: 'blank', fn: () => resetNoteHeight(n.id) }] : []),
     ...(isMobile() || n.archived ? [] : [stickyOf(n.id) ? { label: 'Hide Sticky', icon: 'popout', fn: () => hideSticky(n.id) } : { label: 'Show as Sticky', icon: 'popout', fn: () => showSticky(n.id) }]),
     { label: 'Attach To…', icon: 'move', fn: () => openNotePlaces(n.id, el) },
     ...(hc && !noteOn(n, here) ? [
@@ -659,6 +687,72 @@ document.addEventListener('dblclick', (e) => {
   const h = e.target.closest && e.target.closest('#notepad .np-rs');
   if (!h || $('#app').classList.contains('np-float')) return;
   e.preventDefault(); npW = 0; lsSet('sectis.npw', ''); applyNotepadMode(); rewrapAfterNp();
+});
+
+/* ---- a note's height: drag the bar at its foot ----
+   The text part follows the pointer. Near its full length it snaps there (and stays all of it,
+   however the note grows); shorter fades what doesn't fit, with Show All; longer leaves room to
+   write. Dragging past the top or bottom of the list scrolls it. */
+function resetNoteHeight(id) {
+  setNoteHeight(id, 0); ui.np.expanded.delete(id);
+  const card = $(`#notepad .np-card[data-note="${CSS.escape(id)}"]`); if (card) npMeasureFolds(card.parentElement);
+}
+document.addEventListener('pointerdown', (e) => {
+  const g = e.target.closest && e.target.closest('#notepad .np-grip');
+  if (!g || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  const card = g.closest('.np-card[data-note]'), list = $('#np-list'); if (!card || !list) return;
+  const v = $('.np-view', card), ed = $('.np-text', card), body = v && !v.hidden ? v : ed; if (!body) return;
+  e.preventDefault(); e.stopPropagation();
+  const id = card.dataset.note, r0 = body.getBoundingClientRect(), grab = e.clientY - r0.bottom;
+  // its full length, however it's shown now
+  card.classList.remove('sized', 'folded', 'clip'); card.style.removeProperty('--nh');
+  const natural = Math.max(NP_NH_MIN, Math.ceil(body.scrollHeight));
+  let h = Math.max(NP_NH_MIN, Math.round(r0.height)), lastY = e.clientY, moved = false, full = false, raf = 0;
+  let pauseUntil = 0, paused = false; // scrolling on past its full length waits there a moment, so it's easy to stop at
+  const show = () => {
+    card.classList.add('sized'); card.style.setProperty('--nh', h + 'px');
+    card.classList.toggle('clip', body === v && h < natural - 2);
+    const more = $('.np-more', card); if (more) more.hidden = true;
+    card.classList.toggle('np-at-full', full);
+  };
+  const follow = (y) => {
+    const top = body.getBoundingClientRect().top;
+    h = clamp(Math.round(y - grab - top), NP_NH_MIN, NP_NH_MAX);
+    full = Math.abs(h - natural) <= NP_NH_SNAP;
+    if (full) h = natural;
+    show();
+  };
+  // held past the list's top or bottom edge: the list scrolls, and the note keeps following
+  const edge = () => {
+    raf = 0;
+    if (Date.now() < pauseUntil) { raf = requestAnimationFrame(edge); return; }
+    const r = list.getBoundingClientRect(), z = 28;
+    let dy = lastY > r.bottom - z ? Math.min(22, (lastY - (r.bottom - z)) / 3 + 2) : lastY < r.top + z ? -Math.min(22, ((r.top + z) - lastY) / 3 + 2) : 0;
+    if (!dy) return;
+    if (dy > 0 && !paused && h < natural && h + dy >= natural) dy = Math.max(1, natural - h); // land right on its full length…
+    const before = list.scrollTop; list.scrollTop += dy;
+    follow(lastY);
+    if (dy > 0 && !paused && h >= natural - 1) { h = natural; full = true; show(); paused = true; pauseUntil = Date.now() + 700; } // …and wait there
+    if (h < natural - 2 * NP_NH_SNAP) paused = false; // back above it: the next pass waits again
+    if (list.scrollTop !== before || dy > 0) raf = requestAnimationFrame(edge);
+  };
+  show();
+  npSizing('ns-resize'); g.classList.add('on'); card.classList.add('np-sizing-note');
+  npTrack((ev) => {
+    if (!moved && Math.abs(ev.clientY - e.clientY) < 3) return;
+    moved = true; lastY = ev.clientY;
+    if (Date.now() >= pauseUntil) follow(lastY);
+    if (!raf) raf = requestAnimationFrame(edge);
+  }, () => {
+    if (raf) cancelAnimationFrame(raf);
+    npSizing(null); g.classList.remove('on'); card.classList.remove('np-sizing-note', 'np-at-full');
+    if (moved) { setNoteHeight(id, full ? 'full' : h); if (full) ui.np.expanded.add(id); }
+    npMeasureFolds(card.parentElement);
+  });
+}, true);
+document.addEventListener('dblclick', (e) => {
+  const g = e.target.closest && e.target.closest('#notepad .np-grip'); if (!g) return;
+  e.preventDefault(); resetNoteHeight(g.dataset.npGrip);
 });
 
 /* ---- moving: drag it by its title ---- */
