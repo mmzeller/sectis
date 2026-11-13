@@ -145,9 +145,11 @@ function tlSpan(e, r, L) {
 /* a label beside something running x1..x2 on a track W wide: after it if there's room, else
    before it, else (a bar long enough to hold it) inside it, else after it cut short. lo..hi is
    the room the two take up */
-function tlLabel(text, x1, x2, W, cls = '', bar = false) {
+function tlLabel(text, x1, x2, W, cls = '', bar = false, ind = 0) {
   if (!text) return { html: '', lo: x1, hi: x2 };
   const w = tlTextW(text), at = (x, extra = '') => `<span class="tl-dt tl-nm${cls ? ' ' + cls : ''}" style="left:${Math.round(x)}px${extra}">${esc(text)}</span>`;
+  // indented (a level down on a Board's Timeline): a hairline joins the name to its marker
+  if (ind && x2 + 5 + ind + w <= W) return { html: `<i class="tl-ind" style="left:${Math.round(x2 + 1)}px;width:${ind + 2}px"></i>` + at(x2 + 5 + ind), lo: x1, hi: x2 + 5 + ind + w };
   if (x2 + 5 + w <= W) return { html: at(x2 + 5), lo: x1, hi: x2 + 5 + w };
   if (x1 - 5 - w >= 0) return { html: at(x1 - 5 - w), lo: x1 - 5 - w, hi: x2 };
   // a bar running past both edges (a long project, say) is named inside, from its left end
@@ -565,7 +567,7 @@ function boardTimelineRows(r) {
     // a Board column holds the project and everything in it, its sub-projects' to-dos and dates too
     const subs = projDescendants(p).filter(liveProject), inside = new Set([p.id, ...subs.map((q) => q.id)]);
     const pe = tlEntry(p, r), kids = entries(S.todos.filter((t) => inside.has(t.projectId) && live(t)).concat(subs));
-    if (pe || kids.length) rows.push({ x: p, k: 'p:' + p.id, label: pTitle(p), icon: projIc(p, 'tl-ic'), open: `data-tl-open="${p.id}"`, main: pe, kids, key: pe ? pe.b : kids[0].b });
+    if (pe || kids.length) rows.push({ x: p, k: 'p:' + p.id, label: pTitle(p), icon: projIc(p, 'tl-ic'), open: `data-tl-open="${p.id}"`, main: pe, kids: tlTree(p, kids), key: pe ? pe.b : kids[0].b });
   };
   boardCols().forEach((c) => {
     if (c.t === 'p') addProject(getP(c.id));
@@ -581,22 +583,50 @@ function boardTimelineRows(r) {
   });
   return rows;
 }
+/* What's inside project p, as a tree: each sub-project's to-dos and sub-projects right after it,
+   a level deeper (tlDepth 1 = straight inside p). One whose own project isn't on the row (nothing
+   of its in these weeks) goes under the nearest one that is, named with its project: "Hamilton ›
+   Install…". Siblings stay in date order. */
+function tlTree(p, list) {
+  const on = new Map(list.map((e) => [e.x.id, e])), up = (x) => (x.type === 'todo' ? x.projectId : x.parentId), info = new Map();
+  const place = (x) => {
+    if (info.has(x.id)) return info.get(x.id);
+    info.set(x.id, { parent: null, depth: 1, via: '' }); // (a loop in the tree stops here)
+    let pid = up(x), hops = 0, guard = 0;
+    while (pid && pid !== p.id && !on.has(pid) && guard++ < 50) { const q = getP(pid); pid = q ? q.parentId : null; hops++; }
+    const parent = pid && pid !== p.id && on.has(pid) ? pid : null, direct = getP(up(x));
+    const it = { parent, depth: parent ? place(on.get(parent).x).depth + 1 : 1, via: hops && direct ? pTitle(direct) : '' };
+    info.set(x.id, it); return it;
+  };
+  const under = new Map();
+  list.forEach((e) => { const it = place(e.x); Object.assign(e, { tlDepth: it.depth, tlVia: it.via, tlParent: it.parent }); const k = it.parent || ''; if (!under.has(k)) under.set(k, []); under.get(k).push(e); });
+  const out = [], seen = new Set();
+  const walk = (k) => (under.get(k) || []).forEach((e) => { if (seen.has(e.x.id)) return; seen.add(e.x.id); out.push(e); walk(e.x.id); });
+  walk('');
+  list.forEach((e) => { if (!seen.has(e.x.id)) out.push(e); }); // anything a loop left out
+  return out;
+}
 /* a Board row holds a project and all its to-dos, so things on the same days would sit on top of
    each other: each goes on the first line of the row where it (and its name) has room, and the
    row grows a line for each one that doesn't fit */
+const TL_IND = 16; // a level's indent on a Board's Timeline
 function tlLanes(list, r, L, ownId = null) {
   const W = L.dw * r.days;
   const items = list.map((e, k) => {
     const own = !!ownId && e.x.id === ownId; // the row's own project, named in bold so it reads as the row's
-    const sp = tlSpan(e, r, L);
-    const lab = tlLabel(tlShort(tlName(e.x)), sp.x1, sp.x2, W, `nm${own ? ' own' : ''}${e.x.status !== 'open' ? ' done' : ''}${e.late ? ' late' : ''}`, e.a < e.b && !e.overdue);
+    const sp = tlSpan(e, r, L), ind = own ? 0 : Math.max(0, (e.tlDepth || 1) - 1) * TL_IND;
+    const name = (e.tlVia && !own ? e.tlVia + ' › ' : '') + tlName(e.x);
+    const lab = tlLabel(tlShort(name, e.tlVia ? 48 : 34), sp.x1, sp.x2, W, `nm${own ? ' own' : ''}${e.x.status !== 'open' ? ' done' : ''}${e.late ? ' late' : ''}`, e.a < e.b && !e.overdue, ind);
     return { e, own, lab, lo: lab.lo, hi: lab.hi };
   });
-  const ends = [];
-  items.slice().sort((p, q) => (q.own - p.own) || (p.lo - q.lo) || tlSort(p.e, q.e)).forEach((it) => {
-    let l = ends.findIndex((end) => end + 8 <= it.lo);
-    if (l < 0) { l = ends.length; ends.push(0); }
-    ends[l] = it.hi; it.lane = l;
+  // the row's project first, then the tree in order; each goes on the first line with room for it,
+  // below the line of the one it's inside
+  const ends = [], laneOf = new Map();
+  items.slice().sort((p, q) => q.own - p.own).forEach((it) => {
+    const min = it.e.tlParent && laneOf.has(it.e.tlParent) ? laneOf.get(it.e.tlParent) + 1 : 0;
+    let l = ends.findIndex((end, i) => i >= min && end + 8 <= it.lo);
+    if (l < 0) { while (ends.length < min) ends.push(-1e9); l = ends.length; ends.push(0); }
+    ends[l] = it.hi; it.lane = l; laneOf.set(it.e.x.id, l);
   });
   const html = items.map((it) => `<div class="tl-lane" style="--i:${it.lane}">${tlTrackHTML(it.e, r, { nolabel: true })}${it.lab.html}</div>`).join('');
   return { html, n: Math.max(1, ends.length) };

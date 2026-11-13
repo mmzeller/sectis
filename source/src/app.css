@@ -1523,6 +1523,8 @@ button.np-gl:hover { color: var(--fg); }
 .tl-nm.own:not(.late), .tl-nm.in:not(.late) { color: var(--fg); }
 /* a bar too long to name beside: its name inside, from its left end */
 .tl-nm.in { z-index: 2; overflow: hidden; text-overflow: ellipsis; }
+/* a level down on a Board's Timeline: the name sits a step in, joined to its marker by a hairline */
+.tl-ind { position: absolute; top: 50%; height: 0; border-top: 1px solid var(--line-strong); pointer-events: none; }
 .tl-nm.late { color: var(--red); }
 .tl-nm.done { text-decoration: line-through; opacity: .6; }
 /* folding: ▸ beside an area, project or Board row; a folded one is a line of dots and a count */
