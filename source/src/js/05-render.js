@@ -180,9 +180,11 @@ function rowHTML(x, ctx = {}) {
   if (x.trashed) cls.push('trashed-row');
   let line = '';
   if (ctx.star && isScheduledToday(x)) line += isEveningItem(x) ? ic('moon', 'r-moon') : ic('star', 'r-star');
-  if (ctx.when && x.start === 'anytime' && x.when && x.when > T0()) line += `<span class="r-when">${esc(fmtRel(x.when))}</span>`;
+  // in its project, a to-do that just follows the project's When doesn't repeat the date (it's in the header)
+  const ownWhen = ctx.when && !followsHere(x);
+  if (ownWhen && x.start === 'anytime' && x.when && x.when > T0()) line += `<span class="r-when">${esc(fmtRel(x.when))}</span>`;
   if (ctx.when && x.start === 'someday') line += ic('box', 'r-box');
-  if (ctx.when && isScheduledToday(x) && !ctx.star) line += isEveningItem(x) ? ic('moon', 'r-moon') : ic('star', 'r-star');
+  if (ownWhen && isScheduledToday(x) && !ctx.star) line += isEveningItem(x) ? ic('moon', 'r-moon') : ic('star', 'r-star');
   line += priMarkHTML(x) + `<span class="r-title${x.title ? '' : ' untitled'}">${esc(x.title || 'New To-Do')}</span>`;
   if (x.waitFor && x.status === 'open' && !ctx.noWait && !x.isTemplate) line += `<span class="r-wait" title="Waiting on ${esc(x.waitFor)}">${ic('hourglass')}${esc(x.waitFor)}</span>`;
   if (x.templateId) line += ic('repeat', 'r-ic');
@@ -216,8 +218,10 @@ function projRowHTML(p, ctx = {}) {
   const exp = ctx.expandable && isExpanded(p);
   const cls = ['row', 'prow']; if (ui.sel.has(p.id)) cls.push('selected'); if (p.status !== 'open') cls.push(p.status); if (p.trashed) cls.push('trashed-row');
   let line = '';
-  if (ctx.star && isScheduledToday(p)) line += isEveningItem(p) ? ic('moon', 'r-moon') : ic('star', 'r-star');
-  if (ctx.when && p.start === 'anytime' && p.when && p.when > T0()) line += `<span class="r-when">${esc(fmtRel(p.when))}</span>`;
+  const ownWhen = !followsHere(p); // a sub-project following its project's When, inside that project
+  if (ctx.star && ownWhen && isScheduledToday(p)) line += isEveningItem(p) ? ic('moon', 'r-moon') : ic('star', 'r-star');
+  if (ctx.when && ownWhen && p.start === 'anytime' && p.when && p.when > T0()) line += `<span class="r-when">${esc(fmtRel(p.when))}</span>`;
+  if (ctx.when && p.start === 'someday' && p.status === 'open') line += ic('box', 'r-box');
   line += priMarkHTML(p) + (renamingNow('p', p.id) ? renameInputHTML('p', p) : `<span class="r-title${p.title ? '' : ' untitled'}">${esc(pTitle(p))}</span>${tagPills(p)}`);
   const sub = [ctx.parent ? parentLabel(p) : '', pr.open ? plural(pr.open, 'to-do') : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
@@ -250,7 +254,11 @@ function whenChipHTML(x, id = x.id) {
   else if (x.when && x.when <= T0()) { if (isEveningItem(x)) { cls = 'evening'; icon = 'moon'; label = 'This Evening'; } else { cls = 'today'; icon = 'star'; label = 'Today'; } }
   else if (x.when) { cls = 'date'; icon = 'calendar'; label = fmtDate(x.when); }
   else return '';
-  return `<span class="chip ${cls}"><button class="chip-main" data-action="when" data-id="${id}">${ic(icon)}<span>${esc(label + rem)}</span></button><button class="chip-x" data-action="clear-when" data-id="${id}" aria-label="Clear date">${ic('x')}</button></span>`;
+  // following its project's When: say so, and there's nothing of its own to clear
+  const from = whenParent(x);
+  if (from) return `<span class="chip ${cls} follows"><button class="chip-main" data-action="when" data-id="${id}" title="Starts with ${esc(pTitle(from))}. Pick a date to give it its own.">${ic(icon)}<span>${esc(label + rem)}</span><span class="chip-from">· same as ${esc(tlShort(pTitle(from), 28))}</span></button></span>`;
+  const home = whenHome(x), back = home && home.start === 'anytime' && home.when ? `Back to ${pTitle(home)}’s date` : 'Clear date';
+  return `<span class="chip ${cls}"><button class="chip-main" data-action="when" data-id="${id}">${ic(icon)}<span>${esc(label + rem)}</span></button><button class="chip-x" data-action="clear-when" data-id="${id}" aria-label="${esc(back)}" title="${esc(back)}">${ic('x')}</button></span>`;
 }
 function deadlineChipHTML(x, id = x.id) {
   if (x.isTemplate) {

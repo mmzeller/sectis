@@ -161,6 +161,7 @@ function spawnProjectInstance(tpl, date) {
     });
   };
   copyIn(tpl, p);
+  adoptWhen(p); // its to-dos and sub-projects start with it
   return p;
 }
 /* a to-do in a template project (a repeating project's steps, or a project template), at any depth */

@@ -124,7 +124,11 @@ function undo() {
 }
 function commit(label, fn, opts = {}) {
   snapshot(label); ui.lastEditKey = null;
+  const whens = whenBefore(), s0 = S;
   const r = fn();
+  // to-dos and sub-projects follow their project's When (43-follow.js); after an import or
+  // opening a data file (a whole new S) nothing counts as changed, so it only keeps followers up
+  propagateWhens(S === s0 ? whens : whenBefore());
   propagateLinks();
   reindex(); saveSoon();
   if (opts.render !== false) render();

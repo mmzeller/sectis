@@ -120,14 +120,20 @@ function openWhen(ids, anchor, mode = 'when') {
   let view = pd(sel || T0()); let cy = view.getFullYear(), cm = view.getMonth();
   let pendingRem = x0.reminder || null, remOpen = !!x0.reminder;
   const hasDate = () => items.some((x) => x.when);
+  // in a project with a When, clearing one puts it back to the project's date (43-follow.js)
+  const homes = mode === 'when' ? [...new Set(items.map(whenHome))] : [null];
+  const home = homes.length === 1 && homes[0] && homes[0].start === 'anytime' && homes[0].when ? homes[0] : null;
+  const allHomesDated = mode === 'when' && homes.every((h) => h && h.start === 'anytime' && h.when);
+  const from = mode === 'when' && items.every((x) => whenParent(x)) ? whenParent(x0) : null;
+  const clearLabel = home ? `Same as ${tlShort(pTitle(home), 30)}` : allHomesDated ? 'Same as Their Projects' : 'Clear';
   const remHTML = () => remOpen ? `<div class="pk-rem">${ic('bell')}<input type="time" id="pk-time" value="${pendingRem || '09:00'}" aria-label="Reminder time"><button class="ib" data-pk="rem-clear" aria-label="Remove reminder">${ic('x')}</button></div>` : `<button class="pk-opt" data-pk="rem-add">${ic('bell')}Add Reminder</button>`;
-  const build = () => `<div class="pk-h">${mode === 'when' ? 'When' : 'Deadline'}</div>
+  const build = () => `<div class="pk-h">${mode === 'when' ? 'When' : 'Deadline'}${from && items.length === 1 ? `<span class="pk-from"> · same as ${esc(tlShort(pTitle(from), 30))}</span>` : ''}</div>
     <input class="pk-in" id="pk-in" placeholder="${mode === 'when' ? 'tomorrow, fri, oct 24, in 2 weeks…' : 'fri, next month, 11/30…'}" autocomplete="off" aria-label="Type a date">
     <div class="pk-hint" id="pk-hint"></div>
     ${mode === 'when' ? `<button class="pk-opt today${x0.when && x0.when <= T0() && !x0.evening ? ' on' : ''}" data-pk="today">${ic('star')}Today</button><button class="pk-opt evening${isEveningItem(x0) ? ' on' : ''}" data-pk="evening">${ic('moon')}This Evening</button>` : ''}
     <div class="cal" id="cal">${calHTML(cy, cm, sel, mode === 'deadline')}</div>
     ${mode === 'when' ? `<button class="pk-opt someday${x0.start === 'someday' ? ' on' : ''}" data-pk="someday">${ic('box')}Someday</button><div id="pk-remwrap">${remHTML()}</div>` : ''}
-    <button class="pk-clear" data-pk="clear">Clear</button>`;
+    <button class="pk-clear${from ? ' on' : ''}" data-pk="clear"${home || allHomesDated ? ' title="Start when its project does, and move when the project’s date moves"' : ''}>${esc(clearLabel)}</button>`;
   const L = openLayer({ html: build(), anchor, cls: 'picker', onMount: (el) => {
     const inp = $('#pk-in', el), hint = $('#pk-hint', el);
     const apply = (choice) => {

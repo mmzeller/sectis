@@ -198,8 +198,8 @@ function init() {
     render();
     // a #todo:… address (from Sintr) may name a to-do that's still on its way from the other device
     const waitingLink = openFromAddress({ quiet: true }) === 'missing';
-    syncStart().then(() => { generateRepeats(); render(); if (waitingLink) openFromAddress(); });
-  } else { generateRepeats(); render(); openFromAddress(); }
+    syncStart().then(() => { generateRepeats(); followWhensOnce(); render(); if (waitingLink) openFromAddress(); });
+  } else { generateRepeats(); followWhensOnce(); render(); openFromAddress(); }
   window.addEventListener('hashchange', () => openFromAddress());
   setInterval(tick, 20000);
   setTimeout(checkReminders, 1500);

@@ -162,20 +162,13 @@ function subMatchesFilter(q) {
   const inside = new Set([q.id, ...projDescendants(q).map((x) => x.id)]);
   return S.todos.some((t) => inside.has(t.projectId) && liveTodo(t) && matchesTagFilter(t));
 }
-/* A project's sub-projects as rows that open in place, in their order (or the list's sort). Ones
-   for later (Someday, or a start date to come) wait behind Show later, as in an area. */
+/* A project's sub-projects as rows that open in place, in their order (or the list's sort). All
+   of them, ones for later (Someday, or a start date to come) included: each shows its date or
+   Someday, and nothing waits behind a Show button. */
 function subProjectsHTML(p, opts = {}) {
   const all = childProjects(p).filter((q) => !q.trashed && !q.isTemplate && (q.status === 'open' || !q.logged)); // (a repeating one shows under Repeating)
   if (!all.length) return '';
-  const later = (q) => q.status === 'open' && (q.start === 'someday' || (q.when && q.when > T0()));
-  const shown = all.filter(subMatchesFilter);
-  const active = shown.filter((q) => !later(q)).sort(byOrder), wait = shown.filter(later).sort(byOrder);
+  const shown = all.filter(subMatchesFilter).sort(byOrder);
   const ctx = { star: true, when: true, expandable: true };
-  let html = `<div class="sec subprojs" data-sec="subprojects:${p.id}" data-ok="order">${sortedRows(active).map((q) => projRowHTML(q, ctx)).join('')}</div>`;
-  if (wait.length) {
-    const open = ui.laterOpen[p.id];
-    html += `<button class="show-more" data-action="toggle-later" data-id="${p.id}">${open ? 'Hide' : 'Show'} ${plural(wait.length, 'later sub-project')}</button>`;
-    if (open) html += `<div class="sec subprojs" data-sec="subprojects:${p.id}" data-ok="order">${sortedRows(wait).map((q) => projRowHTML(q, ctx)).join('')}</div>`;
-  }
-  return html;
+  return `<div class="sec subprojs" data-sec="subprojects:${p.id}" data-ok="order">${sortedRows(shown).map((q) => projRowHTML(q, ctx)).join('')}</div>`;
 }
