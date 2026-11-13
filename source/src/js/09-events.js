@@ -1,7 +1,11 @@
 /* ===================== Events: clicks, typing, keyboard ===================== */
 function navigate(key, opts = {}) {
   closeEditor({ noRender: true });
-  if (key.startsWith('board:')) { switchBoard(key.slice(6)); key = 'board'; } // one of several Boards
+  if (key.startsWith('board:')) { // one of several Boards; asking for one the focus hides (from a note, say) goes back to All Areas
+    const bd = (ui.boards || []).find((b) => b.id === key.slice(6));
+    if (bd && !boardInFocus(bd)) showAllAreas();
+    switchBoard(key.slice(6)); key = 'board';
+  }
   const [type, id] = key.split(':');
   const left = ui.view.type === 'project' && ui.view.id !== id ? getP(ui.view.id) : null;
   ui.view = id ? { type, id } : { type };
@@ -402,6 +406,7 @@ function viewMenu(el) {
     openMenu(el, [...batch,
       ...boardsMenuItems(), { sep: 1 },
       { label: curBoard().tl ? 'Hide Timeline' : 'Show Timeline', icon: 'timeline', fn: toggleBoardTimeline },
+      ...((S.focuses || []).length ? [{ label: 'Show in Focus…', icon: 'focus', fn: () => boardFocusMenu(el) }] : []),
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
       { label: 'Fit All Sizes Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w || c.h), fn: resetAllSizes },
       sortMenuItem(el),

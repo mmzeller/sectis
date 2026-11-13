@@ -55,6 +55,7 @@ function effectiveFocus(now = Date.now()) {
 function refreshFocus() {
   const f = S ? effectiveFocus() : null;
   ui.focusRec = f; ui.focusAreas = new Set(f ? f.areas : []);
+  keepBoardInFocus(); // Boards follow the focus too (35-boards.js)
   return f;
 }
 /* is this to-do or project shown under the current focus? A to-do still in the Inbox is outside

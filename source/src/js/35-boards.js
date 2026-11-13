@@ -10,7 +10,7 @@ function switchBoard(id) {
 function boardWithName(name) { let n = name, i = 2; while (ui.boards.some((b) => b.name === n)) n = `${name} ${i++}`; return n; }
 function newBoard(opts = {}) {
   saveBoard();
-  const b = { id: uid(), name: opts.name || boardWithName('New Board'), area: opts.area || null, cols: cleanCols(opts.cols || []) };
+  const b = { id: uid(), name: opts.name || boardWithName('New Board'), area: opts.area || null, focus: opts.focus || null, cols: cleanCols(opts.cols || []) };
   ui.boards.push(b); ui.boardId = b.id; ui.board = b.cols; saveBoard();
   if (!opts.name) ui.focusAfter = '[data-fkey="board-name"]';
   navigate('board');
@@ -19,7 +19,7 @@ function newBoard(opts = {}) {
 }
 function duplicateBoard() {
   const b = curBoard();
-  newBoard({ name: boardWithName(b.name + ' copy'), cols: JSON.parse(JSON.stringify(b.cols)) });
+  newBoard({ name: boardWithName(b.name + ' copy'), area: b.area, focus: b.focus ? b.focus.slice() : null, cols: JSON.parse(JSON.stringify(b.cols)) });
   toast(`Made “${curBoard().name}”`);
 }
 async function deleteBoard() {
@@ -40,8 +40,11 @@ function fitBoardName(el) {
 }
 /* the switcher next to a Board's title (and the same items in its ••• menu) */
 function boardsMenuItems() {
+  const shown = ui.boards.filter((b) => boardInFocus(b)), outside = ui.boards.filter((b) => !boardInFocus(b));
+  const go = (b, all) => ({ label: b.name || 'Board', icon: b.id === ui.boardId ? 'check' : 'columns', fn: () => { if (all) showAllAreas(); switchBoard(b.id); navigate('board'); } });
   return [
-    ...(ui.boards.length > 1 ? [{ header: 'Boards' }, ...ui.boards.map((b) => ({ label: b.name || 'Board', icon: b.id === ui.boardId ? 'check' : 'columns', fn: () => { switchBoard(b.id); navigate('board'); } })), { sep: 1 }] : []),
+    ...(ui.boards.length > 1 ? [{ header: 'Boards' }, ...shown.map((b) => go(b, false)),
+      ...(outside.length ? [{ header: `Outside ${focusTitle(ui.focusRec)}` }, ...outside.map((b) => go(b, true))] : []), { sep: 1 }] : []),
     { label: 'New Board', icon: 'plus', fn: () => newBoard() },
     { label: 'Rename Board', icon: 'pencil', fn: () => { const t = $('[data-fkey="board-name"]'); if (t) { t.focus(); t.select(); } } },
     { label: 'Duplicate Board', icon: 'copy', fn: duplicateBoard },
@@ -165,4 +168,62 @@ function smartNewProps(sl) {
   if (['has', 'overdue', 'week', 'month'].includes(f.deadline)) out.deadline = T;
   if (+f.priority) out.priority = +f.priority;
   return out;
+}
+
+/* ---- Boards and the focus ----
+   A Board shows under a focus when what's on it belongs there: the areas of its area and project
+   columns (a project outside any area counts as No Area, shown when the focus shows to-dos
+   outside any area), and an area's own Board (Open as Board) goes with its area. So a Work Board
+   shows in the Work focus and not in Home; one with both shows in both. A Board of only lists,
+   tags and smart lists belongs to no area, so it shows under every focus. ••• → Show in Focus
+   picks the focuses by hand instead (Automatically goes back). Like the Boards themselves, that
+   choice is this device's own. Switching to a focus that hides the Board on screen switches to
+   one it shows; the switcher lists the hidden ones under Outside …, and opening one of those goes
+   back to All Areas. */
+function boardAreaKeys(b) { // the areas its columns come from ('' = No Area); null when none do
+  const keys = new Set();
+  if (b.area && getA(b.area)) keys.add(b.area);
+  for (const c of b.cols || []) {
+    if (c.t === 'a') { if (getA(c.id)) keys.add(c.id); }
+    else if (c.t === 'p') {
+      const p = getP(c.id);
+      if (p && !p.trashed && !p.isTemplate && !(p.status !== 'open' && p.logged)) { const a = areaOf(p); keys.add(a ? a.id : ''); }
+    }
+  }
+  return keys.size ? keys : null;
+}
+function boardFocusAuto(b, f) {
+  const keys = boardAreaKeys(b);
+  if (!keys) return true;
+  for (const k of keys) if (k ? f.areas.includes(k) : f.loose !== false) return true;
+  return false;
+}
+function boardInFocus(b, f = ui.focusRec) {
+  if (!f || !b) return true;
+  return Array.isArray(b.focus) ? b.focus.includes(f.id) : boardFocusAuto(b, f);
+}
+/* the Board on screen isn't one this focus shows: switch to one it does (if there is one) */
+function keepBoardInFocus() {
+  if (!ui.boards || !ui.boards.length || !ui.focusRec || boardInFocus(curBoard())) return;
+  const b = ui.boards.find((x) => boardInFocus(x));
+  if (b) switchBoard(b.id);
+}
+/* ••• → Show in Focus: Automatically, or the focuses ticked by hand */
+function boardFocusMenu(at) {
+  const b = curBoard(), fs = (S.focuses || []).slice().sort(byOrder);
+  if (!fs.length) return;
+  const auto = !Array.isArray(b.focus);
+  const set = (list) => { b.focus = list; saveBoard(); render(); const names = fs.filter((f) => boardInFocus(b, f)).map(focusTitle); toast(list === null ? `“${b.name}” follows its columns: ${names.length ? names.join(', ') : 'no focus'}` : names.length ? `“${b.name}” shows in ${names.join(', ')}` : `“${b.name}” shows only in All Areas`); };
+  openMenu(at, [
+    { header: `Show “${b.name || 'Board'}” in` },
+    { label: 'Automatically', hint: 'by its columns', icon: auto ? 'check' : 'blank', fn: () => set(null) },
+    { sep: 1 },
+    ...fs.map((f) => {
+      const on = boardInFocus(b, f);
+      return { label: focusTitle(f), icon: on ? 'check' : 'blank', fn: () => {
+        const cur = auto ? fs.filter((x) => boardInFocus(b, x)).map((x) => x.id) : b.focus.slice();
+        set(on ? cur.filter((id) => id !== f.id) : cur.concat(f.id));
+      } };
+    }),
+  ]);
 }
