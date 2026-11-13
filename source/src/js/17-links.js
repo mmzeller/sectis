@@ -147,10 +147,11 @@ function emptyProjectHTML(p, cls) {
 /* what's in a project, under its open row: its to-dos, then its sub-projects (which open the same way) */
 function projectChildrenHTML(p) {
   const todos = S.todos.filter((t) => t.projectId === p.id && !t.trashed && !t.isTemplate && !t.isDraft && (t.status === 'open' || !t.logged)).filter(matchesTagFilter);
-  const ctx = { when: true };
+  // opened under its project's row: one that just follows the project's When doesn't repeat its date
+  const ctx = { when: true, nested: true };
   // on a project's page, logged to-dos shown where they were show inside its sub-projects too
   const lin = ui.view.type === 'project' && loggedShownIn(ui.view.id) ? loggedInHTML(`project:${p.id}:`, loggedOfProject(p).filter(matchesTagFilter)) : '';
-  const subs = subProjectsHTML(p);
+  const subs = subProjectsHTML(p, { nested: true });
   let html = `<div class="pchildren" data-children="${p.id}">`;
   html += secHTML(`project:${p.id}:`, todos.sort(byOrder), ctx) + lin + subs;
   if (!todos.length && !subs) html += emptyProjectHTML(p, 'pchildren-empty');
@@ -169,6 +170,6 @@ function subProjectsHTML(p, opts = {}) {
   const all = childProjects(p).filter((q) => !q.trashed && !q.isTemplate && (q.status === 'open' || !q.logged)); // (a repeating one shows under Repeating)
   if (!all.length) return '';
   const shown = all.filter(subMatchesFilter).sort(byOrder);
-  const ctx = { star: true, when: true, expandable: true };
+  const ctx = { star: true, when: true, expandable: true, nested: !!opts.nested };
   return `<div class="sec subprojs" data-sec="subprojects:${p.id}" data-ok="order">${sortedRows(shown).map((q) => projRowHTML(q, ctx)).join('')}</div>`;
 }

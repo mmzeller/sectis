@@ -151,7 +151,6 @@ function handleAction(act, el, e) {
     case 'collapse-subs': setExpanded(subProjectIds(getP(id)), false); return;
     case 'reveal': revealTodo(id); return;
     case 'toggle-logged': toggleLogged(id); return;
-    case 'toggle-later': ui.laterOpen[id] = !ui.laterOpen[id]; render(); return;
     case 'logbook-more': ui.logbookLimit += 150; render(); return;
     case 'empty-trash': emptyTrash(); return;
     case 'tag-filter': { // a tag adds itself to the filter or takes itself out; ⌥-click shows only it

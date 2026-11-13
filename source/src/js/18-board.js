@@ -132,7 +132,7 @@ function nudgeable(key) {
 }
 /* an area's projects as columns, plus the area itself first when it has to-dos of its own */
 function areaAsBoard(a) {
-  const projs = S.projects.filter((p) => inArea(p, a.id) && !p.trashed && !p.isTemplate && p.status === 'open' && p.start !== 'someday').sort(byOrder);
+  const projs = S.projects.filter((p) => inArea(p, a.id) && !p.trashed && !p.isTemplate && p.status === 'open').sort(byOrder); // Someday ones too
   const loose = S.todos.some((t) => t.areaId === a.id && !t.projectId && t.status === 'open' && liveTodo(t));
   const cols = (loose || !projs.length ? [{ t: 'a', id: a.id }] : []).concat(projs.map((p) => ({ t: 'p', id: p.id })));
   // its own Board, named after it; opening it again brings that Board up to date
@@ -255,7 +255,7 @@ function boardColHTML(c) {
   }
   const a = getA(c.id);
   const todos = S.todos.filter((t) => t.areaId === a.id && !t.projectId && liveTodo(t)).sort(byOrder);
-  const projs = S.projects.filter((p) => inArea(p, a.id) && liveProject(p) && !onBoard('p', p.id) && (p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0())))).sort(byOrder);
+  const projs = S.projects.filter((p) => inArea(p, a.id) && liveProject(p) && !onBoard('p', p.id)).sort(byOrder); // later and Someday ones too
   const n = todos.filter((t) => t.status === 'open').length + projs.reduce((s, p) => s + projectProgress(p).open, 0);
   const sec = `area:${a.id}`;
   let body = secHTML(sec, todos, { when: true }) + (loggedShownIn(a.id) ? loggedInHTML(sec, loggedOfArea(a)) : '');

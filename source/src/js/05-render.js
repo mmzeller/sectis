@@ -182,7 +182,7 @@ function rowHTML(x, ctx = {}) {
   let line = '';
   if (ctx.star && isScheduledToday(x)) line += isEveningItem(x) ? ic('moon', 'r-moon') : ic('star', 'r-star');
   // in its project, a to-do that just follows the project's When doesn't repeat the date (it's in the header)
-  const ownWhen = ctx.when && !followsHere(x);
+  const ownWhen = ctx.when && !followsHere(x) && !(ctx.nested && x.whenFrom);
   if (ownWhen && x.start === 'anytime' && x.when && x.when > T0()) line += `<span class="r-when">${esc(fmtRel(x.when))}</span>`;
   if (ctx.when && x.start === 'someday') line += ic('box', 'r-box');
   if (ownWhen && isScheduledToday(x) && !ctx.star) line += isEveningItem(x) ? ic('moon', 'r-moon') : ic('star', 'r-star');
@@ -219,7 +219,7 @@ function projRowHTML(p, ctx = {}) {
   const exp = ctx.expandable && isExpanded(p);
   const cls = ['row', 'prow']; if (ui.sel.has(p.id)) cls.push('selected'); if (p.status !== 'open') cls.push(p.status); if (p.trashed) cls.push('trashed-row');
   let line = '';
-  const ownWhen = !followsHere(p); // a sub-project following its project's When, inside that project
+  const ownWhen = !followsHere(p) && !(ctx.nested && p.whenFrom); // a sub-project following its project's When, inside that project
   if (ctx.star && ownWhen && isScheduledToday(p)) line += isEveningItem(p) ? ic('moon', 'r-moon') : ic('star', 'r-star');
   if (ctx.when && ownWhen && p.start === 'anytime' && p.when && p.when > T0()) line += `<span class="r-when">${esc(fmtRel(p.when))}</span>`;
   if (ctx.when && p.start === 'someday' && p.status === 'open') line += ic('box', 'r-box');
@@ -573,8 +573,8 @@ function viewArea(a) {
   const todosAll = S.todos.filter((t) => t.areaId === a.id && !t.projectId && liveTodo(t));
   const projAll = S.projects.filter((p) => inArea(p, a.id) && liveProject(p));
   const items = todosAll.filter(matchesTagFilter).sort(byOrder);
-  const active = projAll.filter((p) => p.status !== 'open' || (p.start === 'anytime' && !(p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
-  const later = projAll.filter((p) => p.status === 'open' && (p.start === 'someday' || (p.when && p.when > T0()))).filter(matchesTagFilter).sort(byOrder);
+  // every project, ones for later (a start date to come, or Someday) too: nothing waits behind a Show button
+  const projs = projAll.filter(matchesTagFilter).sort(byOrder);
   const meta = inTagOrder(a.tags).map((id) => getTag(id)).filter(Boolean).map((g) => `<span class="chip tagc"><button class="chip-main" data-action="area-tags" data-id="${a.id}">${ic('tag', 'tc-ic ' + tcls(g))}<span>${esc(g.title)}</span></button><button class="chip-x" data-action="remove-tag" data-id="${a.id}" data-tag="${g.id}" aria-label="Remove tag">${ic('x')}</button></span>`).join('');
   let html = `<div class="lh">${areaIc(a, 'lh-ic')}<textarea class="lh-title" data-edit="area-title" data-id="${a.id}" data-fkey="atitle" placeholder="New Area" aria-label="Area title" autocomplete="off" rows="1" data-autosize data-oneline>${esc(a.title)}</textarea><button class="ib lh-share" data-action="share-view" aria-label="Share or export" title="Share or export this list">${ic('share')}</button><button class="ib" data-action="area-menu" data-id="${a.id}" aria-label="Area options" title="Area options">${ic('more')}</button></div>`;
   if (meta) html += `<div class="lh-meta">${meta}</div>`;
@@ -582,12 +582,7 @@ function viewArea(a) {
   const loggedA = loggedOfArea(a);
   html += `<div class="list">${secHTML(`area:${a.id}`, items, { when: true })}${loggedShownIn(a.id) ? loggedInHTML(`area:${a.id}`, loggedA.filter(matchesTagFilter)) : ''}`;
   if (projAll.length) { const allOpen = projAll.every((p) => ui.expanded.has(p.id)), noneOpen = !projAll.some((p) => ui.expanded.has(p.id)); html += `<div class="exp-bar"><span>${plural(projAll.length, 'project')}</span><button class="link-btn" data-action="expand-all" data-id="${a.id}"${allOpen ? ' disabled' : ''}>Expand All</button><button class="link-btn" data-action="collapse-all" data-id="${a.id}"${noneOpen ? ' disabled' : ''}>Collapse All</button></div>`; }
-  html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(active).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
-  if (later.length) {
-    const open = ui.laterOpen[a.id];
-    html += `<button class="show-more" data-action="toggle-later" data-id="${a.id}">${open ? 'Hide' : 'Show'} ${plural(later.length, 'later project')}</button>`;
-    if (open) html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(later).map((p) => projRowHTML(p, { when: true, expandable: true })).join('')}</div>`;
-  }
+  html += `<div class="sec" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(projs).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   html += '</div>' + repeatingSectionHTML([...projectTemplatesIn((p) => p.areaId === a.id), ...templatesIn((t) => t.areaId === a.id && !t.projectId)]) + loggedFooterHTML(a.id, loggedA);
   if (!todosAll.length && !projAll.length) html += emptyHTML('area', 'This area is empty', 'Areas hold the ongoing parts of your life, like Home or Work. Add to-dos here, or create a project inside it from the ••• menu.');
   return html;
