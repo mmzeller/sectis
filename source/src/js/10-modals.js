@@ -389,13 +389,12 @@ function openTagManager() {
   return L;
 }
 
-/* a tag's color: nine soft colors or gray for none; a nested tag can also share its parent's */
+/* a tag's color: one from the palette, or gray for none; a nested tag can also share its parent's */
 function openTagColor(tag, anchor, done) {
   const cur = TAG_COLOR_NAMES[tag.color] ? tag.color : null;
   const parent = tagParent(tag) && getTag(tagParent(tag));
-  const sw = (c) => `<button class="sw ${'tc-' + c}${cur === c ? ' on' : ''}" data-sw="${c}" aria-label="${TAG_COLOR_NAMES[c]}" aria-pressed="${cur === c}" title="${TAG_COLOR_NAMES[c]}">${cur === c ? ic('check') : ''}</button>`;
   const same = parent ? `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!cur}"><span class="sw-dot tc-${tagColor(parent)}" aria-hidden="true"></span><span>Same as “${esc(parent.title)}”</span>${cur ? '' : `<span class="check">${ic('check')}</span>`}</button>` : '';
-  const L = openLayer({ anchor, cls: 'sw-pop', html: `<div class="pk-h">Color for “${esc(tag.title)}”</div><div class="sw-grid">${TAG_COLORS.concat('gray').map(sw).join('')}</div>${same}`,
+  const L = openLayer({ anchor, cls: 'sw-pop', html: `<div class="pk-h">Color for “${esc(tag.title)}”</div>${swatchGridHTML(cur, parent ? tagColor(parent) : null, parent ? parent.title : '')}${same}`,
     onMount: (el) => {
       el.addEventListener('click', (e) => { const b = e.target.closest('[data-sw]'); if (!b) return; closeLayer(L); done(b.dataset.sw || null); });
       if (!isCoarse()) { const f = $('.sw.on', el) || $('.sw-auto-i', el) || $('.sw', el); if (f) f.focus({ preventScroll: true }); }

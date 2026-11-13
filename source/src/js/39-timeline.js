@@ -117,12 +117,7 @@ function tlLayout(r) {
   return { lw, dw, fits: dw * r.days <= grid + 0.5, stack: phone, vw: avail };
 }
 const tlAt = (n) => `calc(var(--dw) * ${n})`;
-function tlColor(x) {
-  const own = placeColor(x); if (own) return colorVar(own);
-  const p = x.type === 'todo' && x.projectId && getP(x.projectId), a = areaOf(x);
-  const c = (p && placeColor(p)) || (a && placeColor(a));
-  return c ? colorVar(c) : '';
-}
+function tlColor(x) { const c = effColor(x); return c ? colorVar(c) : ''; } // its own, or what it's in (33-colors.js)
 function tlDateText(e) {
   if (e.dl) return e.late ? deadlineInfo(e.dl).text : fmtRel(e.dl);
   return ''; // a start date: the days above already say which day it is

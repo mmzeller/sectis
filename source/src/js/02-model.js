@@ -312,9 +312,15 @@ function tagTree() {
 /* Tag colors: a soft tint. Each top-level tag gets the least-used color when it's made (or first seen,
    for tags from before colors or from Sintr) and keeps it; change it in Manage Tags. A nested tag shares its
    parent's color unless you give it its own. Gray means no color. */
-const TAG_COLORS = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'indigo', 'purple', 'pink'];
-const TAG_COLOR_NAMES = { red: 'Red', orange: 'Orange', yellow: 'Yellow', green: 'Green', teal: 'Teal', blue: 'Blue', indigo: 'Indigo', purple: 'Purple', pink: 'Pink', gray: 'Gray' };
-const TAG_COLOR_TURN = ['blue', 'orange', 'green', 'purple', 'red', 'teal', 'pink', 'yellow', 'indigo']; // neighbors look different
+/* The palette (tags, projects and areas share it): twelve hues, each Light, plain and Deep
+   ('blue-l', 'blue', 'blue-d'), and Gray. The shades are mixed from the plain one in app.css. */
+const COLOR_HUES = ['red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan', 'blue', 'indigo', 'purple', 'pink', 'brown'];
+const COLOR_HUE_NAMES = { red: 'Red', orange: 'Orange', yellow: 'Yellow', lime: 'Lime', green: 'Green', teal: 'Teal', cyan: 'Cyan', blue: 'Blue', indigo: 'Indigo', purple: 'Purple', pink: 'Pink', brown: 'Brown' };
+const COLOR_SHADES = [['-l', 'Light '], ['', ''], ['-d', 'Deep ']];
+const TAG_COLORS = COLOR_SHADES.flatMap(([s]) => COLOR_HUES.map((h) => h + s));
+const TAG_COLOR_NAMES = Object.assign(Object.fromEntries(COLOR_HUES.flatMap((h) => COLOR_SHADES.map(([s, n]) => [h + s, n + COLOR_HUE_NAMES[h]]))), { gray: 'Gray' });
+const colorHue = (c) => (c ? c.replace(/-[ld]$/, '') : null);
+const TAG_COLOR_TURN = ['blue', 'orange', 'green', 'purple', 'red', 'teal', 'pink', 'yellow', 'indigo', 'cyan', 'lime', 'brown']; // neighbors look different
 function nextTagColor() {
   const used = new Map(TAG_COLOR_TURN.map((c) => [c, 0]));
   S.tags.forEach((t) => { if (!tagParent(t) && used.has(t.color)) used.set(t.color, used.get(t.color) + 1); });

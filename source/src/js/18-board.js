@@ -249,7 +249,7 @@ function boardColHTML(c) {
     const p = getP(c.id), pr = projectProgress(p), open = p.status === 'open';
     const area = areaOf(p), where = isSub(p) ? projPath(parentOf(p)) : area ? aTitle(area) : 'Project';
     const sec = `project:${p.id}:`;
-    return `<section class="bcol${open ? '' : ' closed'}${sizedH}${placeColor(p) ? ' colored' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h, placeColor(p))}>${gripHTML}
+    return `<section class="bcol${open ? '' : ' closed'}${sizedH}${effColor(p) ? ' colored' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h, effColor(p))}>${gripHTML}
       <div class="bcol-h" data-col="p:${p.id}">${projIc(p, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button>`}<div class="bcol-sub">${open ? esc(where) : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
       <div class="bcol-body"${bodyAttr}>${boardProjectBody(p)}</div>${resizeHandlesHTML(key)}</section>`;
   }
