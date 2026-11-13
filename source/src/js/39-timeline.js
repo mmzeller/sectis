@@ -125,7 +125,7 @@ function tlColor(x) {
 }
 function tlDateText(e) {
   if (e.dl) return e.late ? deadlineInfo(e.dl).text : fmtRel(e.dl);
-  return 'Starts ' + fmtRel(e.st);
+  return ''; // a start date: the days above already say which day it is
 }
 const tlName = (x) => x.title || (x.type === 'project' ? 'New Project' : 'New To-Do');
 const tlShort = (s, n = 34) => (s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s);
@@ -143,12 +143,15 @@ function tlSpan(e, r, L) {
   const c = (idx(e.b) + 0.5) * dw; return { x1: c - half, x2: c + half };
 }
 /* a label beside something running x1..x2 on a track W wide: after it if there's room, else
-   before it, else after it cut short. lo..hi is the room the two take up */
-function tlLabel(text, x1, x2, W, cls = '') {
+   before it, else (a bar long enough to hold it) inside it, else after it cut short. lo..hi is
+   the room the two take up */
+function tlLabel(text, x1, x2, W, cls = '', bar = false) {
   if (!text) return { html: '', lo: x1, hi: x2 };
   const w = tlTextW(text), at = (x, extra = '') => `<span class="tl-dt tl-nm${cls ? ' ' + cls : ''}" style="left:${Math.round(x)}px${extra}">${esc(text)}</span>`;
   if (x2 + 5 + w <= W) return { html: at(x2 + 5), lo: x1, hi: x2 + 5 + w };
   if (x1 - 5 - w >= 0) return { html: at(x1 - 5 - w), lo: x1 - 5 - w, hi: x2 };
+  // a bar running past both edges (a long project, say) is named inside, from its left end
+  if (bar && x2 - x1 >= 60) return { html: at(x1 + 6, `;max-width:${Math.floor(x2 - x1 - 12)}px`).replace('tl-nm', 'tl-nm in'), lo: x1, hi: x2 };
   const room = Math.floor(W - x2 - 5);
   return room < 40 ? { html: '', lo: x1, hi: x2 } : { html: at(x2 + 5, `;max-width:${room}px`).replace('tl-nm', 'tl-nm cut'), lo: x1, hi: W };
 }
@@ -156,7 +159,7 @@ function tlLabel(text, x1, x2, W, cls = '') {
 function tlNamedHTML(e, r, L, nameIt = true) {
   const sp = tlSpan(e, r, L), date = tlWeekly() ? '' : tlDateText(e);
   const text = nameIt ? tlShort(tlName(e.x)) + (date ? ` · ${date}` : '') : date;
-  const lab = tlLabel(text, sp.x1, sp.x2, L.dw * r.days, `${nameIt ? 'nm' : ''}${e.x.status !== 'open' ? ' done' : ''}${e.late ? ' late' : ''}`);
+  const lab = tlLabel(text, sp.x1, sp.x2, L.dw * r.days, `${nameIt ? 'nm' : ''}${e.x.status !== 'open' ? ' done' : ''}${e.late ? ' late' : ''}`, e.a < e.b && !e.overdue);
   return { html: tlTrackHTML(e, r, { nolabel: true }) + lab.html, lo: lab.lo, hi: lab.hi };
 }
 /* a folded area, project or row: a dot on each deadline, a line from the first to the last, and how many */
@@ -200,7 +203,7 @@ function tlTrackHTML(e, r, opts = {}) {
   const x = e.x, col = tlColor(x), style = col ? `;--tlc:${col}` : '';
   const tip = esc(`${x.title || (x.type === 'project' ? 'New Project' : 'New To-Do')}: ${e.dl ? `deadline ${fmtDate(e.dl)}` : ''}${e.st && (!e.dl || e.st < e.dl) ? `${e.dl ? ', ' : ''}starts ${fmtDate(e.st)}` : ''}${e.implicit ? `, made ${fmtDate(e.a)}` : ''}`);
   if (e.overdue) return `<button class="tl-od" data-tl-item data-tlid="${x.id}" style="left:2px" title="${tip}">${ic('chevL')}<span>${esc(fmtDate(e.dl, { weekday: false }))}</span></button>`;
-  const label = (n, cls = '') => (tlWeekly(r) || opts.nolabel ? '' : n > last - 3 ? `<span class="tl-dt left ${cls}" style="right:calc(100% - ${tlAt(n)} + 2px)">${esc(tlDateText(e))}</span>` : `<span class="tl-dt ${cls}" style="left:${tlAt(n + 1)}">${esc(tlDateText(e))}</span>`);
+  const label = (n, cls = '') => (tlWeekly(r) || opts.nolabel || !tlDateText(e) ? '' : n > last - 3 ? `<span class="tl-dt left ${cls}" style="right:calc(100% - ${tlAt(n)} + 2px)">${esc(tlDateText(e))}</span>` : `<span class="tl-dt ${cls}" style="left:${tlAt(n + 1)}">${esc(tlDateText(e))}</span>`);
   const bi = idx(e.b);
   if (e.a < e.b) {
     const ai = idx(e.a), L = Math.max(0, ai), R = Math.min(last, bi), done = x.type === 'project' ? projectProgress(x).frac : x.status !== 'open' ? 1 : 0;
@@ -581,12 +584,12 @@ function boardTimelineRows(r) {
 /* a Board row holds a project and all its to-dos, so things on the same days would sit on top of
    each other: each goes on the first line of the row where it (and its name) has room, and the
    row grows a line for each one that doesn't fit */
-function tlLanes(list, r, L) {
+function tlLanes(list, r, L, ownId = null) {
   const W = L.dw * r.days;
   const items = list.map((e, k) => {
-    const own = k === 0 && e.x.type === 'project'; // the project's own bar is named by its row, so it shows its date
-    const sp = tlSpan(e, r, L), date = own && !tlWeekly(r) ? tlDateText(e) : '';
-    const lab = tlLabel(own ? date : tlShort(tlName(e.x)), sp.x1, sp.x2, W, `${own ? '' : 'nm'}${e.x.status !== 'open' ? ' done' : ''}${e.late ? ' late' : ''}`);
+    const own = !!ownId && e.x.id === ownId; // the row's own project, named in bold so it reads as the row's
+    const sp = tlSpan(e, r, L);
+    const lab = tlLabel(tlShort(tlName(e.x)), sp.x1, sp.x2, W, `nm${own ? ' own' : ''}${e.x.status !== 'open' ? ' done' : ''}${e.late ? ' late' : ''}`, e.a < e.b && !e.overdue);
     return { e, own, lab, lo: lab.lo, hi: lab.hi };
   });
   const ends = [];
@@ -616,7 +619,7 @@ function boardTimelineHTML() {
     const f = row.kids.length > 0 && ui.tl.fold.has(row.k), head = `<div class="tl-lab">${tlFoldHTML(row.k, row.label, row.kids.length > 0)}${row.icon}<button class="tl-name" ${row.open} title="${esc(row.label)}">${esc(row.label)}</button></div>`;
     const attrs = `${row.x ? ` data-tlid="${row.x.id}"` : ''}${row.add ? ` data-tlnew="${esc(row.add)}"` : ''}`;
     if (f) return `<div class="tl-row tl-proj folded"${attrs}>${head}<div class="tl-track">${row.main ? tlTrackHTML(row.main, r) : ''}${tlTicksHTML(row.kids, r, L, 'to-do')}</div></div>`;
-    const lanes = tlLanes((row.main ? [row.main] : []).concat(row.kids), r, L);
+    const lanes = tlLanes((row.main ? [row.main] : []).concat(row.kids), r, L, row.main && row.x ? row.x.id : null);
     return `<div class="tl-row tl-proj tl-laned"${attrs}>${head}<div class="tl-track tl-lanes" style="--lanes:${lanes.n}">${lanes.html}</div></div>`;
   }).join('');
   const zoomSeg = tlZoomSegHTML(), nav = tlNavHTML();

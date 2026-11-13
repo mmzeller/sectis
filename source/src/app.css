@@ -1518,6 +1518,11 @@ button.np-gl:hover { color: var(--fg); }
 .tl-nm { margin: 0; }
 .tl-nm.nm { color: color-mix(in srgb, var(--fg) 80%, transparent); }
 .tl-nm.cut { overflow: hidden; text-overflow: ellipsis; }
+/* the Board strip's own project, beside its marker or bar */
+.tl-nm.own { font-weight: 600; }
+.tl-nm.own:not(.late), .tl-nm.in:not(.late) { color: var(--fg); }
+/* a bar too long to name beside: its name inside, from its left end */
+.tl-nm.in { z-index: 2; overflow: hidden; text-overflow: ellipsis; }
 .tl-nm.late { color: var(--red); }
 .tl-nm.done { text-decoration: line-through; opacity: .6; }
 /* folding: ▸ beside an area, project or Board row; a folded one is a line of dots and a count */
