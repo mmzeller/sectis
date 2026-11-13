@@ -43,6 +43,8 @@ function openSettings(pane) {
       return setGroup('Appearance', [
         segRow('Theme', '', 'theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]),
         segRow('Row spacing', 'Compact fits more to-dos on screen. Each device keeps its own.', 'density', [['comfortable', 'Comfortable'], ['compact', 'Compact']]),
+        segRow('Color projects by', 'Area & Project uses the colors you pick (they flow down to what’s inside). Progress goes from red, with nothing done, to green when it’s all done. Priority colors High, Medium and Low like their ! marks.', 'colorBy', COLOR_BY),
+        swRow('Shade sub-projects', 'A sub-project without its own color takes a lighter or deeper shade of its project’s, taking turns, so they’re one family but easy to tell apart.', 'shadeSubs'),
       ]) + setGroup('Dates and typing', [
         segRow('Week starts on', '', 'weekStart', [[0, 'Sunday'], [1, 'Monday']]),
         swRow('Quick Entry reads dates, tags and places', '“Pay rent friday @Home #Bills !oct 31” sets When, the area, a tag and a deadline.', 'parseEntry'),

@@ -607,6 +607,7 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tm-sw { flex: none; width: 24px; height: 24px; padding: 5px; margin: 0 -4px 0 -2px; border: 0; border-radius: 50%; background: var(--tc); background-clip: content-box; cursor: pointer; }
 .tm-sw:hover, .tm-sw:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tc) 45%, transparent); }
 .sw-pop { width: 352px; max-width: calc(100vw - 16px); }
+.sw-note { margin: 0 8px 6px; font-size: 12px; line-height: 1.4; color: var(--muted); }
 .sw-grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 6px 4px; padding: 6px 8px 8px; }
 /* the color it would get from what it's in */
 .sw.inh { box-shadow: 0 0 0 2px var(--pop), 0 0 0 3.5px color-mix(in srgb, var(--tc) 70%, transparent); }
@@ -1648,7 +1649,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.52.0';
+const APP_VERSION = '1.53.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1877,7 +1878,7 @@ const ui = {
 };
 
 function defaultSettings() {
-  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true, loggedPlace: 'bottom' };
+  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true, loggedPlace: 'bottom', colorBy: 'place', shadeSubs: true };
 }
 function emptyState() {
   return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], smart: [], focuses: [], notes: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };
@@ -3110,7 +3111,7 @@ function rowHTML(x, ctx = {}) {
   const parent = [ctx.parent ? parentLabel(x) : '', ctx.waitInfo && x.waitSince ? `Waiting since ${fmtDate(x.waitSince, { weekday: false })}` : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(x) + (ctx.doneOn ? `<span class="r-done" title="Logged, done ${esc(ctx.doneOn)}">${esc(ctx.doneOn)}</span>` : '') + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
-  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${ctx.parent && placeOfColor(x) ? `<span class="r-pdot" style="background:${colorVar(placeOfColor(x))}"></span>` : ''}${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
+  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${ctx.parent && placeOfColor(x) ? `<span class="r-pdot" style="background:${placeOfColor(x)}"></span>` : ''}${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
 }
 /* a to-do's checklist shown under its row; items can be ticked here without opening the to-do */
 function ckInlineHTML(t) {
@@ -4806,6 +4807,7 @@ function viewMenu(el) {
       { label: 'Scheduled To-Dos Too', icon: ui.tl.when ? 'check' : 'blank', fn: () => { ui.tl.when = !ui.tl.when; saveTimeline(); render(); } },
       { label: 'To-Dos Inside Projects', icon: ui.tl.kids ? 'check' : 'blank', fn: () => { ui.tl.kids = !ui.tl.kids; saveTimeline(); render(); } },
       { label: 'Names Beside Flags', icon: ui.tl.names ? 'check' : 'blank', fn: () => { ui.tl.names = !ui.tl.names; saveTimeline(); render(); } },
+      colorByMenuItem(el),
       { sep: 1 },
       { label: 'Fold All', icon: 'chevU', fn: () => tlFoldAll(true) },
       { label: 'Unfold All', icon: 'chevD', disabled: ![...ui.tl.fold].some((k) => /^[ap]:/.test(k)), fn: () => tlFoldAll(false) },
@@ -4825,6 +4827,7 @@ function viewMenu(el) {
     openMenu(el, [...batch,
       ...boardsMenuItems(), { sep: 1 },
       { label: curBoard().tl ? 'Hide Timeline' : 'Show Timeline', icon: 'timeline', fn: toggleBoardTimeline },
+      colorByMenuItem(el),
       ...((S.focuses || []).length ? [{ label: 'Show in Focus…', icon: 'focus', fn: () => boardFocusMenu(el) }] : []),
       { label: 'Add or Remove Columns…', icon: 'columns', fn: () => openBoardPicker(el) },
       { label: 'Fit All Sizes Automatically', icon: 'columns', disabled: !ui.board.some((c) => c.w || c.h), fn: resetAllSizes },
@@ -7836,7 +7839,7 @@ const COL_MIN = 220, COL_MAX = 1200, COLH_MIN = 120, COLH_MAX = 4000;
 const clampW = (w) => Math.round(Math.max(COL_MIN, Math.min(COL_MAX, w)));
 const clampH = (h) => Math.round(Math.max(COLH_MIN, Math.min(COLH_MAX, h)));
 function colEntry(key) { const [t, id] = key.split(':'); return (ui.board || []).find((c) => c.t === t && c.id === id); }
-function colHStyle(h, color = null) { const s = [h ? `height:${clampH(h)}px` : '', color ? `--colc:${colorVar(color)}` : ''].filter(Boolean).join(';'); return s ? ` style="${s}"` : ''; }
+function colHStyle(h, css = null) { const s = [h ? `height:${clampH(h)}px` : '', css ? `--colc:${css}` : ''].filter(Boolean).join(';'); return s ? ` style="${s}"` : ''; } // css: a color (33-colors.js)
 function resizeHandlesHTML(key) {
   return `<div class="bcol-resize" data-colresize="${key}" data-axis="x" aria-hidden="true" title="Drag to change the width. Double-click to fit automatically."></div>`
     + `<div class="bcol-resize-b" data-colresize="${key}" data-axis="y" aria-hidden="true" title="Drag to change the height. Double-click to fit automatically."></div>`
@@ -7938,7 +7941,7 @@ function boardColHTML(c) {
     const p = getP(c.id), pr = projectProgress(p), open = p.status === 'open';
     const area = areaOf(p), where = isSub(p) ? projPath(parentOf(p)) : area ? aTitle(area) : 'Project';
     const sec = `project:${p.id}:`;
-    return `<section class="bcol${open ? '' : ' closed'}${sizedH}${effColor(p) ? ' colored' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h, effColor(p))}>${gripHTML}
+    return `<section class="bcol${open ? '' : ' closed'}${sizedH}${shownColor(p) ? ' colored' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h, shownColor(p))}>${gripHTML}
       <div class="bcol-h" data-col="p:${p.id}">${projIc(p, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button>`}<div class="bcol-sub">${open ? esc(where) : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
       <div class="bcol-body"${bodyAttr}>${boardProjectBody(p)}</div>${resizeHandlesHTML(key)}</section>`;
   }
@@ -7950,7 +7953,7 @@ function boardColHTML(c) {
   let body = secHTML(sec, todos, { when: true }) + (loggedShownIn(a.id) ? loggedInHTML(sec, loggedOfArea(a)) : '');
   if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(projs).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
-  return `<section class="bcol${sizedH}${placeColor(a) ? ' colored' : ''}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h, placeColor(a))}>${gripHTML}
+  return `<section class="bcol${sizedH}${effColor(a) ? ' colored' : ''}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h, effColor(a) ? colorVar(effColor(a)) : null)}>${gripHTML}
     <div class="bcol-h" data-col="a:${a.id}">${areaIc(a, 'bcol-ic')}<div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
     <div class="bcol-body"${bodyAttr}>${body}</div>${resizeHandlesHTML(key)}</section>`;
 }
@@ -9553,22 +9556,73 @@ function placeParent(x) {
   if (x.type === 'todo') return (x.projectId && getP(x.projectId)) || (x.areaId ? getA(x.areaId) || null : null);
   return null;
 }
-/* the color it shows: its own, else the nearest one above it */
+/* its color by area and project: its own, else what it gets from above */
 function effColor(x, depth = 0) {
   if (!x) return null;
   const own = placeColor(x);
   if (own) return own === 'gray' ? null : own; // Gray: no color, and none from above either
-  return depth < 16 ? effColor(placeParent(x), depth + 1) : null;
+  return depth < 16 ? flowColor(x, depth) : null;
+}
+/* what it gets from above: the color of what it's in, except that with Shade Sub-Projects on
+   (Settings → Appearance) a sub-project takes another shade of its project's hue, the sub-projects
+   of one project taking turns between the two shades its project isn't (plain blue's go Light
+   Blue, Deep Blue, Light Blue…), so they're one family and still tell apart */
+function flowColor(x, depth = 0) {
+  const par = placeParent(x), c = effColor(par, depth + 1);
+  if (!c || !S.settings.shadeSubs || x.type !== 'project' || !par || par.type !== 'project') return c;
+  const shade = c.endsWith('-l') ? '-l' : c.endsWith('-d') ? '-d' : '', others = ['-l', '', '-d'].filter((s) => s !== shade);
+  const sibs = childProjects(par).filter((q) => !q.trashed && !q.isTemplate).sort(byOrder);
+  return colorHue(c) + others[Math.max(0, sibs.indexOf(x)) % 2];
 }
 const colorVar = (c) => `var(--t-${c})`;
-const colorStyle = (x) => (effColor(x) ? ` style="color:${colorVar(effColor(x))}"` : '');
+
+/* ---- Color By (Settings → Appearance, or ••• on the Board and the Timeline) ----
+   What the colors of projects (their icons, Board column stripes, Timeline bars) and the to-dos
+   in them say:
+   - Area & Project: the colors picked for them, flowing down (above).
+   - Progress: how much of a project is done, on a gradient from red (none) through orange,
+     yellow and lime to green (all). A project with nothing in it yet is gray. Its to-dos go
+     with it.
+   - Priority: High, Medium and Low in the colors of their ! marks; no priority, gray. A to-do
+     on the Timeline shows its own priority.
+   Areas keep their own colors either way. */
+const COLOR_BY = [['place', 'Area & Project'], ['progress', 'Progress'], ['priority', 'Priority']];
+const PROGRESS_STOPS = ['red', 'orange', 'yellow', 'lime', 'green'];
+const PRIORITY_COLORS = { 3: 'var(--red)', 2: 'var(--c-waiting)', 1: 'var(--c-inbox)' };
+function progressCSS(frac) {
+  const n = PROGRESS_STOPS.length - 1, f = Math.min(1, Math.max(0, frac)), i = Math.min(n - 1, Math.floor(f * n)), t = f * n - i;
+  return `color-mix(in oklab, var(--t-${PROGRESS_STOPS[i]}) ${Math.round((1 - t) * 100)}%, var(--t-${PROGRESS_STOPS[i + 1]}))`;
+}
+/* the color a project or to-do shows, as CSS (null: none) */
+function shownColor(x) {
+  if (!x) return null;
+  const by = S.settings.colorBy;
+  if (by === 'priority') return PRIORITY_COLORS[prio(x)] || 'var(--t-gray)'; // none: gray, so the ones that have one stand out
+  if (by === 'progress') {
+    const p = x.type === 'project' ? x : x.type === 'todo' && x.projectId ? getP(x.projectId) : null;
+    if (!p) return null;
+    const pr = projectProgress(p);
+    return pr.total || p.status !== 'open' ? progressCSS(pr.frac) : 'var(--t-gray)'; // nothing in it yet: gray
+  }
+  const c = effColor(x); return c ? colorVar(c) : null;
+}
+function colorByMenu(at) {
+  openMenu(at, [{ header: 'Color By' }, ...COLOR_BY.map(([v, l]) => ({ label: l, icon: S.settings.colorBy === v ? 'check' : 'blank', fn: () => setColorBy(v) })),
+    { sep: 1 }, { label: 'Shade Sub-Projects', icon: S.settings.shadeSubs ? 'check' : 'blank', disabled: S.settings.colorBy !== 'place', fn: () => { S.settings.shadeSubs = !S.settings.shadeSubs; saveSoon(); render(); } }]);
+}
+function colorByMenuItem(at) { return { label: 'Color By…', icon: 'palette', hint: COLOR_BY.find(([v]) => v === S.settings.colorBy)[1], fn: () => colorByMenu(at) }; }
+function setColorBy(v) {
+  S.settings.colorBy = v; saveSoon(); render();
+  toast(v === 'progress' ? 'Colored by progress: red with nothing done, through yellow, to green when it’s all done' : v === 'priority' ? 'Colored by priority: High red, Medium orange, Low blue' : 'Colored by area and project');
+}
+const colorStyle = (x) => { const c = shownColor(x); return c ? ` style="color:${c}"` : ''; };
 /* a project's progress pie and an area's box, in its color when it has one */
 function projIc(p, cls = '', frac = null) {
   return `<span class="ic ${cls}"${colorStyle(p)}>${pieSVG(frac == null ? projectProgress(p).frac : frac)}</span>`;
 }
-function areaIc(a, cls = '') { return `<span class="ic ${cls}"${placeColor(a) ? colorStyle(a) : ' style="color:var(--c-area)"'}>${I.area}</span>`; }
-/* the place a to-do sits in, for a colored dot beside its parent label */
-function placeOfColor(x) { return effColor(placeParent(x)); }
+function areaIc(a, cls = '') { const c = placeColor(a); return `<span class="ic ${cls}" style="color:${c && c !== 'gray' ? colorVar(c) : 'var(--c-area)'}">${I.area}</span>`; }
+/* the place a to-do sits in, for a colored dot beside its parent label (CSS) */
+function placeOfColor(x) { const par = placeParent(x); return par && par.type !== 'project' ? (effColor(par) ? colorVar(effColor(par)) : null) : shownColor(par); }
 const placeName = (x) => (!x ? '' : x.type === 'project' ? pTitle(x) : aTitle(x));
 function colorMenuItem(kind, x, el) {
   const own = placeColor(x), from = !own && effColor(x) ? placeParent(x) : null;
@@ -9590,7 +9644,9 @@ function openPlaceColor(kind, x, anchor) {
   const auto = inh
     ? `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!cur}"><span class="sw-dot tc-${inh}" aria-hidden="true"></span><span>Same as ${esc(tlShort(parName, 28))}</span><span class="hint">${cur ? '' : ic('check')}</span></button>`
     : `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!cur}"><span class="sw-dot sw-none" aria-hidden="true"></span><span>No Color</span><span class="hint">${cur ? '' : ic('check')}</span></button>`;
-  const L = openLayer({ anchor: anchor && anchor.isConnected === false ? null : anchor, cls: 'sw-pop', html: `<div class="pk-h">Color for “${esc(name)}”</div>${swatchGridHTML(cur, inh, parName, inh ? `Gray: no color, not even ${parName}’s` : 'Gray: no color')}${auto}`,
+  const by = kind === 'p' && S.settings.colorBy !== 'place' ? COLOR_BY.find(([v]) => v === S.settings.colorBy)[1] : '';
+  const note = by ? `<p class="sw-note">Projects are colored by ${by} now. This color shows when Color By is Area & Project (••• on the Board or Timeline, or Settings).</p>` : '';
+  const L = openLayer({ anchor: anchor && anchor.isConnected === false ? null : anchor, cls: 'sw-pop', html: `<div class="pk-h">Color for “${esc(name)}”</div>${note}${swatchGridHTML(cur, inh, parName, inh ? `Gray: no color, not even ${parName}’s` : 'Gray: no color')}${auto}`,
     onMount: (el) => {
       el.addEventListener('click', (e) => {
         const b = e.target.closest('[data-sw]'); if (!b) return; closeLayer(L);
@@ -10624,7 +10680,7 @@ function tlLayout(r) {
   return { lw, dw, fits: dw * r.days <= grid + 0.5, stack: phone, vw: avail };
 }
 const tlAt = (n) => `calc(var(--dw) * ${n})`;
-function tlColor(x) { const c = effColor(x); return c ? colorVar(c) : ''; } // its own, or what it's in (33-colors.js)
+function tlColor(x) { return shownColor(x) || ''; } // by Color By: area and project, progress or priority (33-colors.js)
 function tlDateText(e) {
   if (e.dl) return e.late ? deadlineInfo(e.dl).text : fmtRel(e.dl);
   return ''; // a start date: the days above already say which day it is
@@ -12185,6 +12241,8 @@ function openSettings(pane) {
       return setGroup('Appearance', [
         segRow('Theme', '', 'theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]),
         segRow('Row spacing', 'Compact fits more to-dos on screen. Each device keeps its own.', 'density', [['comfortable', 'Comfortable'], ['compact', 'Compact']]),
+        segRow('Color projects by', 'Area & Project uses the colors you pick (they flow down to what’s inside). Progress goes from red, with nothing done, to green when it’s all done. Priority colors High, Medium and Low like their ! marks.', 'colorBy', COLOR_BY),
+        swRow('Shade sub-projects', 'A sub-project without its own color takes a lighter or deeper shade of its project’s, taking turns, so they’re one family but easy to tell apart.', 'shadeSubs'),
       ]) + setGroup('Dates and typing', [
         segRow('Week starts on', '', 'weekStart', [[0, 'Sunday'], [1, 'Monday']]),
         swRow('Quick Entry reads dates, tags and places', '“Pay rent friday @Home #Bills !oct 31” sets When, the area, a tag and a deadline.', 'parseEntry'),

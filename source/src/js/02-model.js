@@ -8,7 +8,7 @@ const ui = {
 };
 
 function defaultSettings() {
-  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true, loggedPlace: 'bottom' };
+  return { theme: 'system', logMode: 'daily', groupToday: false, weekStart: 0, parseEntry: true, notify: false, inheritTags: true, rowTags: 'own', density: 'comfortable', doneSink: 'bottom', prioTop: true, loggedPlace: 'bottom', colorBy: 'place', shadeSubs: true };
 }
 function emptyState() {
   return { schema: 1, savedAt: 0, todos: [], projects: [], headings: [], areas: [], tags: [], smart: [], focuses: [], notes: [], settings: defaultSettings(), meta: { fired: {}, sampleLoaded: false } };

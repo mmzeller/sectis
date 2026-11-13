@@ -205,7 +205,7 @@ function rowHTML(x, ctx = {}) {
   const parent = [ctx.parent ? parentLabel(x) : '', ctx.waitInfo && x.waitSince ? `Waiting since ${fmtDate(x.waitSince, { weekday: false })}` : ''].filter(Boolean).join(' · ');
   const lead = ctx.date ? `<span class="r-date">${esc(ctx.date)}</span>` : '';
   const right = deadlineHTML(x) + (ctx.doneOn ? `<span class="r-done" title="Logged, done ${esc(ctx.doneOn)}">${esc(ctx.doneOn)}</span>` : '') + (x.trashed ? `<button class="restore" data-action="restore" data-id="${x.id}">Put Back</button>` : '');
-  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${ctx.parent && placeOfColor(x) ? `<span class="r-pdot" style="background:${colorVar(placeOfColor(x))}"></span>` : ''}${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
+  return `<div class="${cls.join(' ')}" data-id="${x.id}" data-kind="todo" data-drag="todo"><span class="sel-ring">${ic('check')}</span>${lead}${ctx.tpl ? '<span class="cb tpl-cb" aria-hidden="true"></span>' : checkboxHTML(x)}<div class="r-main"><div class="r-line">${line}</div>${parent ? `<div class="r-sub">${ctx.parent && placeOfColor(x) ? `<span class="r-pdot" style="background:${placeOfColor(x)}"></span>` : ''}${esc(parent)}</div>` : ''}${ckOpen ? ckInlineHTML(x) : ''}</div>${right ? `<div class="r-right">${right}</div>` : ''}</div>`;
 }
 /* a to-do's checklist shown under its row; items can be ticked here without opening the to-do */
 function ckInlineHTML(t) {

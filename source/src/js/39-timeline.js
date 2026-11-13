@@ -117,7 +117,7 @@ function tlLayout(r) {
   return { lw, dw, fits: dw * r.days <= grid + 0.5, stack: phone, vw: avail };
 }
 const tlAt = (n) => `calc(var(--dw) * ${n})`;
-function tlColor(x) { const c = effColor(x); return c ? colorVar(c) : ''; } // its own, or what it's in (33-colors.js)
+function tlColor(x) { return shownColor(x) || ''; } // by Color By: area and project, progress or priority (33-colors.js)
 function tlDateText(e) {
   if (e.dl) return e.late ? deadlineInfo(e.dl).text : fmtRel(e.dl);
   return ''; // a start date: the days above already say which day it is
