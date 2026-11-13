@@ -136,7 +136,9 @@ function renderSidebar() {
 
 /* ---------- rows ---------- */
 function checkboxHTML(x) {
-  return `<button class="cb ${x.status !== 'open' ? x.status : ''}" data-action="toggle" data-id="${x.id}" aria-label="${x.status === 'open' ? 'Complete' : 'Mark as open'}">${ic(x.status === 'canceled' ? 'x' : 'check')}</button>`;
+  // a to-do with a color of its own (shown by area and project) tints its checkbox (33-colors.js)
+  const own = x.type === 'todo' && S.settings.colorBy === 'place' && placeColor(x) !== 'gray' ? placeColor(x) : null;
+  return `<button class="cb ${x.status !== 'open' ? x.status : ''}${own ? ' tinted' : ''}"${own ? ` style="--cbc:${colorVar(own)}"` : ''} data-action="toggle" data-id="${x.id}" aria-label="${x.status === 'open' ? 'Complete' : 'Mark as open'}">${ic(x.status === 'canceled' ? 'x' : 'check')}</button>`;
 }
 function parentLabel(x) {
   if (x.type === 'todo') { const p = projectOf(x); if (p) return projPath(p); }

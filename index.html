@@ -608,6 +608,33 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tm-sw:hover, .tm-sw:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tc) 45%, transparent); }
 .sw-pop { width: 352px; max-width: calc(100vw - 16px); }
 .sw-note { margin: 0 8px 6px; font-size: 12px; line-height: 1.4; color: var(--muted); }
+.sw-manage { color: var(--muted); }
+.sw-dot.inh { box-shadow: 0 0 0 1.5px var(--pop), 0 0 0 2.5px color-mix(in srgb, var(--tc) 60%, transparent); }
+/* a to-do's own color, on its checkbox */
+.cb.tinted { border-color: var(--cbc); background: color-mix(in srgb, var(--cbc) 22%, var(--bg)); }
+.cb.tinted.done { background: var(--cbc); border-color: var(--cbc); color: #fff; }
+/* Manage Colors */
+.modal.narrow.cm-modal { width: min(520px, calc(100vw - 32px)); display: flex; flex-direction: column; overflow: hidden; }
+.cm-bar { display: flex; align-items: center; gap: 8px; padding: 0 18px 10px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.cm-bar .cm-n { flex: 1; min-width: 120px; font-size: 12.5px; color: var(--muted); }
+.cm-bar .btn .ic { width: 14px; height: 14px; margin-right: 5px; vertical-align: -2px; }
+.cm-list { overflow-y: auto; padding-top: 6px; }
+.cm-row { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 6px; border-radius: 8px; cursor: default; user-select: none; }
+.cm-row:hover { background: var(--hover); }
+.cm-row.on { background: var(--sel); }
+.cm-row.cm-area .cm-t { font-weight: 600; }
+.cm-none { color: var(--muted); }
+.cm-cb { flex: none; width: 16px; height: 16px; border: 1.5px solid var(--cb); border-radius: 4.5px; background: var(--bg); display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.cm-cb.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.cm-cb .ic { width: 11px; height: 11px; }
+.cm-cb .ic svg { stroke-width: 3; }
+.cm-ind { flex: none; }
+.cm-ic { flex: none; width: 16px; height: 16px; }
+.cm-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
+.cm-sw { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 48%; padding: 3px 8px; border: 0; border-radius: 999px; background: none; cursor: pointer; font-size: 12.5px; }
+.cm-sw:hover { background: var(--line); }
+.cm-sw .sw-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--tc); }
+.cm-c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sw-grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 6px 4px; padding: 6px 8px 8px; }
 /* the color it would get from what it's in */
 .sw.inh { box-shadow: 0 0 0 2px var(--pop), 0 0 0 3.5px color-mix(in srgb, var(--tc) 70%, transparent); }
@@ -1649,7 +1676,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.53.0';
+const APP_VERSION = '1.54.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -3042,7 +3069,9 @@ function renderSidebar() {
 
 /* ---------- rows ---------- */
 function checkboxHTML(x) {
-  return `<button class="cb ${x.status !== 'open' ? x.status : ''}" data-action="toggle" data-id="${x.id}" aria-label="${x.status === 'open' ? 'Complete' : 'Mark as open'}">${ic(x.status === 'canceled' ? 'x' : 'check')}</button>`;
+  // a to-do with a color of its own (shown by area and project) tints its checkbox (33-colors.js)
+  const own = x.type === 'todo' && S.settings.colorBy === 'place' && placeColor(x) !== 'gray' ? placeColor(x) : null;
+  return `<button class="cb ${x.status !== 'open' ? x.status : ''}${own ? ' tinted' : ''}"${own ? ` style="--cbc:${colorVar(own)}"` : ''} data-action="toggle" data-id="${x.id}" aria-label="${x.status === 'open' ? 'Complete' : 'Mark as open'}">${ic(x.status === 'canceled' ? 'x' : 'check')}</button>`;
 }
 function parentLabel(x) {
   if (x.type === 'todo') { const p = projectOf(x); if (p) return projPath(p); }
@@ -4639,7 +4668,7 @@ function todoMenu(id, el) {
     if (t.deadline) items.push({ label: 'Remove Deadline', icon: 'x', fn: () => applyDeadline([id], null) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
-    items.push(priorityMenuItem([id], el));
+    items.push(priorityMenuItem([id], el), colorMenuItem('t', t, el));
     if (t.status === 'open') items.push({ label: t.waitFor ? `Waiting on ${t.waitFor}…` : 'Waiting For…', icon: 'hourglass', hint: 'W', fn: () => openWaiting([id], el) });
     if (t.waitFor) items.push({ label: 'Stop Waiting', icon: 'x', fn: () => stopWaiting([id]) });
     if (!t.templateId) items.push({ label: 'Also Add To…', icon: 'link', fn: () => openAlsoAddTo([id], el) });
@@ -4763,6 +4792,8 @@ function batchMenuItems(anchor) {
     { label: 'Also Add To…', icon: 'link', disabled: !todos.length, fn: () => endSelectAfter(openAlsoAddTo(todos, anchor)) },
     { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
     { label: 'Priority…', icon: 'priority', hint: 'P', fn: () => endSelectAfter(openPriority(ids, anchor)) },
+    { label: 'Color…', icon: 'palette', fn: () => endSelectAfter(openColorFor(ids.map(itemById), anchor)) },
+    ...(ids.some((x) => placeColor(itemById(x))) ? [{ label: 'Remove Colors', icon: 'x', fn: () => { removeColors(ids.map(itemById)); close(); } }] : []),
     ...(completedItems(ids).length ? [completedMenuItem(ids, anchor, endSelectAfter)] : []),
     { label: 'Waiting For…', icon: 'hourglass', hint: 'W', disabled: !todos.length, fn: () => endSelectAfter(openWaiting(todos, anchor)) },
     { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
@@ -9539,7 +9570,7 @@ function scheduleOn(ids, date) {
 }
 
 /* ===================== Project and area colors =====================
-   Any area, project or sub-project can have a color from the palette (••• → Color…): twelve hues
+   Any area, project, sub-project or to-do can have a color from the palette (••• → Color…): twelve hues
    in Light, plain and Deep, and Gray. It tints its icon in the sidebar, lists, headers and pickers,
    puts a stripe along the top of its Board column, colors its bars on the Timeline, and a dot
    beside its name under to-dos in Today, Upcoming and other mixed lists. Synced.
@@ -9547,7 +9578,12 @@ function scheduleOn(ids, date) {
    ← project ← area, and the to-dos inside go with it. Color the Work area blue and its projects
    and their sub-projects are blue too; give one of them its own (a Light or Deep blue keeps it in
    the family) and everything inside that one follows it instead. The picker says where an
-   inherited color comes from (Same as …), and Gray stops the flow (no color). */
+   inherited color comes from (Same as …), and Gray stops the flow (no color).
+   A to-do's own color tints its checkbox (one that just goes with its project's doesn't, or every
+   list would be awash) and its flag or bar on the Timeline.
+   Several at once: select projects, sub-projects and to-dos in a list (⌘- or ⇧-click) and use
+   Color… or Remove Colors (the ••• menu, the bar at the bottom, right-click), or open Manage
+   Colors (44-colormgr.js), which lists every area, project and sub-project with a checkbox. */
 const placeColor = (x) => (x && TAG_COLOR_NAMES[x.color] ? x.color : null); // its own
 /* what it sits in, for its color: a sub-project's project, a project's area, a to-do's project or area */
 function placeParent(x) {
@@ -9608,7 +9644,8 @@ function shownColor(x) {
 }
 function colorByMenu(at) {
   openMenu(at, [{ header: 'Color By' }, ...COLOR_BY.map(([v, l]) => ({ label: l, icon: S.settings.colorBy === v ? 'check' : 'blank', fn: () => setColorBy(v) })),
-    { sep: 1 }, { label: 'Shade Sub-Projects', icon: S.settings.shadeSubs ? 'check' : 'blank', disabled: S.settings.colorBy !== 'place', fn: () => { S.settings.shadeSubs = !S.settings.shadeSubs; saveSoon(); render(); } }]);
+    { sep: 1 }, { label: 'Shade Sub-Projects', icon: S.settings.shadeSubs ? 'check' : 'blank', disabled: S.settings.colorBy !== 'place', fn: () => { S.settings.shadeSubs = !S.settings.shadeSubs; saveSoon(); render(); } },
+    { label: 'Manage Colors…', icon: 'palette', fn: openColorManager }]);
 }
 function colorByMenuItem(at) { return { label: 'Color By…', icon: 'palette', hint: COLOR_BY.find(([v]) => v === S.settings.colorBy)[1], fn: () => colorByMenu(at) }; }
 function setColorBy(v) {
@@ -9637,25 +9674,48 @@ function swatchGridHTML(cur, inh = null, inhFrom = '', grayTitle = 'Gray') {
   };
   return `<div class="sw-grid">${COLOR_SHADES.map(([s], i) => COLOR_HUES.map((h) => sw(h + s)).join('') + (i === 1 ? sw('gray') : '<span></span>')).join('')}</div>`;
 }
-function openPlaceColor(kind, x, anchor) {
-  const cur = placeColor(x), name = kind === 'p' ? pTitle(x) : aTitle(x);
-  const par = kind === 'p' ? placeParent(x) : null, inh = par ? effColor(par) : null, parName = placeName(par);
-  // nothing of its own: it shows what it's in (Same as …), or no color
-  const auto = inh
-    ? `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!cur}"><span class="sw-dot tc-${inh}" aria-hidden="true"></span><span>Same as ${esc(tlShort(parName, 28))}</span><span class="hint">${cur ? '' : ic('check')}</span></button>`
-    : `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!cur}"><span class="sw-dot sw-none" aria-hidden="true"></span><span>No Color</span><span class="hint">${cur ? '' : ic('check')}</span></button>`;
-  const by = kind === 'p' && S.settings.colorBy !== 'place' ? COLOR_BY.find(([v]) => v === S.settings.colorBy)[1] : '';
+function openPlaceColor(kind, x, anchor) { return openColorFor([x], anchor); }
+/* the color picker, for one item or several at once (areas, projects, sub-projects, to-dos): a
+   swatch gives them all that color; Same as … / No Color takes their own colors away, so each
+   shows what it's in again. done() runs after a pick (Manage Colors redraws). */
+function openColorFor(list, anchor, done = null, opts = {}) {
+  const items = list.filter(Boolean);
+  if (!items.length) return null;
+  const one = items.length === 1 ? items[0] : null;
+  const owns = new Set(items.map(placeColor)), cur = owns.size === 1 ? [...owns][0] : null;
+  const inhs = new Set(items.map((x) => flowColor(x))), inh = inhs.size === 1 ? [...inhs][0] : null;
+  const par = one ? placeParent(one) : null, parName = placeName(par);
+  const anyInh = items.some((x) => flowColor(x)), anyOwn = items.some(placeColor);
+  const name = one ? (one.type === 'todo' ? one.title || 'New To-Do' : placeName(one)) : '';
+  const head = one ? `Color for “${esc(tlShort(name, 40))}”` : `Color for ${plural(items.length, 'item')}`;
+  const autoLabel = one ? (inh ? `Same as ${esc(tlShort(parName, 28))}` : 'No Color') : anyInh ? 'Same as What They’re In' : 'No Color';
+  const autoDot = inh ? `<span class="sw-dot tc-${inh}" aria-hidden="true"></span>` : '<span class="sw-dot sw-none" aria-hidden="true"></span>';
+  const auto = `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!anyOwn}">${autoDot}<span>${autoLabel}</span><span class="hint">${anyOwn ? '' : ic('check')}</span></button>`;
+  const by = S.settings.colorBy !== 'place' && items.some((x) => x.type !== undefined) ? COLOR_BY.find(([v]) => v === S.settings.colorBy)[1] : '';
   const note = by ? `<p class="sw-note">Projects are colored by ${by} now. This color shows when Color By is Area & Project (••• on the Board or Timeline, or Settings).</p>` : '';
-  const L = openLayer({ anchor: anchor && anchor.isConnected === false ? null : anchor, cls: 'sw-pop', html: `<div class="pk-h">Color for “${esc(name)}”</div>${note}${swatchGridHTML(cur, inh, parName, inh ? `Gray: no color, not even ${parName}’s` : 'Gray: no color')}${auto}`,
+  const more = opts.noManage ? '' : `<button class="menu-i sw-manage" data-sw-manage>${ic('palette')}<span>Manage Colors…</span></button>`;
+  const gray = inh && one ? `Gray: no color, not even ${parName}’s` : 'Gray: no color';
+  const L = openLayer({ anchor: anchor && anchor.isConnected === false ? null : anchor, cls: 'sw-pop', html: `<div class="pk-h">${head}</div>${note}${swatchGridHTML(cur, one ? inh : null, parName, gray)}${auto}${more}`,
     onMount: (el) => {
       el.addEventListener('click', (e) => {
+        if (e.target.closest('[data-sw-manage]')) { closeLayer(L); openColorManager(); return; }
         const b = e.target.closest('[data-sw]'); if (!b) return; closeLayer(L);
         const c = b.dataset.sw || null;
-        commit('Color', () => { if (c) x.color = c; else delete x.color; touch(x); });
+        commit(items.length > 1 ? (c ? 'Color' : 'Remove Colors') : 'Color', () => items.forEach((x) => { if (c) x.color = c; else delete x.color; touch(x); }));
+        if (items.length > 1) toast(c ? `${plural(items.length, 'item')} colored ${TAG_COLOR_NAMES[c]}` : `Colors removed from ${plural(items.length, 'item')}`);
+        if (done) done();
       });
       if (!isCoarse()) { const f = $('.sw.on', el) || $('.sw.inh', el) || $('.sw', el); if (f) f.focus({ preventScroll: true }); }
     } });
   return L;
+}
+/* take their own colors away (each shows what it's in again) */
+function removeColors(items, done = null) {
+  const own = items.filter((x) => x && placeColor(x));
+  if (!own.length) return;
+  commit('Remove Colors', () => own.forEach((x) => { delete x.color; touch(x); }));
+  toast(`Colors removed from ${plural(own.length, 'item')}`);
+  if (done) done();
 }
 
 /* ===================== Smart lists =====================
@@ -12242,6 +12302,7 @@ function openSettings(pane) {
         segRow('Theme', '', 'theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]),
         segRow('Row spacing', 'Compact fits more to-dos on screen. Each device keeps its own.', 'density', [['comfortable', 'Comfortable'], ['compact', 'Compact']]),
         segRow('Color projects by', 'Area & Project uses the colors you pick (they flow down to what’s inside). Progress goes from red, with nothing done, to green when it’s all done. Priority colors High, Medium and Low like their ! marks.', 'colorBy', COLOR_BY),
+        setRow('Colors of areas and projects', 'See and change them all in one place, several at once.', '<button class="btn" data-s="colors">Manage Colors…</button>'),
         swRow('Shade sub-projects', 'A sub-project without its own color takes a lighter or deeper shade of its project’s, taking turns, so they’re one family but easy to tell apart.', 'shadeSubs'),
       ]) + setGroup('Dates and typing', [
         segRow('Week starts on', '', 'weekStart', [[0, 'Sunday'], [1, 'Monday']]),
@@ -12389,6 +12450,7 @@ function openSettings(pane) {
       const b = e.target.closest('[data-s]'); if (!b) return;
       const act = b.dataset.s;
       if (act === 'tags') { openTagManager(); return; }
+      if (act === 'colors') { openColorManager(); return; }
       if (act === 'shortcuts') { openShortcuts(); return; }
       if (act === 'focus-new') { openFocusEditor(); return; }
       if (act === 'focus-edit') { const f = getFocus(b.dataset.id); if (f) openFocusEditor(f); return; }
@@ -12534,6 +12596,82 @@ function followWhensOnce() {
   S.projects.filter((p) => canFollow(p) && !p.logged && p.start === 'anytime' && p.when && p.when > T).forEach((p) => adoptWhen(p));
   lsSet('sectis.whenFollow', '1');
   reindex(); saveSoon();
+}
+
+/* ===================== Manage Colors =====================
+   Every area, project and sub-project in one window (Settings → Appearance, the Color By menu, or
+   Manage Colors… at the bottom of any color picker), as a tree: each with its color, and where an
+   inherited one comes from ("Light Blue, from Parks & Rec"). Tick several, or:
+   - ⇧-click: everything between the last one ticked and this one;
+   - ⌥-click: this one and everything inside it;
+   then Color… gives them all one color and Remove Colors takes their own away (each shows what
+   it's in again). A row's color on the right opens the picker for just that one. The ticks stay
+   while the window is open, so you can color a set, look, and change it again. To-dos aren't
+   listed (there are too many): select them in a list and use Color… there. */
+function openColorManager() {
+  const picked = new Set();
+  let last = null;
+  const live = (p) => !p.trashed && !p.isTemplate && !p.blueprint && !(p.status !== 'open' && p.logged);
+  // [item, depth] in tree order: areas with their projects and sub-projects, then projects in no area
+  const rows = () => {
+    const out = [], seen = new Set();
+    const proj = (p, d) => { if (seen.has(p.id) || d > 8) return; seen.add(p.id); out.push([p, d]); childProjects(p).filter(live).sort(byOrder).forEach((q) => proj(q, d + 1)); };
+    S.areas.slice().sort(byOrder).forEach((a) => { out.push([a, 0]); S.projects.filter((p) => live(p) && !isSub(p) && p.areaId === a.id).sort(byOrder).forEach((p) => proj(p, 1)); });
+    const loose = S.projects.filter((p) => live(p) && !isSub(p) && !(p.areaId && getA(p.areaId))).sort(byOrder);
+    if (loose.length) { out.push([null, 0]); loose.forEach((p) => proj(p, 1)); }
+    return out;
+  };
+  const inside = (x) => { // x and everything inside it, in this list
+    const list = rows().map(([y]) => y).filter(Boolean), keep = new Set([x.id]);
+    let grew = true;
+    while (grew) { grew = false; for (const y of list) if (!keep.has(y.id) && placeParent(y) && keep.has(placeParent(y).id)) { keep.add(y.id); grew = true; } }
+    return list.filter((y) => keep.has(y.id));
+  };
+  const colorText = (x) => {
+    const own = placeColor(x), eff = effColor(x);
+    if (own === 'gray') return '<span class="cm-c muted">Gray (no color)</span>';
+    if (own) return `<span class="cm-c">${TAG_COLOR_NAMES[own]}</span>`;
+    if (eff) return `<span class="cm-c muted">${TAG_COLOR_NAMES[eff]}, from ${esc(tlShort(placeName(placeParent(x)), 22))}</span>`;
+    return '<span class="cm-c muted">No color</span>';
+  };
+  const build = () => {
+    const list = rows(), n = [...picked].filter((id) => list.some(([x]) => x && x.id === id)).length, total = list.filter(([x]) => x).length;
+    const body = list.map(([x, d]) => {
+      if (!x) return `<div class="cm-row cm-none"><span class="cm-ind" style="width:${0}px"></span><span class="ic cm-ic">${I.area}</span><span class="cm-t muted">No Area</span></div>`;
+      const on = picked.has(x.id), eff = effColor(x), isArea = !x.type;
+      const icon = isArea ? `<span class="ic cm-ic" style="color:${eff ? colorVar(eff) : 'var(--c-area)'}">${I.area}</span>` : `<span class="ic cm-ic" style="${eff ? `color:${colorVar(eff)}` : ''}">${pieSVG(projectProgress(x).frac)}</span>`;
+      return `<div class="cm-row${on ? ' on' : ''}${isArea ? ' cm-area' : ''}" data-cm="${x.id}"><button class="cm-cb${on ? ' on' : ''}" data-cm-tick="${x.id}" role="checkbox" aria-checked="${on}" aria-label="Select ${esc(placeName(x))}">${on ? ic('check') : ''}</button><span class="cm-ind" style="width:${d * 18}px"></span>${icon}<span class="cm-t">${esc(placeName(x))}</span><button class="cm-sw" data-cm-color="${x.id}" title="Change ${esc(placeName(x))}’s color">${eff ? `<span class="sw-dot tc-${eff}${placeColor(x) ? '' : ' inh'}" aria-hidden="true"></span>` : '<span class="sw-dot sw-none" aria-hidden="true"></span>'}${colorText(x)}</button></div>`;
+    }).join('');
+    return `<div class="modal-h"><h2>Colors</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>
+      <div class="cm-bar"><button class="btn" data-cm-all>${n === total && total ? 'Select None' : 'Select All'}</button><span class="cm-n">${n ? `${n} selected` : 'Tick some, or ⌥-click one for all inside it'}</span><button class="btn primary" data-cm-set${n ? '' : ' disabled'}>${ic('palette')}Color…</button><button class="btn" data-cm-rm${n && [...picked].some((id) => placeColor(itemOf(id))) ? '' : ' disabled'}>Remove Colors</button></div>
+      <div class="modal-b cm-list">${body || '<p class="note">No areas or projects yet.</p>'}</div>`;
+  };
+  const itemOf = (id) => getA(id) || getP(id);
+  const L = openLayer({ modal: true, cls: 'narrow cm-modal', html: build(), onMount: (el) => {
+    const redraw = () => { const list = $('.cm-list', el), st = list ? list.scrollTop : 0; el.innerHTML = build(); const l2 = $('.cm-list', el); if (l2) l2.scrollTop = st; };
+    el.addEventListener('click', (e) => {
+      const sw = e.target.closest('[data-cm-color]');
+      if (sw) { openColorFor([itemOf(sw.dataset.cmColor)], sw, redraw, { noManage: true }); return; }
+      if (e.target.closest('[data-cm-all]')) {
+        const ids = rows().map(([x]) => x && x.id).filter(Boolean);
+        if (ids.every((id) => picked.has(id))) picked.clear(); else ids.forEach((id) => picked.add(id));
+        redraw(); return;
+      }
+      if (e.target.closest('[data-cm-set]')) { openColorFor([...picked].map(itemOf), e.target.closest('[data-cm-set]'), redraw, { noManage: true }); return; }
+      if (e.target.closest('[data-cm-rm]')) { removeColors([...picked].map(itemOf), redraw); return; }
+      const row = e.target.closest('[data-cm]'); if (!row) return;
+      const id = row.dataset.cm, x = itemOf(id); if (!x) return;
+      if (e.altKey) { // this one and everything inside it
+        const set = inside(x), on = !picked.has(id);
+        set.forEach((y) => (on ? picked.add(y.id) : picked.delete(y.id)));
+      } else if (e.shiftKey && last) { // a range
+        const ids = rows().map(([y]) => y && y.id).filter(Boolean), a = ids.indexOf(last), b = ids.indexOf(id);
+        if (a >= 0 && b >= 0) ids.slice(Math.min(a, b), Math.max(a, b) + 1).forEach((y) => picked.add(y));
+      } else if (picked.has(id)) picked.delete(id); else picked.add(id);
+      last = id; redraw();
+    });
+  } });
+  return L;
 }
 
 /* ===================== Start ===================== */

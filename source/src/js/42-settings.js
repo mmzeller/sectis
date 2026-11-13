@@ -44,6 +44,7 @@ function openSettings(pane) {
         segRow('Theme', '', 'theme', [['system', 'System'], ['light', 'Light'], ['dark', 'Dark']]),
         segRow('Row spacing', 'Compact fits more to-dos on screen. Each device keeps its own.', 'density', [['comfortable', 'Comfortable'], ['compact', 'Compact']]),
         segRow('Color projects by', 'Area & Project uses the colors you pick (they flow down to what’s inside). Progress goes from red, with nothing done, to green when it’s all done. Priority colors High, Medium and Low like their ! marks.', 'colorBy', COLOR_BY),
+        setRow('Colors of areas and projects', 'See and change them all in one place, several at once.', '<button class="btn" data-s="colors">Manage Colors…</button>'),
         swRow('Shade sub-projects', 'A sub-project without its own color takes a lighter or deeper shade of its project’s, taking turns, so they’re one family but easy to tell apart.', 'shadeSubs'),
       ]) + setGroup('Dates and typing', [
         segRow('Week starts on', '', 'weekStart', [[0, 'Sunday'], [1, 'Monday']]),
@@ -191,6 +192,7 @@ function openSettings(pane) {
       const b = e.target.closest('[data-s]'); if (!b) return;
       const act = b.dataset.s;
       if (act === 'tags') { openTagManager(); return; }
+      if (act === 'colors') { openColorManager(); return; }
       if (act === 'shortcuts') { openShortcuts(); return; }
       if (act === 'focus-new') { openFocusEditor(); return; }
       if (act === 'focus-edit') { const f = getFocus(b.dataset.id); if (f) openFocusEditor(f); return; }

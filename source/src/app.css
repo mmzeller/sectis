@@ -587,6 +587,33 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tm-sw:hover, .tm-sw:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--tc) 45%, transparent); }
 .sw-pop { width: 352px; max-width: calc(100vw - 16px); }
 .sw-note { margin: 0 8px 6px; font-size: 12px; line-height: 1.4; color: var(--muted); }
+.sw-manage { color: var(--muted); }
+.sw-dot.inh { box-shadow: 0 0 0 1.5px var(--pop), 0 0 0 2.5px color-mix(in srgb, var(--tc) 60%, transparent); }
+/* a to-do's own color, on its checkbox */
+.cb.tinted { border-color: var(--cbc); background: color-mix(in srgb, var(--cbc) 22%, var(--bg)); }
+.cb.tinted.done { background: var(--cbc); border-color: var(--cbc); color: #fff; }
+/* Manage Colors */
+.modal.narrow.cm-modal { width: min(520px, calc(100vw - 32px)); display: flex; flex-direction: column; overflow: hidden; }
+.cm-bar { display: flex; align-items: center; gap: 8px; padding: 0 18px 10px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.cm-bar .cm-n { flex: 1; min-width: 120px; font-size: 12.5px; color: var(--muted); }
+.cm-bar .btn .ic { width: 14px; height: 14px; margin-right: 5px; vertical-align: -2px; }
+.cm-list { overflow-y: auto; padding-top: 6px; }
+.cm-row { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 0 6px; border-radius: 8px; cursor: default; user-select: none; }
+.cm-row:hover { background: var(--hover); }
+.cm-row.on { background: var(--sel); }
+.cm-row.cm-area .cm-t { font-weight: 600; }
+.cm-none { color: var(--muted); }
+.cm-cb { flex: none; width: 16px; height: 16px; border: 1.5px solid var(--cb); border-radius: 4.5px; background: var(--bg); display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; }
+.cm-cb.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.cm-cb .ic { width: 11px; height: 11px; }
+.cm-cb .ic svg { stroke-width: 3; }
+.cm-ind { flex: none; }
+.cm-ic { flex: none; width: 16px; height: 16px; }
+.cm-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
+.cm-sw { flex: none; display: inline-flex; align-items: center; gap: 6px; max-width: 48%; padding: 3px 8px; border: 0; border-radius: 999px; background: none; cursor: pointer; font-size: 12.5px; }
+.cm-sw:hover { background: var(--line); }
+.cm-sw .sw-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--tc); }
+.cm-c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sw-grid { display: grid; grid-template-columns: repeat(13, 1fr); gap: 6px 4px; padding: 6px 8px 8px; }
 /* the color it would get from what it's in */
 .sw.inh { box-shadow: 0 0 0 2px var(--pop), 0 0 0 3.5px color-mix(in srgb, var(--tc) 70%, transparent); }

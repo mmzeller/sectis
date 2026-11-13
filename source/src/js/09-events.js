@@ -218,7 +218,7 @@ function todoMenu(id, el) {
     if (t.deadline) items.push({ label: 'Remove Deadline', icon: 'x', fn: () => applyDeadline([id], null) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
-    items.push(priorityMenuItem([id], el));
+    items.push(priorityMenuItem([id], el), colorMenuItem('t', t, el));
     if (t.status === 'open') items.push({ label: t.waitFor ? `Waiting on ${t.waitFor}…` : 'Waiting For…', icon: 'hourglass', hint: 'W', fn: () => openWaiting([id], el) });
     if (t.waitFor) items.push({ label: 'Stop Waiting', icon: 'x', fn: () => stopWaiting([id]) });
     if (!t.templateId) items.push({ label: 'Also Add To…', icon: 'link', fn: () => openAlsoAddTo([id], el) });
@@ -342,6 +342,8 @@ function batchMenuItems(anchor) {
     { label: 'Also Add To…', icon: 'link', disabled: !todos.length, fn: () => endSelectAfter(openAlsoAddTo(todos, anchor)) },
     { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
     { label: 'Priority…', icon: 'priority', hint: 'P', fn: () => endSelectAfter(openPriority(ids, anchor)) },
+    { label: 'Color…', icon: 'palette', fn: () => endSelectAfter(openColorFor(ids.map(itemById), anchor)) },
+    ...(ids.some((x) => placeColor(itemById(x))) ? [{ label: 'Remove Colors', icon: 'x', fn: () => { removeColors(ids.map(itemById)); close(); } }] : []),
     ...(completedItems(ids).length ? [completedMenuItem(ids, anchor, endSelectAfter)] : []),
     { label: 'Waiting For…', icon: 'hourglass', hint: 'W', disabled: !todos.length, fn: () => endSelectAfter(openWaiting(todos, anchor)) },
     { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },

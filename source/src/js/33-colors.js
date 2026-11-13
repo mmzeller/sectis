@@ -1,5 +1,5 @@
 /* ===================== Project and area colors =====================
-   Any area, project or sub-project can have a color from the palette (••• → Color…): twelve hues
+   Any area, project, sub-project or to-do can have a color from the palette (••• → Color…): twelve hues
    in Light, plain and Deep, and Gray. It tints its icon in the sidebar, lists, headers and pickers,
    puts a stripe along the top of its Board column, colors its bars on the Timeline, and a dot
    beside its name under to-dos in Today, Upcoming and other mixed lists. Synced.
@@ -7,7 +7,12 @@
    ← project ← area, and the to-dos inside go with it. Color the Work area blue and its projects
    and their sub-projects are blue too; give one of them its own (a Light or Deep blue keeps it in
    the family) and everything inside that one follows it instead. The picker says where an
-   inherited color comes from (Same as …), and Gray stops the flow (no color). */
+   inherited color comes from (Same as …), and Gray stops the flow (no color).
+   A to-do's own color tints its checkbox (one that just goes with its project's doesn't, or every
+   list would be awash) and its flag or bar on the Timeline.
+   Several at once: select projects, sub-projects and to-dos in a list (⌘- or ⇧-click) and use
+   Color… or Remove Colors (the ••• menu, the bar at the bottom, right-click), or open Manage
+   Colors (44-colormgr.js), which lists every area, project and sub-project with a checkbox. */
 const placeColor = (x) => (x && TAG_COLOR_NAMES[x.color] ? x.color : null); // its own
 /* what it sits in, for its color: a sub-project's project, a project's area, a to-do's project or area */
 function placeParent(x) {
@@ -68,7 +73,8 @@ function shownColor(x) {
 }
 function colorByMenu(at) {
   openMenu(at, [{ header: 'Color By' }, ...COLOR_BY.map(([v, l]) => ({ label: l, icon: S.settings.colorBy === v ? 'check' : 'blank', fn: () => setColorBy(v) })),
-    { sep: 1 }, { label: 'Shade Sub-Projects', icon: S.settings.shadeSubs ? 'check' : 'blank', disabled: S.settings.colorBy !== 'place', fn: () => { S.settings.shadeSubs = !S.settings.shadeSubs; saveSoon(); render(); } }]);
+    { sep: 1 }, { label: 'Shade Sub-Projects', icon: S.settings.shadeSubs ? 'check' : 'blank', disabled: S.settings.colorBy !== 'place', fn: () => { S.settings.shadeSubs = !S.settings.shadeSubs; saveSoon(); render(); } },
+    { label: 'Manage Colors…', icon: 'palette', fn: openColorManager }]);
 }
 function colorByMenuItem(at) { return { label: 'Color By…', icon: 'palette', hint: COLOR_BY.find(([v]) => v === S.settings.colorBy)[1], fn: () => colorByMenu(at) }; }
 function setColorBy(v) {
@@ -97,23 +103,46 @@ function swatchGridHTML(cur, inh = null, inhFrom = '', grayTitle = 'Gray') {
   };
   return `<div class="sw-grid">${COLOR_SHADES.map(([s], i) => COLOR_HUES.map((h) => sw(h + s)).join('') + (i === 1 ? sw('gray') : '<span></span>')).join('')}</div>`;
 }
-function openPlaceColor(kind, x, anchor) {
-  const cur = placeColor(x), name = kind === 'p' ? pTitle(x) : aTitle(x);
-  const par = kind === 'p' ? placeParent(x) : null, inh = par ? effColor(par) : null, parName = placeName(par);
-  // nothing of its own: it shows what it's in (Same as …), or no color
-  const auto = inh
-    ? `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!cur}"><span class="sw-dot tc-${inh}" aria-hidden="true"></span><span>Same as ${esc(tlShort(parName, 28))}</span><span class="hint">${cur ? '' : ic('check')}</span></button>`
-    : `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!cur}"><span class="sw-dot sw-none" aria-hidden="true"></span><span>No Color</span><span class="hint">${cur ? '' : ic('check')}</span></button>`;
-  const by = kind === 'p' && S.settings.colorBy !== 'place' ? COLOR_BY.find(([v]) => v === S.settings.colorBy)[1] : '';
+function openPlaceColor(kind, x, anchor) { return openColorFor([x], anchor); }
+/* the color picker, for one item or several at once (areas, projects, sub-projects, to-dos): a
+   swatch gives them all that color; Same as … / No Color takes their own colors away, so each
+   shows what it's in again. done() runs after a pick (Manage Colors redraws). */
+function openColorFor(list, anchor, done = null, opts = {}) {
+  const items = list.filter(Boolean);
+  if (!items.length) return null;
+  const one = items.length === 1 ? items[0] : null;
+  const owns = new Set(items.map(placeColor)), cur = owns.size === 1 ? [...owns][0] : null;
+  const inhs = new Set(items.map((x) => flowColor(x))), inh = inhs.size === 1 ? [...inhs][0] : null;
+  const par = one ? placeParent(one) : null, parName = placeName(par);
+  const anyInh = items.some((x) => flowColor(x)), anyOwn = items.some(placeColor);
+  const name = one ? (one.type === 'todo' ? one.title || 'New To-Do' : placeName(one)) : '';
+  const head = one ? `Color for “${esc(tlShort(name, 40))}”` : `Color for ${plural(items.length, 'item')}`;
+  const autoLabel = one ? (inh ? `Same as ${esc(tlShort(parName, 28))}` : 'No Color') : anyInh ? 'Same as What They’re In' : 'No Color';
+  const autoDot = inh ? `<span class="sw-dot tc-${inh}" aria-hidden="true"></span>` : '<span class="sw-dot sw-none" aria-hidden="true"></span>';
+  const auto = `<div class="pk-sep"></div><button class="menu-i sw-auto-i" data-sw="" aria-pressed="${!anyOwn}">${autoDot}<span>${autoLabel}</span><span class="hint">${anyOwn ? '' : ic('check')}</span></button>`;
+  const by = S.settings.colorBy !== 'place' && items.some((x) => x.type !== undefined) ? COLOR_BY.find(([v]) => v === S.settings.colorBy)[1] : '';
   const note = by ? `<p class="sw-note">Projects are colored by ${by} now. This color shows when Color By is Area & Project (••• on the Board or Timeline, or Settings).</p>` : '';
-  const L = openLayer({ anchor: anchor && anchor.isConnected === false ? null : anchor, cls: 'sw-pop', html: `<div class="pk-h">Color for “${esc(name)}”</div>${note}${swatchGridHTML(cur, inh, parName, inh ? `Gray: no color, not even ${parName}’s` : 'Gray: no color')}${auto}`,
+  const more = opts.noManage ? '' : `<button class="menu-i sw-manage" data-sw-manage>${ic('palette')}<span>Manage Colors…</span></button>`;
+  const gray = inh && one ? `Gray: no color, not even ${parName}’s` : 'Gray: no color';
+  const L = openLayer({ anchor: anchor && anchor.isConnected === false ? null : anchor, cls: 'sw-pop', html: `<div class="pk-h">${head}</div>${note}${swatchGridHTML(cur, one ? inh : null, parName, gray)}${auto}${more}`,
     onMount: (el) => {
       el.addEventListener('click', (e) => {
+        if (e.target.closest('[data-sw-manage]')) { closeLayer(L); openColorManager(); return; }
         const b = e.target.closest('[data-sw]'); if (!b) return; closeLayer(L);
         const c = b.dataset.sw || null;
-        commit('Color', () => { if (c) x.color = c; else delete x.color; touch(x); });
+        commit(items.length > 1 ? (c ? 'Color' : 'Remove Colors') : 'Color', () => items.forEach((x) => { if (c) x.color = c; else delete x.color; touch(x); }));
+        if (items.length > 1) toast(c ? `${plural(items.length, 'item')} colored ${TAG_COLOR_NAMES[c]}` : `Colors removed from ${plural(items.length, 'item')}`);
+        if (done) done();
       });
       if (!isCoarse()) { const f = $('.sw.on', el) || $('.sw.inh', el) || $('.sw', el); if (f) f.focus({ preventScroll: true }); }
     } });
   return L;
+}
+/* take their own colors away (each shows what it's in again) */
+function removeColors(items, done = null) {
+  const own = items.filter((x) => x && placeColor(x));
+  if (!own.length) return;
+  commit('Remove Colors', () => own.forEach((x) => { delete x.color; touch(x); }));
+  toast(`Colors removed from ${plural(own.length, 'item')}`);
+  if (done) done();
 }
