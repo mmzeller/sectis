@@ -168,6 +168,9 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tchip { font-size: 12px; line-height: 20px; padding: 1px 10px; border-radius: 999px; color: var(--muted); border: 1px solid var(--line-strong); }
 .tchip:hover { color: var(--fg); }
 .tchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+/* Any / All, once two or more tags are picked */
+.tagbar .tb-match { flex-wrap: nowrap; padding: 2px; border-radius: 999px; }
+.tagbar .tb-match button { font-size: 12px; line-height: 20px; padding: 0 9px; border-radius: 999px; }
 
 /* ---------- sections & rows ---------- */
 .list { padding-top: 18px; }

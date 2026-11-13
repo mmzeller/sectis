@@ -150,7 +150,15 @@ function handleAction(act, el, e) {
     case 'toggle-later': ui.laterOpen[id] = !ui.laterOpen[id]; render(); return;
     case 'logbook-more': ui.logbookLimit += 150; render(); return;
     case 'empty-trash': emptyTrash(); return;
-    case 'tag-filter': ui.tagFilter = el.dataset.tag || null; ui.sel.clear(); render(); return;
+    case 'tag-filter': { // a tag adds itself to the filter or takes itself out; ⌥-click shows only it
+      const tg = el.dataset.tag;
+      if (!tg) ui.tagFilter = null;
+      else if (tg === '__none') ui.tagFilter = ui.tagFilter === '__none' ? null : '__none';
+      else if (e.altKey) setTagFilter([tg]);
+      else toggleTagFilter(tg);
+      ui.sel.clear(); render(); return;
+    }
+    case 'tag-match': setTagMatch(el.dataset.v); ui.sel.clear(); render(); return;
     case 'find': openFind(); return;
     case 'sb-toggle': toggleSidebar(); return;
     case 'notepad': toggleNotepad(); return;

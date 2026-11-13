@@ -3,7 +3,7 @@ let S = null;
 const idx = { todo: new Map(), project: new Map(), heading: new Map(), area: new Map(), tag: new Map() };
 const ui = {
   today: todayStr(), view: { type: 'today' }, sel: new Set(), anchor: null, editing: null, newId: null,
-  tagFilter: null, mobile: 'home', selectMode: false, showLogged: {}, hideLogged: {}, laterOpen: {}, tplModal: null,
+  tagFilter: null, tagMatch: lsGet('sectis.tagMatch') === 'all' ? 'all' : 'any', mobile: 'home', selectMode: false, showLogged: {}, hideLogged: {}, laterOpen: {}, tplModal: null,
   lastEditKey: null, logbookLimit: 150, focusAfter: null, scrollToEditor: false, expanded: new Set(), sbCollapsed: new Set(),
 };
 
@@ -344,12 +344,30 @@ function effectiveTags(x) {
   for (const id of set) if (!notGroupId(id)) set.delete(id); // a group isn't a tag
   return set;
 }
+/* The tag bar's filter. ui.tagFilter is null (All), '__none' (No Tag), or a list of one or more
+   tag ids. With more than one, ui.tagMatch says whether a to-do needs any of them or all of them.
+   A tag deleted meanwhile (here or on another device) just drops out of the filter. */
+const tagFilterIds = () => (Array.isArray(ui.tagFilter) ? ui.tagFilter.filter(getTag) : []);
+const tagFilterHas = (id) => tagFilterIds().includes(id);
+const tagFilterAll = () => ui.tagFilter !== '__none' && !tagFilterIds().length;
+function setTagFilter(ids) { ids = (ids || []).filter(getTag); ui.tagFilter = ids.length ? ids : null; }
+function toggleTagFilter(id) { const cur = tagFilterIds(); setTagFilter(cur.includes(id) ? cur.filter((x) => x !== id) : cur.concat(id)); }
+function dropFromTagFilter(id) { if (Array.isArray(ui.tagFilter) && ui.tagFilter.includes(id)) { setTagFilter(ui.tagFilter.filter((x) => x !== id)); return true; } return false; }
+function setTagMatch(m) { ui.tagMatch = m === 'all' ? 'all' : 'any'; lsSet('sectis.tagMatch', ui.tagMatch); }
 function matchesTagFilter(x) {
   if (!ui.tagFilter) return true;
   if (ui.tagFilter === '__none') return effectiveTags(x).size === 0;
-  const want = tagDescendants(ui.tagFilter);
-  for (const t of effectiveTags(x)) if (want.has(t)) return true;
-  return false;
+  const ids = tagFilterIds();
+  if (!ids.length) return true;
+  const eff = effectiveTags(x);
+  const hit = (id) => { for (const t of tagDescendants(id)) if (eff.has(t)) return true; return false; };
+  return ui.tagMatch === 'all' && ids.length > 1 ? ids.every(hit) : ids.some(hit);
+}
+/* the tags a new to-do takes so it shows under the tag bar's filter: all of them for All,
+   the first one picked for Any (as a smart list does) */
+function tagFilterNewTags() {
+  const ids = tagFilterIds();
+  return ui.tagMatch === 'all' ? ids : ids.slice(0, 1);
 }
 /* A to-do placed in a project or area takes on that place's tags (the project's and its
    area's). Moving it on swaps the tags it picked up from the old place for the new one's. */

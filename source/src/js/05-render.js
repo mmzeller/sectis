@@ -306,10 +306,14 @@ function headerHTML(key, sub, menu = true) {
 function tagBarHTML(items) {
   const present = new Set();
   items.forEach((x) => effectiveTags(x).forEach((t) => { present.add(t); let p = getTag(t); let guard = 0; while (p && p.parentId && guard++ < 8) { present.add(p.parentId); p = getTag(p.parentId); } }));
-  if (ui.tagFilter && ui.tagFilter !== '__none') present.add(ui.tagFilter);
+  const picked = tagFilterIds();
+  picked.forEach((id) => present.add(id)); // a picked tag stays in the bar even when nothing here has it
   if (!present.size) return '';
-  const chips = tagTree().filter((n) => present.has(n.tag.id) && !n.tag.group).map((n) => `<button class="tchip ${tcls(n.tag)}${ui.tagFilter === n.tag.id ? ' on' : ''}" data-action="tag-filter" data-tag="${n.tag.id}"><span class="tdot" aria-hidden="true"></span>${esc(n.tag.title)}</button>`).join('');
-  return `<div class="tagbar"><button class="tchip${!ui.tagFilter ? ' on' : ''}" data-action="tag-filter" data-tag="">All</button>${chips}<button class="tchip${ui.tagFilter === '__none' ? ' on' : ''}" data-action="tag-filter" data-tag="__none">No Tag</button></div>`;
+  // clicking a tag adds it to the filter or takes it out; All clears it
+  const chip = (id, label, on, cls = '', title = '') => `<button class="tchip${cls}${on ? ' on' : ''}" data-action="tag-filter" data-tag="${id}" aria-pressed="${on}"${title ? ` title="${title}"` : ''}>${label}</button>`;
+  const chips = tagTree().filter((n) => present.has(n.tag.id) && !n.tag.group).map((n) => chip(n.tag.id, `<span class="tdot" aria-hidden="true"></span>${esc(n.tag.title)}`, picked.includes(n.tag.id), ' ' + tcls(n.tag))).join('');
+  const match = picked.length > 1 ? `<div class="seg tb-match" role="group" aria-label="Show to-dos with">${[['any', 'Any', 'To-dos with any of these tags'], ['all', 'All', 'Only to-dos with all of these tags']].map(([v, l, t]) => `<button data-action="tag-match" data-v="${v}" class="${ui.tagMatch === v ? 'on' : ''}" aria-pressed="${ui.tagMatch === v}" title="${t}">${l}</button>`).join('')}</div>` : '';
+  return `<div class="tagbar">${chip('', 'All', tagFilterAll())}${chips}${chip('__none', 'No Tag', ui.tagFilter === '__none')}${match}</div>`;
 }
 function emptyHTML(icon, title, text) {
   return `<div class="empty">${ic(icon)}<p><b>${esc(title)}</b></p>${text ? `<p>${text}</p>` : ''}</div>`;

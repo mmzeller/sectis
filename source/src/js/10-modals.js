@@ -224,7 +224,7 @@ function setTagGroup(t, on) {
       users.forEach((x) => { x.tags = x.tags.filter((id) => id !== t.id); touch(x); });
     } else delete t.group;
   });
-  if (ui.tagFilter === t.id) { ui.tagFilter = null; render(); }
+  if (dropFromTagFilter(t.id)) render();
   toast(on ? `“${t.title}” is a group now${users.length ? `, and it's off the ${plural(users.length, 'item')} it was on` : ''}` : `“${t.title}” is a tag again`, { undo: true });
 }
 /* ---- Tag manager ----
@@ -342,7 +342,7 @@ function openTagManager() {
         S.tags.forEach((t) => { if (t.parentId === id) { if (!TAG_COLOR_NAMES[t.color] && !tagParent(tag)) t.color = tagColor(tag); t.parentId = tag.parentId || null; } });
         S.tags = S.tags.filter((t) => t.id !== id);
         S.todos.concat(S.projects, S.areas).forEach((x) => { if (x.tags.includes(id)) x.tags = x.tags.filter((t) => t !== id); });
-        if (ui.tagFilter === id) ui.tagFilter = null;
+        dropFromTagFilter(id);
       });
       armed = null; redraw();
     });

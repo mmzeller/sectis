@@ -8,7 +8,7 @@
    - ••• → Scheduled To-Dos Too adds to-dos and projects that only have a When date.
    - Drag a flag (or a bar's right end) to change the deadline, a bar's left end to change
      its start, or the bar itself to move both. Click a flag or bar for its dates; click a name
-     to open it. Follows the focus and the tag bar, like every other list.
+     to open it. Follows the focus and the tag bar (one tag or several), like every other list.
    - Each flag or bar has its name beside it (••• → Names Beside Flags turns that off).
    - The Due row under the dates shows how much is due each day (each week at 3 Months), darker
      as it piles up; click one for what's due then.

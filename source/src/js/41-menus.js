@@ -31,10 +31,14 @@ function listMenu(key, at) {
 }
 /* a tag in the tag bar */
 function tagChipMenu(tag, at) {
-  const on = ui.tagFilter === tag.id;
+  const picked = tagFilterIds(), on = picked.includes(tag.id), only = on && picked.length === 1;
+  const set = (ids) => { setTagFilter(ids); ui.sel.clear(); render(); };
   openMenu(at, [
     { header: tag.title },
-    on ? { label: 'Show All Tags', icon: 'x', fn: () => { ui.tagFilter = null; render(); } } : { label: 'Show Only This Tag', icon: 'tag', fn: () => { ui.tagFilter = tag.id; ui.sel.clear(); render(); } },
+    ...(!only ? [{ label: 'Show Only This Tag', icon: 'tag', hint: '⌥-click', fn: () => set([tag.id]) }] : []),
+    ...(on && !only ? [{ label: 'Take It Out of the Filter', icon: 'x', fn: () => set(picked.filter((x) => x !== tag.id)) }]
+      : !on && picked.length ? [{ label: 'Add It to the Filter', icon: 'plus', fn: () => set(picked.concat(tag.id)) }] : []),
+    ...(!tagFilterAll() ? [{ label: 'Show All Tags', icon: 'x', fn: () => set([]) }] : []),
     { label: 'Color…', icon: 'palette', fn: () => openTagColor(tag, at, (c) => { commit('Tag Color', () => { if (c) tag.color = c; else delete tag.color; }); render(); }) },
     ...(!tagParent(tag) ? [{ label: 'Make It a Group', icon: 'layers', fn: () => setTagGroup(tag, true) }] : []),
     { label: 'Manage Tags…', icon: 'edit', fn: openTagManager },

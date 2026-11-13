@@ -189,6 +189,9 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .tchip { font-size: 12px; line-height: 20px; padding: 1px 10px; border-radius: 999px; color: var(--muted); border: 1px solid var(--line-strong); }
 .tchip:hover { color: var(--fg); }
 .tchip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+/* Any / All, once two or more tags are picked */
+.tagbar .tb-match { flex-wrap: nowrap; padding: 2px; border-radius: 999px; }
+.tagbar .tb-match button { font-size: 12px; line-height: 20px; padding: 0 9px; border-radius: 999px; }
 
 /* ---------- sections & rows ---------- */
 .list { padding-top: 18px; }
@@ -1604,7 +1607,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.48.1';
+const APP_VERSION = '1.49.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -1828,7 +1831,7 @@ let S = null;
 const idx = { todo: new Map(), project: new Map(), heading: new Map(), area: new Map(), tag: new Map() };
 const ui = {
   today: todayStr(), view: { type: 'today' }, sel: new Set(), anchor: null, editing: null, newId: null,
-  tagFilter: null, mobile: 'home', selectMode: false, showLogged: {}, hideLogged: {}, laterOpen: {}, tplModal: null,
+  tagFilter: null, tagMatch: lsGet('sectis.tagMatch') === 'all' ? 'all' : 'any', mobile: 'home', selectMode: false, showLogged: {}, hideLogged: {}, laterOpen: {}, tplModal: null,
   lastEditKey: null, logbookLimit: 150, focusAfter: null, scrollToEditor: false, expanded: new Set(), sbCollapsed: new Set(),
 };
 
@@ -2169,12 +2172,30 @@ function effectiveTags(x) {
   for (const id of set) if (!notGroupId(id)) set.delete(id); // a group isn't a tag
   return set;
 }
+/* The tag bar's filter. ui.tagFilter is null (All), '__none' (No Tag), or a list of one or more
+   tag ids. With more than one, ui.tagMatch says whether a to-do needs any of them or all of them.
+   A tag deleted meanwhile (here or on another device) just drops out of the filter. */
+const tagFilterIds = () => (Array.isArray(ui.tagFilter) ? ui.tagFilter.filter(getTag) : []);
+const tagFilterHas = (id) => tagFilterIds().includes(id);
+const tagFilterAll = () => ui.tagFilter !== '__none' && !tagFilterIds().length;
+function setTagFilter(ids) { ids = (ids || []).filter(getTag); ui.tagFilter = ids.length ? ids : null; }
+function toggleTagFilter(id) { const cur = tagFilterIds(); setTagFilter(cur.includes(id) ? cur.filter((x) => x !== id) : cur.concat(id)); }
+function dropFromTagFilter(id) { if (Array.isArray(ui.tagFilter) && ui.tagFilter.includes(id)) { setTagFilter(ui.tagFilter.filter((x) => x !== id)); return true; } return false; }
+function setTagMatch(m) { ui.tagMatch = m === 'all' ? 'all' : 'any'; lsSet('sectis.tagMatch', ui.tagMatch); }
 function matchesTagFilter(x) {
   if (!ui.tagFilter) return true;
   if (ui.tagFilter === '__none') return effectiveTags(x).size === 0;
-  const want = tagDescendants(ui.tagFilter);
-  for (const t of effectiveTags(x)) if (want.has(t)) return true;
-  return false;
+  const ids = tagFilterIds();
+  if (!ids.length) return true;
+  const eff = effectiveTags(x);
+  const hit = (id) => { for (const t of tagDescendants(id)) if (eff.has(t)) return true; return false; };
+  return ui.tagMatch === 'all' && ids.length > 1 ? ids.every(hit) : ids.some(hit);
+}
+/* the tags a new to-do takes so it shows under the tag bar's filter: all of them for All,
+   the first one picked for Any (as a smart list does) */
+function tagFilterNewTags() {
+  const ids = tagFilterIds();
+  return ui.tagMatch === 'all' ? ids : ids.slice(0, 1);
 }
 /* A to-do placed in a project or area takes on that place's tags (the project's and its
    area's). Moving it on swaps the tags it picked up from the old place for the new one's. */
@@ -2587,7 +2608,7 @@ function defaultsForView(extra = {}) {
   }
   if (extra.projectId !== undefined) { p.projectId = extra.projectId; p.areaId = null; p.start = p.start === 'inbox' ? 'anytime' : p.start; }
   if (extra.areaId !== undefined) { p.areaId = extra.areaId; p.projectId = null; p.start = p.start === 'inbox' ? 'anytime' : p.start; }
-  if (ui.tagFilter && ui.tagFilter !== '__none') p.tags = Array.from(new Set((p.tags || []).concat(ui.tagFilter)));
+  if (tagFilterIds().length) p.tags = Array.from(new Set((p.tags || []).concat(tagFilterNewTags())));
   focusNewProps(p);
   return p;
 }
@@ -3138,10 +3159,14 @@ function headerHTML(key, sub, menu = true) {
 function tagBarHTML(items) {
   const present = new Set();
   items.forEach((x) => effectiveTags(x).forEach((t) => { present.add(t); let p = getTag(t); let guard = 0; while (p && p.parentId && guard++ < 8) { present.add(p.parentId); p = getTag(p.parentId); } }));
-  if (ui.tagFilter && ui.tagFilter !== '__none') present.add(ui.tagFilter);
+  const picked = tagFilterIds();
+  picked.forEach((id) => present.add(id)); // a picked tag stays in the bar even when nothing here has it
   if (!present.size) return '';
-  const chips = tagTree().filter((n) => present.has(n.tag.id) && !n.tag.group).map((n) => `<button class="tchip ${tcls(n.tag)}${ui.tagFilter === n.tag.id ? ' on' : ''}" data-action="tag-filter" data-tag="${n.tag.id}"><span class="tdot" aria-hidden="true"></span>${esc(n.tag.title)}</button>`).join('');
-  return `<div class="tagbar"><button class="tchip${!ui.tagFilter ? ' on' : ''}" data-action="tag-filter" data-tag="">All</button>${chips}<button class="tchip${ui.tagFilter === '__none' ? ' on' : ''}" data-action="tag-filter" data-tag="__none">No Tag</button></div>`;
+  // clicking a tag adds it to the filter or takes it out; All clears it
+  const chip = (id, label, on, cls = '', title = '') => `<button class="tchip${cls}${on ? ' on' : ''}" data-action="tag-filter" data-tag="${id}" aria-pressed="${on}"${title ? ` title="${title}"` : ''}>${label}</button>`;
+  const chips = tagTree().filter((n) => present.has(n.tag.id) && !n.tag.group).map((n) => chip(n.tag.id, `<span class="tdot" aria-hidden="true"></span>${esc(n.tag.title)}`, picked.includes(n.tag.id), ' ' + tcls(n.tag))).join('');
+  const match = picked.length > 1 ? `<div class="seg tb-match" role="group" aria-label="Show to-dos with">${[['any', 'Any', 'To-dos with any of these tags'], ['all', 'All', 'Only to-dos with all of these tags']].map(([v, l, t]) => `<button data-action="tag-match" data-v="${v}" class="${ui.tagMatch === v ? 'on' : ''}" aria-pressed="${ui.tagMatch === v}" title="${t}">${l}</button>`).join('')}</div>` : '';
+  return `<div class="tagbar">${chip('', 'All', tagFilterAll())}${chips}${chip('__none', 'No Tag', ui.tagFilter === '__none')}${match}</div>`;
 }
 function emptyHTML(icon, title, text) {
   return `<div class="empty">${ic(icon)}<p><b>${esc(title)}</b></p>${text ? `<p>${text}</p>` : ''}</div>`;
@@ -4483,7 +4508,15 @@ function handleAction(act, el, e) {
     case 'toggle-later': ui.laterOpen[id] = !ui.laterOpen[id]; render(); return;
     case 'logbook-more': ui.logbookLimit += 150; render(); return;
     case 'empty-trash': emptyTrash(); return;
-    case 'tag-filter': ui.tagFilter = el.dataset.tag || null; ui.sel.clear(); render(); return;
+    case 'tag-filter': { // a tag adds itself to the filter or takes itself out; ⌥-click shows only it
+      const tg = el.dataset.tag;
+      if (!tg) ui.tagFilter = null;
+      else if (tg === '__none') ui.tagFilter = ui.tagFilter === '__none' ? null : '__none';
+      else if (e.altKey) setTagFilter([tg]);
+      else toggleTagFilter(tg);
+      ui.sel.clear(); render(); return;
+    }
+    case 'tag-match': setTagMatch(el.dataset.v); ui.sel.clear(); render(); return;
     case 'find': openFind(); return;
     case 'sb-toggle': toggleSidebar(); return;
     case 'notepad': toggleNotepad(); return;
@@ -5157,7 +5190,7 @@ function setTagGroup(t, on) {
       users.forEach((x) => { x.tags = x.tags.filter((id) => id !== t.id); touch(x); });
     } else delete t.group;
   });
-  if (ui.tagFilter === t.id) { ui.tagFilter = null; render(); }
+  if (dropFromTagFilter(t.id)) render();
   toast(on ? `“${t.title}” is a group now${users.length ? `, and it's off the ${plural(users.length, 'item')} it was on` : ''}` : `“${t.title}” is a tag again`, { undo: true });
 }
 /* ---- Tag manager ----
@@ -5275,7 +5308,7 @@ function openTagManager() {
         S.tags.forEach((t) => { if (t.parentId === id) { if (!TAG_COLOR_NAMES[t.color] && !tagParent(tag)) t.color = tagColor(tag); t.parentId = tag.parentId || null; } });
         S.tags = S.tags.filter((t) => t.id !== id);
         S.todos.concat(S.projects, S.areas).forEach((x) => { if (x.tags.includes(id)) x.tags = x.tags.filter((t) => t !== id); });
-        if (ui.tagFilter === id) ui.tagFilter = null;
+        dropFromTagFilter(id);
       });
       armed = null; redraw();
     });
@@ -7179,7 +7212,7 @@ function collectExport(scope) {
     forceDone = true;
   } else {
     const v = ui.view, f = matchesTagFilter;
-    const tagNote = ui.tagFilter ? (ui.tagFilter === '__none' ? ' (no tag)' : ` (#${tagTitle(ui.tagFilter)})`) : '';
+    const tagNote = ui.tagFilter === '__none' ? ' (no tag)' : tagFilterIds().length ? ` (${tagFilterIds().map((id) => '#' + tagTitle(id)).join(ui.tagMatch === 'all' ? ' and ' : ' or ')})` : '';
     if (v.type === 'inbox') { title = 'Inbox'; inboxItems().filter(f).sort(byOrder).forEach((t) => B.push({ item: t })); }
     else if (v.type === 'today') {
       title = 'Today'; const d = pd(T0()); sub = `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
@@ -10328,7 +10361,7 @@ function placeAutocomplete(ti, box, onPick) {
    - ••• → Scheduled To-Dos Too adds to-dos and projects that only have a When date.
    - Drag a flag (or a bar's right end) to change the deadline, a bar's left end to change
      its start, or the bar itself to move both. Click a flag or bar for its dates; click a name
-     to open it. Follows the focus and the tag bar, like every other list.
+     to open it. Follows the focus and the tag bar (one tag or several), like every other list.
    - Each flag or bar has its name beside it (••• → Names Beside Flags turns that off).
    - The Due row under the dates shows how much is due each day (each week at 3 Months), darker
      as it piles up; click one for what's due then.
@@ -11798,10 +11831,14 @@ function listMenu(key, at) {
 }
 /* a tag in the tag bar */
 function tagChipMenu(tag, at) {
-  const on = ui.tagFilter === tag.id;
+  const picked = tagFilterIds(), on = picked.includes(tag.id), only = on && picked.length === 1;
+  const set = (ids) => { setTagFilter(ids); ui.sel.clear(); render(); };
   openMenu(at, [
     { header: tag.title },
-    on ? { label: 'Show All Tags', icon: 'x', fn: () => { ui.tagFilter = null; render(); } } : { label: 'Show Only This Tag', icon: 'tag', fn: () => { ui.tagFilter = tag.id; ui.sel.clear(); render(); } },
+    ...(!only ? [{ label: 'Show Only This Tag', icon: 'tag', hint: '⌥-click', fn: () => set([tag.id]) }] : []),
+    ...(on && !only ? [{ label: 'Take It Out of the Filter', icon: 'x', fn: () => set(picked.filter((x) => x !== tag.id)) }]
+      : !on && picked.length ? [{ label: 'Add It to the Filter', icon: 'plus', fn: () => set(picked.concat(tag.id)) }] : []),
+    ...(!tagFilterAll() ? [{ label: 'Show All Tags', icon: 'x', fn: () => set([]) }] : []),
     { label: 'Color…', icon: 'palette', fn: () => openTagColor(tag, at, (c) => { commit('Tag Color', () => { if (c) tag.color = c; else delete tag.color; }); render(); }) },
     ...(!tagParent(tag) ? [{ label: 'Make It a Group', icon: 'layers', fn: () => setTagGroup(tag, true) }] : []),
     { label: 'Manage Tags…', icon: 'edit', fn: openTagManager },

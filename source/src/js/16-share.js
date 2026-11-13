@@ -73,7 +73,7 @@ function collectExport(scope) {
     forceDone = true;
   } else {
     const v = ui.view, f = matchesTagFilter;
-    const tagNote = ui.tagFilter ? (ui.tagFilter === '__none' ? ' (no tag)' : ` (#${tagTitle(ui.tagFilter)})`) : '';
+    const tagNote = ui.tagFilter === '__none' ? ' (no tag)' : tagFilterIds().length ? ` (${tagFilterIds().map((id) => '#' + tagTitle(id)).join(ui.tagMatch === 'all' ? ' and ' : ' or ')})` : '';
     if (v.type === 'inbox') { title = 'Inbox'; inboxItems().filter(f).sort(byOrder).forEach((t) => B.push({ item: t })); }
     else if (v.type === 'today') {
       title = 'Today'; const d = pd(T0()); sub = `${WEEKDAYS[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()}`;
