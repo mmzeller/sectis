@@ -1676,7 +1676,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.54.0';
+const APP_VERSION = '1.54.1';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -11225,9 +11225,30 @@ function tlTree(p, list) {
   return out;
 }
 /* a Board row holds a project and all its to-dos, so things on the same days would sit on top of
-   each other: each goes on the first line of the row where it (and its name) has room, and the
-   row grows a line for each one that doesn't fit */
+   each other: each gets a line of the row where it (and its name) has room, and the row grows a
+   line for each one that doesn't fit.
+   A sub-project and everything inside it are laid out together as one block: the sub-project on
+   its first line, what's inside it on the lines right below. Blocks then go into bands of lines,
+   in order: a block joins a band (side by side with the blocks already in it, starting on the
+   band's first line) only when the whole block has room there; otherwise it starts a new band
+   below. So Hamilton never sits beside Commons while its to-dos end up under Commons's. */
 const TL_IND = 16; // a level's indent on a Board's Timeline
+const TL_GAP = 8; // room between two things on the same line
+function tlPackBlocks(blocks) {
+  const lines = [], bands = [], parts = [];
+  const free = (it, at) => (lines[at] || []).every(([lo, hi]) => hi + TL_GAP <= it.lo || it.hi + TL_GAP <= lo);
+  const fits = (b, top) => b.parts.every((p) => free(p.it, top + p.lane));
+  let n = 0;
+  blocks.forEach((b) => {
+    // the last band can grow to take a taller block; one above it can't, or the block would run into the band below
+    let band = bands.find((bd, i) => (b.n <= bd.n || i === bands.length - 1) && fits(b, bd.top));
+    if (band) band.n = Math.max(band.n, b.n);
+    else { band = { top: n, n: b.n }; bands.push(band); }
+    n = Math.max(n, band.top + band.n);
+    b.parts.forEach((p) => { const at = band.top + p.lane; (lines[at] = lines[at] || []).push([p.it.lo, p.it.hi]); parts.push({ it: p.it, lane: at }); });
+  });
+  return { parts, n };
+}
 function tlLanes(list, r, L, ownId = null) {
   const W = L.dw * r.days;
   const items = list.map((e, k) => {
@@ -11237,17 +11258,26 @@ function tlLanes(list, r, L, ownId = null) {
     const lab = tlLabel(tlShort(name, e.tlVia ? 48 : 34), sp.x1, sp.x2, W, `nm${own ? ' own' : ''}${e.x.status !== 'open' ? ' done' : ''}${e.late ? ' late' : ''}`, e.a < e.b && !e.overdue, ind);
     return { e, own, lab, lo: lab.lo, hi: lab.hi };
   });
-  // the row's project first, then the tree in order; each goes on the first line with room for it,
-  // below the line of the one it's inside
-  const ends = [], laneOf = new Map();
-  items.slice().sort((p, q) => q.own - p.own).forEach((it) => {
-    const min = it.e.tlParent && laneOf.has(it.e.tlParent) ? laneOf.get(it.e.tlParent) + 1 : 0;
-    let l = ends.findIndex((end, i) => i >= min && end + 8 <= it.lo);
-    if (l < 0) { while (ends.length < min) ends.push(-1e9); l = ends.length; ends.push(0); }
-    ends[l] = it.hi; it.lane = l; laneOf.set(it.e.x.id, l);
+  // the tree (tlTree's order, which keeps siblings in date order): what's inside each one
+  const byId = new Map(items.map((it) => [it.e.x.id, it])), inside = new Map(), top = [];
+  items.forEach((it) => {
+    const up = !it.own && it.e.tlParent && byId.has(it.e.tlParent) ? it.e.tlParent : null;
+    if (up) { if (!inside.has(up)) inside.set(up, []); inside.get(up).push(it); } else top.push(it);
   });
+  // one block: it on its own first line, the blocks of what's inside it packed on the lines below
+  const done = new Set();
+  const block = (it) => {
+    done.add(it.e.x.id);
+    const kids = tlPackBlocks((inside.get(it.e.x.id) || []).filter((k) => !done.has(k.e.x.id)).map(block));
+    return { parts: [{ it, lane: 0 }].concat(kids.parts.map((p) => ({ it: p.it, lane: p.lane + 1 }))), n: 1 + kids.n };
+  };
+  // the row's project first, then the tree in order (and anything a loop in the tree left out)
+  const blocks = top.sort((p, q) => q.own - p.own).map(block);
+  items.forEach((it) => { if (!done.has(it.e.x.id)) blocks.push(block(it)); });
+  const laid = tlPackBlocks(blocks);
+  laid.parts.forEach((p) => { p.it.lane = p.lane; });
   const html = items.map((it) => `<div class="tl-lane" style="--i:${it.lane}">${tlTrackHTML(it.e, r, { nolabel: true })}${it.lab.html}</div>`).join('');
-  return { html, n: Math.max(1, ends.length) };
+  return { html, n: Math.max(1, laid.n) };
 }
 function boardTimelineHTML() {
   const r = tlRange(), L = tlLayout(r), rows = boardTimelineRows(r);
