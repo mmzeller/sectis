@@ -10,7 +10,8 @@
    ⇧Tab (or ⌘[) takes it out a level. In Markdown a level is a tab in front of the bullet, and
    the editor reads 2 or 4 spaces the same way (listLevels, 13-notes.js). Return on an empty
    item that's in a level, or Backspace at its start, takes it out one. Tab where there's no
-   list item types a tab, so it never jumps to another note.
+   list item moves on, as everywhere else, and a note you came to by Tab lets Tab go on
+   through it until you type or click in it (leNav), so tabbing round the app never gets stuck.
    Typing [] and a space at the start of a line makes a checkbox.
    Keys: ⌘B bold, ⌘I italic, ⌘U underline (<u>…</u>), ⇧⌘X strikethrough, ⇧⌘H highlight
    (==…==), ⌘E code, ⌘K link, ⇧⌘L checkbox (or tick it), ⌘Z / ⇧⌘Z undo and redo. The browser's
@@ -579,13 +580,19 @@ function leIndent(el, dir, at) {
   if (r.moved) leApply(el, r.text, r.map(sel.s), r.map(sel.e), sel.back);
   return true;
 }
-/* Tab where there's no list item: a tab, like in Notes */
-function leTab(el) {
-  const sel = leGetSel(el); if (!sel) return;
-  const t = leText(el); if (t.slice(sel.s, sel.e).includes('\n')) return;
-  if (leRich(el)) rDo(el, sel.s === sel.e ? rtInsert(t, sel.s, '\t', { pend: rPend(el, sel.s, t) }) : rtReplace(t, sel.s, sel.e, '\t'), 'type', sel.s !== sel.e);
-  else leEdit(el, sel.s, sel.e, '\t', { kind: 'type', fresh: sel.s !== sel.e });
-}
+/* a note you came to by pressing Tab (going through the app with the keyboard) lets Tab carry
+   on through it, until you type in it, click in it or press another key there */
+const leNav = new WeakSet();
+let leTabAt = 0;
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') { leTabAt = Date.now(); return; }
+  const el = leHost(e.target);
+  if (el && !/^(Shift|Meta|Control|Alt|CapsLock|Fn)$/.test(e.key)) leNav.delete(el);
+}, true);
+document.addEventListener('focusin', (e) => { const el = leHost(e.target); if (el && e.target === el && Date.now() - leTabAt < 300) leNav.add(el); }, true);
+document.addEventListener('focusout', (e) => { const el = leHost(e.target); if (el && e.target === el) leNav.delete(el); }, true);
+document.addEventListener('pointerdown', (e) => { const el = leHost(e.target); if (el) leNav.delete(el); }, true);
+document.addEventListener('beforeinput', (e) => { const el = leHost(e.target); if (el) leNav.delete(el); }, true);
 function leOpenLink(href) {
   const web = /^(https?|mailto):/i.test(href), a = document.createElement('a');
   a.href = web ? href : appLinkHref(href);
@@ -681,10 +688,11 @@ document.addEventListener('compositionend', (e) => {
 document.addEventListener('focusin', (e) => { const el = leHost(e.target); if (el && e.target === el) leFresh(el); }, true);
 document.addEventListener('keydown', (e) => {
   const el = leHost(e.target); if (!el || e.isComposing) return;
-  // Tab and ⇧Tab: a list item in or out a level (it stays in the note, rather than going on to the next one)
+  // Tab and ⇧Tab, while you're writing a list: its item in or out a level (staying in the note
+  // even when it can't go). Anywhere else, or passing through by Tab, Tab moves on as usual
   if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    if (leNav.has(el) || !leIndent(el, e.shiftKey ? -1 : 1)) return;
     e.preventDefault(); e.stopPropagation();
-    if (!leIndent(el, e.shiftKey ? -1 : 1) && !e.shiftKey) leTab(el);
     return;
   }
   const mod = e.metaKey || e.ctrlKey; if (!mod || e.altKey) return;
