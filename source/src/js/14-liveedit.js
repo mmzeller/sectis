@@ -7,8 +7,11 @@
    Return on an empty item ends it; Backspace at the start of an item (or heading or quote)
    takes its bullet, checkbox or number away.
    Typing [] and a space at the start of a line makes a checkbox.
-   Keys: ⌘B bold, ⌘I italic, ⇧⌘X strikethrough, ⌘E code, ⌘K link, ⇧⌘L checkbox (or tick it),
-   ⌘Z / ⇧⌘Z undo and redo. Pasting a link over selected text links it; copying copies the
+   Keys: ⌘B bold, ⌘I italic, ⌘U underline (<u>…</u>), ⇧⌘X strikethrough, ⇧⌘H highlight
+   (==…==), ⌘E code, ⌘K link, ⇧⌘L checkbox (or tick it), ⌘Z / ⇧⌘Z undo and redo. The browser's
+   own Bold / Italic / Underline (iPhone's B I U menu) do the same.
+   In Rich Text (.le-rich, 14-richtext.js) none of the Markdown shows, and editing that could
+   split it is done there instead. Pasting a link over selected text links it; copying copies the
    Markdown.
    How: a contenteditable div (.le) with one div per line (.le-ln); the note is the lines' text
    joined with \n. Typing at the caret goes straight in, so the keyboard and input methods work
@@ -27,7 +30,7 @@ const leIsS = (c) => !c || /\s/.test(c);
    bullet, checkbox, number, # or >) is in a hidden .lb span and drawn by the line itself; the
    inline Markdown is in .lm spans, shown on the line you're on ---- */
 const LE_BLOCK = [
-  [/^(\s{0,3}(#{1,3})\s+)(.+)$/, (m) => ({ cls: 'le-h' + m[2].length, pre: m[1], rest: m[3] })],
+  [/^(\s{0,3}(#{1,3})\s+)(.*)$/, (m) => ({ cls: 'le-h' + m[2].length, pre: m[1], rest: m[3] })], // "# " alone is an empty heading, like "- " is an empty bullet
   [/^(\s*[-*•+]\s+\[([ xX])\]\s+)(.*)$/, (m) => ({ cls: 'le-task' + (m[2] === ' ' ? '' : ' le-done'), pre: m[1], rest: m[3] })],
   [/^(\s*[-*•+]\s+)(.*)$/, (m) => ({ cls: 'le-li', pre: m[1], rest: m[2] })],
   [/^(\s*(\d{1,4}[.)])\s+)(.*)$/, (m) => ({ cls: 'le-ol', pre: m[1], rest: m[3], n: m[2] })],
@@ -56,16 +59,33 @@ function leClose(s, i, d) {
   }
   return -1;
 }
-function leInline(s) {
-  let out = '', plain = '', i = 0;
-  const flush = () => { if (plain) { out += esc(plain); plain = ''; } };
+/* where a ==highlight== that opens at i closes, or -1. Not inside a word (x==y isn't one) */
+function leCloseHi(s, i) {
+  const prev = s[i - 1], first = s[i + 2];
+  if (leIsS(first) || first === '=' || prev === '=' || leIsW(prev)) return -1;
+  for (let j = s.indexOf('==', i + 3); j > 0; j = s.indexOf('==', j + 1)) {
+    const before = s[j - 1], after = s[j + 2];
+    if (leIsS(before) || before === '=' || after === '=' || leIsW(after)) continue;
+    return j;
+  }
+  return -1;
+}
+/* a line's inline Markdown as a tree: text (t), code, links (a), and runs of formatting
+   (strong, em, del, u, mark) with what's inside them. a..b is where each is in the string.
+   The editor draws it (leInline), and Rich Text works on it character by character (leRoles) */
+const LE_TAG_MARK = { strong: 'b', em: 'i', del: 's', u: 'u', mark: 'h' };
+function leTree(s, base = 0) {
+  const out = [];
+  let plain = '', at = 0, i = 0;
+  const flush = () => { if (plain) { out.push({ k: 't', s: plain, a: base + at, b: base + at + plain.length }); plain = ''; } };
+  const put = (str) => { if (!plain) at = i; plain += str; };
   while (i < s.length) {
     const c = s[i], rest = s.slice(i);
     let m;
-    if (c === '`' && (m = rest.match(/^`([^`]+)`/))) { flush(); out += leMk('`') + `<code>${esc(m[1])}</code>` + leMk('`'); i += m[0].length; continue; }
+    if (c === '`' && (m = rest.match(/^`([^`]+)`/))) { flush(); out.push({ k: 'code', s: m[1], a: base + i, b: base + i + m[0].length }); i += m[0].length; continue; }
     if (c === '[' && (m = rest.match(/^\[([^\]]+)\]\(([^)\s]+)\)/))) {
       const h = safeHref(m[2]);
-      if (h) { flush(); out += leMk('[') + `<span class="le-a" data-href="${esc(h)}">${esc(m[1])}</span>` + leMk(`](${m[2]})`); i += m[0].length; continue; }
+      if (h) { flush(); out.push({ k: 'a', s: m[1], href: h, url: m[2], md: true, a: base + i, b: base + i + m[0].length }); i += m[0].length; continue; }
     }
     if (/[hws]/i.test(c) && !leIsW(s[i - 1]) && (m = rest.match(/^(?:https?:\/\/|www\.|sintr:\/\/)[^\s<>"']+/i))) {
       let url = m[0];
@@ -74,22 +94,68 @@ function leInline(s) {
         url = url.slice(0, -1);
       }
       const h = safeHref(url);
-      if (h) { flush(); out += `<span class="le-a" data-href="${esc(h)}">${esc(url)}</span>`; i += url.length; continue; }
+      if (h) { flush(); out.push({ k: 'a', s: url, href: h, url, md: false, a: base + i, b: base + i + url.length }); i += url.length; continue; }
+    }
+    if (c === '<' && rest.startsWith('<u>')) {
+      const j = s.indexOf('</u>', i + 3);
+      if (j > i + 3) { flush(); out.push({ k: 'u', o: '<u>', c: '</u>', a: base + i, b: base + j + 4, kids: leTree(s.slice(i + 3, j), base + i + 3) }); i = j + 4; continue; }
+    }
+    if (c === '=' && s[i + 1] === '=') {
+      const j = leCloseHi(s, i);
+      if (j > 0) { flush(); out.push({ k: 'mark', o: '==', c: '==', a: base + i, b: base + j + 2, kids: leTree(s.slice(i + 2, j), base + i + 2) }); i = j + 2; continue; }
+      put('=='); i += 2; continue;
     }
     if (c === '*' || c === '_' || c === '~') {
       const d = rest.startsWith('**') ? '**' : rest.startsWith('__') ? '__' : rest.startsWith('~~') ? '~~' : c === '~' ? '' : c;
       const j = d ? leClose(s, i, d) : -1;
       if (j > 0) {
         const tag = d === '~~' ? 'del' : d.length === 2 ? 'strong' : 'em';
-        flush(); out += leMk(d) + `<${tag}>${leInline(s.slice(i + d.length, j))}</${tag}>` + leMk(d);
+        flush(); out.push({ k: tag, o: d, c: d, a: base + i, b: base + j + d.length, kids: leTree(s.slice(i + d.length, j), base + i + d.length) });
         i = j + d.length; continue;
       }
-      if (d.length === 2) { plain += d; i += 2; continue; } // an unclosed ** isn't two single *s
+      if (d.length === 2) { put(d); i += 2; continue; } // an unclosed ** isn't two single *s
     }
-    plain += c; i++;
+    put(c); i++;
   }
   flush();
   return out;
+}
+function leDraw(nodes) {
+  let out = '';
+  for (const n of nodes) {
+    if (n.k === 't') out += esc(n.s);
+    else if (n.k === 'code') out += leMk('`') + `<code>${esc(n.s)}</code>` + leMk('`');
+    else if (n.k === 'a') out += (n.md ? leMk('[') : '') + `<span class="le-a" data-href="${esc(n.href)}">${esc(n.s)}</span>` + (n.md ? leMk(`](${n.url})`) : '');
+    else out += leMk(n.o) + `<${n.k}>${leDraw(n.kids)}</${n.k}>` + leMk(n.c);
+  }
+  return out;
+}
+const leInline = (s) => leDraw(leTree(s));
+/* each character of a line as Rich Text sees it: role p (its bullet, number, # or >), o / c (the
+   Markdown that opens or closes a run, a link or code), v (shown). chars: the shown ones, with
+   their formatting (m: b bold, i italic, s strikethrough, u underline, h highlight), code, and the
+   link they're part of (href, url as written, md: written [like](this) rather than bare) */
+const leAddMark = (m, x) => (m.includes(x) ? m : [...m, x].sort().join(''));
+function leRoles(line) {
+  const blk = leBlock(line), P = blk.pre.length, role = new Array(line.length).fill('p'), chars = [];
+  let lid = 0;
+  const vis = (s, from, m, extra) => { for (let i = 0; i < s.length; i++) { role[from + i] = 'v'; chars.push(Object.assign({ c: s[i], at: from + i, m }, extra)); } };
+  const mark = (from, len, r) => { for (let k = 0; k < len; k++) role[from + k] = r; };
+  const walk = (nodes, m) => nodes.forEach((n) => {
+    const a = P + n.a, b = P + n.b;
+    if (n.k === 't') { vis(n.s, a, m); return; }
+    if (n.k === 'code') { mark(a, 1, 'o'); mark(b - 1, 1, 'c'); vis(n.s, a + 1, m, { code: true }); return; }
+    if (n.k === 'a') {
+      const o = n.md ? 1 : 0; lid++;
+      if (n.md) { mark(a, 1, 'o'); mark(a + 1 + n.s.length, b - (a + 1 + n.s.length), 'c'); }
+      vis(n.s, a + o, m, { href: n.href, url: n.url, md: n.md, lid });
+      return;
+    }
+    mark(a, n.o.length, 'o'); mark(b - n.c.length, n.c.length, 'c');
+    walk(n.kids, leAddMark(m, LE_TAG_MARK[n.k]));
+  });
+  walk(leTree(blk.rest), '');
+  return { pre: blk.pre, role, chars };
 }
 /* the editor's inside for some text; lines a..b show their Markdown */
 function leHTML(text, a = -1, b = -1) {
@@ -144,8 +210,9 @@ function leOffset(el, node, off) {
   }
   return Math.max(0, base - 1);
 }
-/* a place in the text as a spot in the editor */
+/* a place in the text as a spot in the editor (in Rich Text, always in shown text: rPoint) */
 function lePoint(el, off) {
+  if (leRich(el)) { const p = rPoint(el, off); if (p) return p; }
   const groups = leGroups(el);
   for (let gi = 0; gi < groups.length; gi++) {
     const g = groups[gi], len = leGText(g).length;
@@ -186,18 +253,7 @@ function lePointAt(x, y) {
 }
 const leLineAt = (t, off) => { let n = 0; for (let i = t.indexOf('\n'); i >= 0 && i < off; i = t.indexOf('\n', i + 1)) n++; return n; };
 /* which characters of a line are Markdown (hidden or muted when it isn't the line you're on) */
-function leMask(line) {
-  leTmp.innerHTML = leLine(line).html;
-  const mask = [];
-  const walk = (x, mk) => {
-    if (x.nodeType === 3) { for (let i = 0; i < x.data.length; i++) mask.push(mk); return; }
-    if (x.nodeType !== 1) return;
-    const m = mk || x.classList.contains('lm');
-    x.childNodes.forEach((c) => walk(c, m));
-  };
-  leTmp.childNodes.forEach((c) => walk(c, false));
-  return mask;
-}
+const leMask = (line) => leRoles(line).role.map((r) => r !== 'v');
 /* the place in a line after `vis` of its shown characters, past any Markdown that follows them
    (so a click at the start of a heading types into the heading, and one at the end of a bold
    line types after the bold) */
@@ -210,6 +266,7 @@ function leVisToOff(line, vis, mask = leMask(line)) {
 function leCaretAtShown(el, ln, vis) {
   const t = leText(el), lines = t.split('\n');
   if (lines[ln] == null) { leSetSel(el, t.length); return; }
+  if (leRich(el)) { leSetSel(el, rRaw(t, { ln, v: vis, bias: 'in' })); return; }
   let base = 0; for (let k = 0; k < ln; k++) base += lines[k].length + 1;
   leSetSel(el, base + leVisToOff(lines[ln], vis));
 }
@@ -292,6 +349,7 @@ function leSync(el) {
     el.classList.toggle('le-empty', !text);
   }
   lePush(el, text, sel.s, sel.e, 'type');
+  if (leRich(el)) { st.pend = null; if (sel.s === sel.e) rAfterType(el, text, sel.s); }
   // [] and a space at the start of a line: a checkbox
   if (sel.s === sel.e) {
     const ls = text.lastIndexOf('\n', sel.s - 1) + 1, m = text.slice(ls, sel.s).match(/^(\s*)\[ ?\] $/);
@@ -323,9 +381,9 @@ function leWrap(el, kind) {
     while (wa > 0 && /[\p{L}\p{N}'’-]/u.test(t[wa - 1])) wa--;
     while (wb < t.length && /[\p{L}\p{N}'’-]/u.test(t[wb])) wb++;
     if (wa < a && wb > a) { a = wa; b = wb; } else {
-      const mk = leMarkFor(t, a, a, kind);
-      if (t.slice(a - mk.length, a) === mk && t.slice(a, a + mk.length) === mk) { leEdit(el, a - mk.length, a + mk.length, '', { s: a - mk.length }); return; }
-      leEdit(el, a, a, mk + mk, { s: a + mk.length }); return;
+      const [o, c] = leMarkFor(t, a, a, kind);
+      if (t.slice(a - o.length, a) === o && t.slice(a, a + c.length) === c) { leEdit(el, a - o.length, a + c.length, '', { s: a - o.length }); return; }
+      leEdit(el, a, a, o + c, { s: a + o.length }); return;
     }
   }
   while (a < b && /\s/.test(t[a])) a++;
@@ -334,33 +392,35 @@ function leWrap(el, kind) {
   if (t.slice(a, b).includes('\n')) { leWrapLines(el, t, a, b, kind); return; }
   // already like that: take it off (the marks just outside the selection, or at its ends)
   const off = leMarkAround(t, a, b, kind);
-  if (off) { const L = off.mk.length; leEdit(el, off.a, off.b, t.slice(off.a + L, off.b - L), { s: off.a, e: off.b - 2 * L }); return; }
-  const mk = leMarkFor(t, a, b, kind), L = mk.length;
-  leEdit(el, a, b, mk + t.slice(a, b) + mk, { s: a + L, e: b + L });
+  if (off) { const O = off.o.length, C = off.c.length; leEdit(el, off.a, off.b, t.slice(off.a + O, off.b - C), { s: off.a, e: off.b - O - C }); return; }
+  const [o, c] = leMarkFor(t, a, b, kind);
+  leEdit(el, a, b, o + t.slice(a, b) + c, { s: a + o.length, e: b + o.length });
 }
 const leRun = (t, i, dir, c) => { let n = 0; while (t[i + (dir < 0 ? -1 - n : n)] === c) n++; return n; };
-/* the mark for a kind of formatting at a..b: bold right inside italic uses __, italic right
-   inside bold uses _, so the two don't run together into *** */
+/* the marks (opening, closing) for a kind of formatting at a..b: bold right inside italic uses
+   __, italic right inside bold uses _, so the two don't run together into *** */
 function leMarkFor(t, a, b, kind) {
-  if (kind === 'c') return '`';
-  if (kind === 's') return '~~';
+  if (kind === 'c') return ['`', '`'];
+  if (kind === 's') return ['~~', '~~'];
+  if (kind === 'u') return ['<u>', '</u>'];
+  if (kind === 'h') return ['==', '=='];
   const sa = leRun(t, a, -1, '*'), sb = leRun(t, b, 1, '*');
-  if (kind === 'b') return sa === 1 && sb === 1 ? '__' : '**';
-  return sa === 2 && sb === 2 ? '_' : '*';
+  if (kind === 'b') return sa === 1 && sb === 1 ? ['__', '__'] : ['**', '**'];
+  return sa === 2 && sb === 2 ? ['_', '_'] : ['*', '*'];
 }
 /* the marks of that kind around a..b (just outside it or at its ends), if there are any */
 function leMarkAround(t, a, b, kind) {
-  const marks = kind === 'c' ? ['`'] : kind === 's' ? ['~~'] : kind === 'b' ? ['**', '__'] : ['*', '_'];
-  for (const mk of marks) {
-    const L = mk.length;
+  const marks = kind === 'c' ? ['`'] : kind === 's' ? ['~~'] : kind === 'u' ? [['<u>', '</u>']] : kind === 'h' ? ['=='] : kind === 'b' ? ['**', '__'] : ['*', '_'];
+  for (const pair of marks) {
+    const [o, c] = Array.isArray(pair) ? pair : [pair, pair], mk = o, L = o.length, C = c.length;
     const fits = (x, y) => {
-      if (t.slice(x, x + L) !== mk || t.slice(y - L, y) !== mk || y - x < 2 * L + 1) return false;
+      if (t.slice(x, x + L) !== o || t.slice(y - C, y) !== c || y - x < L + C + 1) return false;
       if (L === 1 && mk === '*') { const r1 = leRun(t, x, 1, '*'), r2 = leRun(t, y, -1, '*'); return r1 % 2 === 1 && r2 % 2 === 1; } // * of ***, not of **
       if (L === 1) return t[x + 1] !== mk && t[y - 2] !== mk;
       return true;
     };
-    if (fits(a - L, b + L)) return { a: a - L, b: b + L, mk };
-    if (fits(a, b)) return { a, b, mk };
+    if (fits(a - L, b + C)) return { a: a - L, b: b + C, o, c };
+    if (fits(a, b)) return { a, b, o, c };
   }
   return null;
 }
@@ -379,8 +439,8 @@ function leWrapLines(el, t, a, b, kind) {
     while (i < j && /\s/.test(line[i])) i++;
     while (j > i && /\s/.test(line[j - 1])) j--;
     if (i === j) return line;
-    const mk = leMarkFor(line, i, j, kind);
-    return line.slice(0, i) + mk + line.slice(i, j) + mk + line.slice(j);
+    const [o, c] = leMarkFor(line, i, j, kind);
+    return line.slice(0, i) + o + line.slice(i, j) + c + line.slice(j);
   });
   const out = parts.join('\n');
   leEdit(el, ls, le, out, { s: ls, e: ls + out.length });
@@ -461,11 +521,14 @@ function leDelRange(t, at, type) {
 }
 
 /* ---- the browser's edits: plain typing goes in; the rest is done here ---- */
+const LE_FMT_INPUT = { formatBold: 'b', formatItalic: 'i', formatUnderline: 'u', formatStrikeThrough: 's' };
 document.addEventListener('beforeinput', (e) => {
   const el = leHost(e.target); if (!el) return;
   const t = e.inputType || '';
   if (e.isComposing || t === 'insertCompositionText' || t === 'insertFromComposition' || t === 'deleteCompositionText') return; // input methods type as usual
   if (t === 'historyUndo' || t === 'historyRedo') { e.preventDefault(); leUndo(el, t === 'historyRedo'); return; }
+  const fmt = LE_FMT_INPUT[t];
+  if (fmt) { e.preventDefault(); if (leRich(el)) rToggle(el, fmt); else leWrap(el, fmt); return; } // Bold, Italic, Underline from the browser's own menus (on iPhone, the B I U one)
   const sel = leGetSel(el); if (!sel) return;
   const text = leText(el);
   let r = null;
@@ -474,6 +537,7 @@ document.addEventListener('beforeinput', (e) => {
     const x = leOffset(el, tr[0].startContainer, tr[0].startOffset), y = leOffset(el, tr[0].endContainer, tr[0].endOffset);
     r = { s: Math.min(x, y), e: Math.max(x, y) };
   }
+  if (leRich(el) && rBeforeInput(e, el, t, sel, r, text)) return;
   if (t === 'insertParagraph' || t === 'insertLineBreak') { e.preventDefault(); leNewline(el, sel.s, sel.e, t === 'insertParagraph'); return; }
   if (t === 'insertText' || t === 'insertReplacementText') {
     const data = leNorm(e.data != null ? e.data : e.dataTransfer ? e.dataTransfer.getData('text/plain') : '');
@@ -519,35 +583,69 @@ document.addEventListener('focusin', (e) => { const el = leHost(e.target); if (e
 document.addEventListener('keydown', (e) => {
   const el = leHost(e.target); if (!el || e.isComposing) return;
   const mod = e.metaKey || e.ctrlKey; if (!mod || e.altKey) return;
-  const k = (e.key || '').toLowerCase(), sh = e.shiftKey;
+  const k = (e.key || '').toLowerCase(), sh = e.shiftKey, rich = leRich(el);
+  const wrap = (x) => () => (rich ? rToggle(el, x) : leWrap(el, x));
   const act = k === 'z' ? () => leUndo(el, sh)
     : k === 'y' && !sh ? () => leUndo(el, true)
-    : k === 'b' && !sh ? () => leWrap(el, 'b')
-    : k === 'i' && !sh ? () => leWrap(el, 'i')
-    : k === 'e' && !sh ? () => leWrap(el, 'c')
-    : k === 'x' && sh ? () => leWrap(el, 's')
-    : k === 'k' && !sh ? () => leLink(el)
+    : k === 'b' && !sh ? wrap('b')
+    : k === 'i' && !sh ? wrap('i')
+    : k === 'u' && !sh ? wrap('u')
+    : k === 'e' && !sh ? wrap('c')
+    : k === 'x' && sh ? wrap('s')
+    : k === 'h' && sh ? wrap('h')
+    : k === 'k' && !sh ? () => (rich ? rOpenLink(el) : leLink(el))
     : k === 'l' && sh ? () => leTask(el)
-    : k === 'u' && !sh ? () => {} // no underline in Markdown
     : null;
   if (!act) return;
   e.preventDefault(); e.stopPropagation(); act();
 }, true);
-/* copying copies the Markdown; pasting pastes plain text (a link over selected text links it) */
+/* copying copies the Markdown; pasting pastes plain text (a link over selected text links it).
+   In Rich Text, copying puts formatted text on the clipboard (and plain text, and the Markdown for
+   another note), and pasting formatted text keeps its formatting */
+const LE_MD_TYPE = 'text/x-sectis-markdown';
 ['copy', 'cut'].forEach((type) => document.addEventListener(type, (e) => {
   const el = leHost(e.target); if (!el || !e.clipboardData) return;
   const sel = leGetSel(el); if (!sel || sel.s === sel.e) return;
   e.preventDefault();
-  e.clipboardData.setData('text/plain', leText(el).slice(sel.s, sel.e));
+  const t = leText(el);
+  if (leRich(el)) {
+    const md = rtFragment(t, sel.s, sel.e);
+    e.clipboardData.setData('text/plain', rPlain(md));
+    e.clipboardData.setData('text/html', `<meta charset="utf-8">${renderMarkdown(md)}`);
+    try { e.clipboardData.setData(LE_MD_TYPE, md); } catch (err) { /* this browser only takes the usual kinds */ }
+    if (type === 'cut') rDo(el, rtReplace(t, sel.s, sel.e, ''), 'edit');
+    return;
+  }
+  e.clipboardData.setData('text/plain', t.slice(sel.s, sel.e));
   if (type === 'cut') leEdit(el, sel.s, sel.e, '');
 }, true));
+const leIsUrl = (s) => /^(?:https?:\/\/|www\.)\S+$/i.test(s);
+/* what's on the clipboard (or being dropped), as Markdown: md when it came from a note or kept
+   its formatting, else the plain text */
+function leClipMd(dt, rich) {
+  if (!dt) return { md: '', plain: '' };
+  let md = ''; try { md = leNorm(dt.getData(LE_MD_TYPE)); } catch (err) { /* ignore */ }
+  const plain = leNorm(dt.getData('text/plain'));
+  if (!md && rich) { const html = dt.getData('text/html'); if (html) md = htmlToMd(html); }
+  return { md, plain };
+}
 document.addEventListener('paste', (e) => {
   const el = leHost(e.target); if (!el) return;
   e.preventDefault(); e.stopPropagation();
   const sel = leGetSel(el); if (!sel) return;
-  const data = leNorm(e.clipboardData && e.clipboardData.getData('text/plain')); if (!data) return;
-  const t = leText(el), picked = t.slice(sel.s, sel.e), url = data.trim();
-  if (picked.trim() && !picked.includes('\n') && /^(?:https?:\/\/|www\.)\S+$/i.test(url) && !/^(?:https?:\/\/|www\.)/i.test(picked.trim())) {
+  const rich = leRich(el), { md, plain } = leClipMd(e.clipboardData, rich);
+  const t = leText(el), picked = t.slice(sel.s, sel.e), url = plain.trim();
+  if (rich) {
+    // a link pasted over words links them
+    if (sel.s !== sel.e && leIsUrl(url)) { const [A, B] = rSel(t, sel.s, sel.e), words = rtFragment(t, sel.s, sel.e); if (A.ln === B.ln && !leIsUrl(rPlain(words).trim())) { rDo(el, rtSetLink(t, A.ln, A.v, B.v, safeHref(url), url), 'paste'); return; } }
+    if (md) rDo(el, rtInsertMd(t, sel.s, sel.e, md), 'paste');
+    else if (!plain) return;
+    else if (!plain.includes('\n')) rDo(el, rtReplace(t, sel.s, sel.e, plain), 'paste', true);
+    else rDo(el, rtInsertMd(t, sel.s, sel.e, plain), 'paste');
+    return;
+  }
+  const data = md || plain; if (!data) return;
+  if (!md && picked.trim() && !picked.includes('\n') && leIsUrl(url) && !/^(?:https?:\/\/|www\.)/i.test(picked.trim())) {
     leEdit(el, sel.s, sel.e, `[${picked}](${url})`, { kind: 'paste' }); return;
   }
   leEdit(el, sel.s, sel.e, data, { kind: 'paste' });
@@ -555,9 +653,10 @@ document.addEventListener('paste', (e) => {
 document.addEventListener('drop', (e) => {
   const el = leHost(e.target); if (!el) return;
   e.preventDefault(); e.stopPropagation();
-  const data = leNorm(e.dataTransfer && e.dataTransfer.getData('text/plain')); if (!data) return;
+  const rich = leRich(el), { md, plain } = leClipMd(e.dataTransfer, rich), data = md || plain; if (!data) return;
   const p = lePointAt(e.clientX, e.clientY), off = p && el.contains(p.node) ? leOffset(el, p.node, p.offset) : leText(el).length;
   el.focus({ preventScroll: true });
+  if (rich) { rDo(el, rtInsertMd(leText(el), off, off, data), 'paste'); return; }
   leEdit(el, off, off, data, { kind: 'paste' });
 }, true);
 /* a checkbox ticks; a link opens (on the line you're typing in, with ⌘ held) */
@@ -572,7 +671,7 @@ document.addEventListener('mousedown', (e) => {
   if (line && line.classList.contains('le-task') && e.target === line && e.clientX < line.getBoundingClientRect().left + parseFloat(getComputedStyle(line).paddingLeft)) {
     e.preventDefault(); leTick(el, [...el.children].indexOf(line)); return;
   }
-  if (link && (e.metaKey || e.ctrlKey || !on)) { e.preventDefault(); leOpenLink(link.dataset.href); return; }
+  if (link && (e.metaKey || e.ctrlKey || (!on && !leRich(el)))) { e.preventDefault(); leOpenLink(link.dataset.href); return; }
   if (!e.shiftKey && e.detail < 2) leClick = { el, was: on };
 }, true);
 /* a click lands past Markdown it couldn't see (on a line that was showing formatted), and never
@@ -586,7 +685,7 @@ document.addEventListener('mouseup', () => {
     let lend = t.indexOf('\n', sel.s); if (lend < 0) lend = t.length;
     const line = t.slice(ls, lend), pre = leBlock(line).pre.length;
     let p = sel.s;
-    if (!c.was) { const mask = leMask(line); let vis = 0; for (let k = 0; k < sel.s - ls; k++) if (!mask[k]) vis++; p = ls + leVisToOff(line, vis, mask); }
+    if (!c.was && !leRich(el)) { const mask = leMask(line); let vis = 0; for (let k = 0; k < sel.s - ls; k++) if (!mask[k]) vis++; p = ls + leVisToOff(line, vis, mask); }
     if (p - ls < pre) p = ls + pre;
     if (p !== sel.s) leSetSel(el, p);
   }, 0);

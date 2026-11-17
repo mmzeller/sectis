@@ -46,6 +46,8 @@ function openSettings(pane) {
         segRow('Color projects by', 'Area & Project uses the colors you pick (they flow down to what’s inside). Progress goes from red, with nothing done, to green when it’s all done. Priority colors High, Medium and Low like their ! marks.', 'colorBy', COLOR_BY),
         setRow('Colors of areas and projects', 'See and change them all in one place, several at once.', '<button class="btn" data-s="colors">Manage Colors…</button>'),
         swRow('Shade sub-projects', 'A sub-project without its own color takes a lighter or deeper shade of its project’s, taking turns, so they’re one family but easy to tell apart.', 'shadeSubs'),
+      ]) + setGroup('Notepad', [
+        segRow('Formatting in notes', 'Markdown shows the line you’re typing in with its **, * and other marks, so you can see and type them. Rich Text never shows them: format with the toolbar under the note or the keyboard shortcuts, like in Notes. Your notes stay the same either way, so you can switch back and forth. Each device keeps its own.', 'noteStyle', [['markdown', 'Markdown'], ['rich', 'Rich Text']]),
       ]) + setGroup('Dates and typing', [
         segRow('Week starts on', '', 'weekStart', [[0, 'Sunday'], [1, 'Monday']]),
         swRow('Quick Entry reads dates, tags and places', '“Pay rent friday @Home #Bills !oct 31” sets When, the area, a tag and a deadline.', 'parseEntry'),
@@ -179,7 +181,7 @@ function openSettings(pane) {
       const st = e.target.closest('[data-st]');
       if (st) { if (st.dataset.st === 'back') { atNav = true; paint(false); } else { q = ''; inp.value = ''; paint(false); inp.focus(); } return; }
       const s = e.target.closest('[data-set]');
-      if (s) { const key = s.dataset.set; let v = s.dataset.val; if (key === 'weekStart') v = +v; S.settings[key] = v; saveSoon(); if (key === 'logMode') autoLog(); render(); paint(true); return; }
+      if (s) { const key = s.dataset.set; let v = s.dataset.val; if (key === 'weekStart') v = +v; S.settings[key] = v; saveSoon(); if (key === 'logMode') autoLog(); if (key === 'noteStyle') applyNoteStyle(); render(); paint(true); return; }
       // a switch, or anywhere on its row
       const togRow = e.target.closest('.set-row.tog');
       const w = e.target.closest('[data-switch]') || (togRow && !e.target.closest('button, a, input') ? $('[data-switch]', togRow) : null);

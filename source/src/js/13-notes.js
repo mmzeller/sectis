@@ -1,6 +1,7 @@
 /* ===================== Formatted notes =====================
-   Notes are plain text with light Markdown: **bold**, *italic*, ~~strike~~, `code`,
-   # headings, - bullets, 1. numbered lists, > quotes, [text](link) and bare links.
+   Notes are plain text with light Markdown: **bold**, *italic*, ~~strike~~, <u>underline</u>,
+   ==highlight==, `code`, # headings, - bullets, 1. numbered lists, > quotes, [text](link) and
+   bare links.
    Web links open in a new tab; app links (sintr://…) open the app, so they get no target. */
 function safeHref(url) {
   const u = String(url || '').trim();
@@ -65,6 +66,8 @@ function mdInline(raw, opts) {
   s = s.replace(/(^|[^\w*])\*(?=[^\s*])([^*]+?)\*(?![\w*])/g, (m, pre, x) => (/\s$/.test(x) ? m : `${pre}<em>${x}</em>`));
   s = s.replace(/(^|[^\w])_(?=[^\s_])([^_]+?)_(?!\w)/g, (m, pre, x) => (/\s$/.test(x) ? m : `${pre}<em>${x}</em>`));
   s = s.replace(/~~(?=\S)(.+?)~~/g, (m, x) => `<del>${x}</del>`);
+  s = s.replace(/&lt;u&gt;(.+?)&lt;\/u&gt;/g, (m, x) => `<u>${x}</u>`);
+  s = s.replace(/(^|[^\w=])==(?=[^\s=])(.+?)==(?![\w=])/g, (m, pre, x) => (/[\s=]$/.test(x) ? m : `${pre}<mark>${x}</mark>`));
   return s.replace(/\u0001(\d+)\u0002/g, (m, i) => tokens[+i]);
 }
 /* opts.tasks (the Notepad): checkboxes you can click, and each line marked with where it is in
@@ -78,7 +81,7 @@ function renderMarkdown(text, opts) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i], ln = tasks ? ` data-ln="${i}"` : '';
     let m;
-    if (!line.trim()) { flush(); close(); continue; }
+    if (!line.trim() || /^\s{0,3}#{1,3}\s+$/.test(line)) { flush(); close(); continue; } // an empty heading is an empty line
     if ((m = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/))) { flush(); close(); html += `<p class="md-h${m[1].length}"${ln}>${mdInline(m[2], opts)}</p>`; continue; }
     if ((m = line.match(/^\s*[-*•+]\s+\[( |x|X)\]\s+(.*)$/))) {
       const done = m[1] !== ' ';

@@ -39,7 +39,7 @@
   --row-h: 32px;
   --cb-size: 15px;
   --t-red: #d64541; --t-orange: #de7a26; --t-yellow: #bf9010; --t-green: #3b9a5c; --t-teal: #1f9a92; --t-blue: #3a7bd5; --t-indigo: #5b62d6; --t-purple: #9256c9; --t-pink: #d24d8c; --t-gray: #7d8594; --t-lime: #6f9a1f; --t-cyan: #1590b5; --t-brown: #94673e;
-  --tg-tint: 14%; --tg-ink: 52%;
+  --tg-tint: 14%; --tg-ink: 52%; --hl: #fde58f;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -50,7 +50,7 @@
     --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .45); --shadow-pop: 0 2px 8px rgba(0, 0, 0, .35), 0 20px 50px rgba(0, 0, 0, .55);
     --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
     --t-red: #ff7a70; --t-orange: #f59d4c; --t-yellow: #e8c547; --t-green: #5cc785; --t-teal: #45c9bd; --t-blue: #6aa5f5; --t-indigo: #8f96f7; --t-purple: #bb8cf2; --t-pink: #f27cb4; --t-gray: #9aa1b1; --t-lime: #a7d65c; --t-cyan: #4fc4e8; --t-brown: #c99d72;
-    --tg-tint: 18%; --tg-ink: 66%;
+    --tg-tint: 18%; --tg-ink: 66%; --hl: rgba(222, 178, 44, .42);
   }
 }
 :root[data-theme="dark"], :root[data-app-theme="dark"] {
@@ -61,7 +61,7 @@
   --shadow-card: 0 1px 2px rgba(0, 0, 0, .3), 0 12px 32px rgba(0, 0, 0, .45); --shadow-pop: 0 2px 8px rgba(0, 0, 0, .35), 0 20px 50px rgba(0, 0, 0, .55);
   --scrim: rgba(0, 0, 0, .5); color-scheme: dark;
   --t-red: #ff7a70; --t-orange: #f59d4c; --t-yellow: #e8c547; --t-green: #5cc785; --t-teal: #45c9bd; --t-blue: #6aa5f5; --t-indigo: #8f96f7; --t-purple: #bb8cf2; --t-pink: #f27cb4; --t-gray: #9aa1b1; --t-lime: #a7d65c; --t-cyan: #4fc4e8; --t-brown: #c99d72;
-  --tg-tint: 18%; --tg-ink: 66%;
+  --tg-tint: 18%; --tg-ink: 66%; --hl: rgba(222, 178, 44, .42);
 }
 :root[data-app-theme="light"] {
   --bg: #ffffff; --side: #f3f4f7; --card: #ffffff; --pop: #ffffff; --fg: #1b1f27; --muted: #687082; --faint: #a4aab7;
@@ -71,7 +71,7 @@
   --shadow-card: 0 1px 2px rgba(20, 28, 48, .06), 0 10px 30px rgba(20, 28, 48, .13); --shadow-pop: 0 2px 6px rgba(20, 28, 48, .08), 0 18px 48px rgba(20, 28, 48, .2);
   --scrim: rgba(18, 22, 32, .32); color-scheme: light;
   --t-red: #d64541; --t-orange: #de7a26; --t-yellow: #bf9010; --t-green: #3b9a5c; --t-teal: #1f9a92; --t-blue: #3a7bd5; --t-indigo: #5b62d6; --t-purple: #9256c9; --t-pink: #d24d8c; --t-gray: #7d8594; --t-lime: #6f9a1f; --t-cyan: #1590b5; --t-brown: #94673e;
-  --tg-tint: 14%; --tg-ink: 52%;
+  --tg-tint: 14%; --tg-ink: 52%; --hl: #fde58f;
 }:root {
   /* the palette's Light and Deep shades, mixed from each plain color (so they follow the theme) */
   --t-red-l: color-mix(in oklab, var(--t-red) 62%, #fff); --t-red-d: color-mix(in oklab, var(--t-red) 68%, #000);
@@ -1380,6 +1380,7 @@ body.tl-dragging, body.tl-dragging * { cursor: grabbing !important; user-select:
 .app.np-over > .np, .app.np-float > .np { grid-column: auto; grid-row: auto; } /* placed against the whole window, not the (missing) third column, which left it a sliver */
 @keyframes npIn { from { transform: translateX(24px); opacity: .5; } }
 .app.np-sheet .np { position: fixed; z-index: 58; inset: 0; border-left: 0; background: var(--bg); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+.app.np-sheet ~ #layer > :is(.scrim, .pop, .modal) { z-index: 59; } /* menus opened in the Notepad on iPhone go over it, not under it */
 .np-h { display: flex; align-items: center; gap: 8px; padding: 14px 12px 6px 16px; }
 .np-h h2 { margin: 0; font-size: 16px; font-weight: 700; }
 .np-h .np-ic { width: 18px; height: 18px; color: var(--c-note); }
@@ -1517,6 +1518,57 @@ body.np-sizing, body.np-sizing * { cursor: var(--np-cur) !important; user-select
 .le del { color: var(--muted); }
 .le .le-a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; cursor: pointer; }
 .le:focus .le-on .le-a { cursor: text; }
+/* underline and ==highlight==, in notes and while typing */
+.md u, .le u { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+.md mark, .le mark { background: var(--hl); color: inherit; border-radius: 3px; padding: 0 1px; margin: 0 -1px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+/* Rich Text (Settings → General → Notepad): the Markdown never shows */
+.le-rich .lm { display: none !important; }
+.le-rich:focus .le-a { cursor: text; }
+/* its toolbar, under the note you're typing in */
+.np-fmt { display: none; position: relative; flex-wrap: wrap; align-items: center; gap: 1px; margin: 6px -4px 0; padding: 4px 0 0; border-top: 1px solid var(--line); }
+.np-card:focus-within > .np-fmt, .np-sticky:focus-within > .np-fmt { display: flex; }
+.np-fb { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; color: var(--muted); flex: none; }
+.np-fb:hover { background: var(--hover); color: var(--fg); }
+.np-fb.on { background: var(--accent-tint); color: var(--accent); }
+.np-fb.open { background: var(--hover); color: var(--fg); }
+.np-fb .ic { width: 16px; height: 16px; }
+.np-fb[data-fmt="style"] { width: 32px; }
+.np-fl { font: 14px/1 var(--ui); }
+.np-fl b { font-weight: 750; }
+.np-fl i { font: italic 15px/1 Georgia, "Times New Roman", serif; }
+.np-fl u { text-underline-offset: 2px; }
+.np-aa-l { font-weight: 650; letter-spacing: -.02em; }
+.np-fs { width: 1px; height: 16px; margin: 0 2px; background: var(--line); flex: none; }
+.np-aa { position: absolute; left: 0; top: calc(100% + 4px); z-index: 30; display: flex; flex-direction: column; min-width: 190px; padding: 5px; border-radius: 10px; background: var(--pop); border: 1px solid var(--line); box-shadow: var(--shadow-pop); }
+.np-aa.up { top: auto; bottom: calc(100% + 4px); }
+.np-aa-i { display: flex; align-items: center; gap: 6px; min-height: 30px; padding: 3px 10px 3px 6px; border-radius: 6px; color: var(--fg); font-size: 13.5px; text-align: left; }
+.np-aa-i:hover { background: var(--hover); }
+.np-aa-ck { display: inline-flex; width: 14px; height: 14px; flex: none; color: var(--accent); }
+.np-aa-ck svg { width: 14px; height: 14px; }
+.np-aa-h1 span:last-child { font-size: 18px; font-weight: 700; }
+.np-aa-h2 span:last-child { font-size: 15.5px; font-weight: 700; }
+.np-aa-h3 span:last-child { font-weight: 650; }
+.np-aa-q span:last-child { padding-left: 8px; border-left: 3px solid var(--line-strong); color: var(--muted); }
+.np-aa-c span:last-child { font: 12.5px var(--mono); }
+.np-aa-sep { height: 1px; margin: 4px 6px; background: var(--line); }
+.np-lk { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; width: 100%; padding: 6px 4px 2px; }
+.np-lk-in { flex: 1 1 100%; min-width: 0; height: 28px; padding: 0 8px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--bg); color: var(--fg); font: inherit; font-size: 13px; outline: none; }
+.np-lk-in:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.np-lk-in.bad { border-color: var(--red); animation: npShake .3s; }
+.np-lk-b { flex: none; height: 28px; padding: 0 10px; border-radius: 7px; background: var(--hover); color: var(--fg); font-size: 12.5px; font-weight: 600; }
+.np-lk-b.primary { background: var(--accent); color: var(--accent-ink); }
+@keyframes npShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+/* a sticky's toolbar sits along its foot */
+.np-sticky > .np-fmt { margin: 0 6px; padding: 3px 0 5px; border-top-color: color-mix(in srgb, var(--c-note) 35%, var(--line)); }
+.np-sticky .np-fb { width: 24px; height: 24px; }
+.np-sticky .np-fb[data-fmt="style"] { width: 30px; }
+@media (max-width: 760px) and (pointer: coarse), (max-width: 419px) {
+  .np-card > .np-fmt .np-fb { flex: 1 1 0; min-width: 28px; width: auto; max-width: 44px; height: 36px; }
+  .np-card > .np-fmt .np-fb[data-fmt="style"] { flex-grow: 1.3; max-width: 52px; }
+  .np-fl { font-size: 16px; }
+  .np-lk-in, .np-lk-b { height: 34px; font-size: 16px; }
+  .np-aa-i { min-height: 40px; font-size: 16px; }
+}
 .np-arch .ic { width: 12px; height: 12px; color: var(--faint); }
 .np-group { display: flex; flex-direction: column; gap: 8px; }
 .np-group + .np-group { margin-top: 6px; }

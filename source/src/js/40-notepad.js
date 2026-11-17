@@ -6,8 +6,10 @@
    was written on (This Page shows only those, and its chip goes back there). A page with notes
    shows a notepad badge with their count in its header; it opens the Notepad on This Page.
    Notes read formatted, like a to-do's notes (links you can click, **bold**, bullets,
-   checkboxes you can tick), and stay formatted while you type in one (14-liveedit.js: the line
-   you're on shows its Markdown). The things you keep notes for (serial
+   checkboxes you can tick), and stay formatted while you type in one: in Markdown the line you're
+   on shows its Markdown (14-liveedit.js); in Rich Text it never shows, and a toolbar under the
+   note does the formatting (14-richtext.js). Settings → General → Notepad, or ••• at the top
+   of the Notepad, picks which; the notes are the same Markdown either way. The things you keep notes for (serial
    numbers, IP and MAC addresses, license keys, phone numbers…) get a one-click copy button,
    and phone numbers call. A long note shows its first lines, with Show More. Drag the bar at a
    note's foot to make it any height: shorter, its full length (it snaps there), or longer, to
@@ -58,7 +60,8 @@ let npStickies = (() => { try { const a = JSON.parse(lsGet('sectis.npStickies') 
 let npStZ = 1;
 const getNote = (id) => (S.notes || []).find((n) => n.id === id);
 function normalizeNote(n) { return Object.assign({ type: 'note', text: '', ctx: null, pinned: false, archived: false, createdAt: 0, modifiedAt: 0 }, n); }
-const noteTitle = (n) => { const l = (n.text || '').split('\n').map((s) => s.trim()).find(Boolean); return l ? l.replace(/^(?:#{1,6}\s+|(?:[-*•+]|\d+[.)])\s+(?:\[[ xX]\]\s*)?)/, '').replace(/\*\*|__|`/g, '') : 'Empty Note'; };
+const NP_MARKS = /\*\*|__|`|~~|==|<\/?u>/g; // inline Markdown that doesn't belong in a to-do's title
+const noteTitle = (n) => { const l = (n.text || '').split('\n').map((s) => s.trim()).find(Boolean); return l ? l.replace(/^(?:#{1,6}\s+|(?:[-*•+]|\d+[.)])\s+(?:\[[ xX]\]\s*)?)/, '').replace(NP_MARKS, '') : 'Empty Note'; };
 /* the page you're on, as a note remembers it (a Board: which Board) */
 const viewKeyNow = () => (ui.view.type === 'board' && ui.boardId ? `board:${ui.boardId}` : ui.view.id ? `${ui.view.type}:${ui.view.id}` : ui.view.type);
 /* the pages a note is attached to: where it was written, unless you've changed that, and any
@@ -198,15 +201,15 @@ function noteCardHTML(n, o = {}) {
   const c = o.noCtx ? null : main, others = places.filter(([k]) => k !== key);
   return `<div class="np-card${n.pinned && !n.archived ? ' pinned' : ''}${n.archived ? ' archived' : ''}${noteSized(n.id) ? ' sized' : ''}" data-note="${n.id}"${noteSized(n.id) ? ` style="--nh:${npNoteH[n.id]}px"` : ''}>`
     + `<div class="np-view md" data-np-view="${n.id}"${editing ? ' hidden' : ''}>${editing ? '' : renderMarkdown(n.text, NP_MD)}</div>`
-    + npEditorHTML(n.id, 'note-' + n.id, 'Note', editing ? n.text : null)
+    + npEditorHTML(n.id, 'note-' + n.id, 'Note', editing ? n.text : null) + (noteRich() ? npFmtHTML() : '')
     + `<button class="np-more" data-np-fold="${n.id}" hidden>${ui.np.expanded.has(n.id) ? 'Show Less' : 'Show More'}</button>`
     + `<div class="np-meta">${n.pinned && !n.archived ? `<span class="np-pin" title="Pinned">${ic('pin')}</span>` : ''}${n.archived && o.archTag ? `<span class="np-arch" title="Archived">${ic('archive')}</span>` : ''}${stickyOf(n.id) && !isMobile() ? `<span class="np-pin" title="Showing as a sticky">${ic('popout')}</span>` : ''}${c ? `<button class="np-ctx" data-nav="${esc(key)}" title="${places.length > 1 ? 'On' : 'Written on'} ${esc(c.label)}">${c.icon}<span>${esc(c.label)}</span></button>` : ''}${others.length && key ? `<button class="np-ctx np-more-ctx" data-np-places="${n.id}" title="Also on ${esc(others.map(([, x]) => x.label).join(', '))}">${o.noCtx ? `Also on ${others.length === 1 ? esc(others[0][1].label) : others.length + ' more'}` : '+' + others.length}</button>` : ''}<span class="np-time" title="${esc(new Date(n.modifiedAt || n.createdAt).toLocaleString())}">${esc(noteWhen(n.modifiedAt || n.createdAt))}</span><span class="spacer"></span>`
     + `<button class="np-todo" data-np-todo="${n.id}" title="Make a to-do of this note, or of the text you've selected in it">${ic('plus')}<span>To-Do</span></button><button class="ib" data-np-more="${n.id}" aria-label="More" title="More">${ic('more')}</button></div>`
     + `<div class="np-grip" data-np-grip="${n.id}" aria-hidden="true" title="Drag to make this note shorter or longer. Double-click for the usual height."></div></div>`;
 }
 /* a note's live editor; text null: hidden and empty until you click into the note */
-const npEditorHTML = (id, fkey, label, text, ph) => `<div class="np-text le${text ? '' : ' le-empty'}" contenteditable="true" role="textbox" aria-multiline="true" data-np-text="${id}" data-fkey="${fkey}" aria-label="${label}" spellcheck="true"${ph ? ` data-placeholder="${esc(ph)}"` : ''}${text == null ? ' hidden' : ''}>${text == null ? '' : leHTML(text)}</div>`;
-const draftHTML = () => `<div class="np-card np-draft">${npEditorHTML('draft', 'note-draft', 'New note', '', 'Jot something down…')}</div>`;
+const npEditorHTML = (id, fkey, label, text, ph) => `<div class="np-text le${noteRich() ? ' le-rich' : ''}${text ? '' : ' le-empty'}" contenteditable="true" role="textbox" aria-multiline="true" data-np-text="${id}" data-fkey="${fkey}" aria-label="${label}" spellcheck="true"${ph ? ` data-placeholder="${esc(ph)}"` : ''}${text == null ? ' hidden' : ''}>${text == null ? '' : leHTML(text)}</div>`;
+const draftHTML = () => `<div class="np-card np-draft">${npEditorHTML('draft', 'note-draft', 'New note', '', 'Jot something down…')}${noteRich() ? npFmtHTML() : ''}</div>`;
 function notepadHTML() {
   const here = viewKeyNow(), herectx = noteCtx(here), arch = ui.np.arch;
   const words = ui.np.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -400,17 +403,24 @@ function npAfterPointer(fn) {
 }
 document.addEventListener('focusout', (e) => {
   const el = e.target; if (!el.dataset || !el.dataset.npText || el.dataset.npText === 'draft' || !el.closest('#notepad, #np-stickies')) return;
-  const id = el.dataset.npText, inSticky = !!el.closest('#np-stickies');
+  npEditDone(el);
+});
+/* the note you were typing in shows formatted again, unless you're still in it (or in its
+   toolbar's link box) */
+function npEditDone(el) {
+  if (!el.dataset || !el.dataset.npText || el.dataset.npText === 'draft') return;
+  const id = el.dataset.npText, inSticky = !!el.closest('#np-stickies'), box = noteBox(el);
   setTimeout(() => npAfterPointer(() => {
     const a = document.activeElement;
     if (a === el || (a && a.dataset && a.dataset.npText === id && !!a.closest('#np-stickies') === inSticky)) return; // still typing in it (or a redraw put you back)
+    if (a && box && box.isConnected && box.contains(a) && a.closest('.np-fmt')) return; // in its toolbar
     const n = getNote(id);
     if (!n || !n.text.trim()) { if (ui.np.editing === id) ui.np.editing = null; dropEmptyNotes(); if (ui.np.open) renderNotepad(); renderStickies(); return; }
     if (inSticky) { const st = $(`#np-stickies .np-sticky[data-sticky="${CSS.escape(id)}"]`); if (st) npShowView(st, n); return; }
     if (ui.np.editing === id) ui.np.editing = null;
     const card = $(`#notepad .np-card[data-note="${CSS.escape(id)}"]`); if (card) npShowView(card, n);
   }), 0);
-});
+}
 document.addEventListener('keydown', (e) => {
   const t = e.target;
   if (t.closest && t.closest('#np-stickies') && e.key === 'Escape' && t.dataset && t.dataset.npText) { e.preventDefault(); e.stopImmediatePropagation(); t.blur(); return; } // done typing in a sticky
@@ -465,8 +475,13 @@ $('#notepad').addEventListener('click', (e) => {
 });
 function notepadMenu(el) {
   const archived = liveNotes().filter((n) => n.archived).length;
+  const rich = noteRich();
   openMenu(el, [
     { label: 'Group by Page', icon: ui.np.group ? 'check' : 'blank', fn: () => { ui.np.group = !ui.np.group; lsSet('sectis.npGroup', ui.np.group ? '1' : ''); renderNotepad(); } },
+    { sep: 1 },
+    { header: 'Formatting' },
+    { label: 'Markdown', icon: rich ? 'blank' : 'check', fn: () => setNoteStyle('markdown') },
+    { label: 'Rich Text', icon: rich ? 'check' : 'blank', fn: () => setNoteStyle('rich') },
     { sep: 1 },
     { label: 'Archived Notes', icon: 'archive', hint: archived ? String(archived) : '', disabled: !archived, fn: () => { ui.np.arch = true; ui.np.q = ''; ui.np.editing = null; renderNotepad(); } },
   ]);
@@ -478,7 +493,7 @@ function noteMenu(n, el) {
     ...(n.archived ? [] : [{ label: n.pinned ? 'Unpin' : 'Pin to Top', icon: 'pin', fn: () => { commit(n.pinned ? 'Unpin Note' : 'Pin Note', () => { n.pinned = !n.pinned; }); renderNotepad(); } }]),
     { label: picked ? 'Make To-Do of Selection' : 'Make To-Do', icon: 'circle', fn: () => noteToTodo(n.id, picked) },
     ...(lines > 1 ? [{ label: picked ? 'One To-Do per Selected Line' : 'One To-Do per Line', icon: 'checklist', hint: String(lines), fn: () => noteToTodos(n.id, picked) }] : []),
-    { label: 'Copy Text', icon: 'copy', fn: () => { copyValue(n.text).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy')); } },
+    { label: 'Copy Text', icon: 'copy', fn: () => { (noteRich() ? copyRich(n.text) : copyValue(n.text)).then((ok) => toast(ok ? 'Copied' : 'Couldn’t copy')); } },
     ...(npNoteH[n.id] ? [{ label: 'Automatic Height', icon: 'blank', fn: () => resetNoteHeight(n.id) }] : []),
     ...(isMobile() || n.archived ? [] : [stickyOf(n.id) ? { label: 'Hide Sticky', icon: 'popout', fn: () => hideSticky(n.id) } : { label: 'Show as Sticky', icon: 'popout', fn: () => showSticky(n.id) }]),
     { label: 'Attach To…', icon: 'move', fn: () => openNotePlaces(n.id, el) },
@@ -542,6 +557,31 @@ function openNotePlaces(id, anchor) {
     } });
   return L;
 }
+/* Markdown or Rich Text (Settings → General → Notepad): the notes are the same either way, so
+   this only redraws the editors */
+function setNoteStyle(v) {
+  if (!S || S.settings.noteStyle === v) return;
+  S.settings.noteStyle = v; saveSoon();
+  applyNoteStyle();
+  toast(v === 'rich' ? 'Rich Text: format notes with the toolbar under the one you’re typing in' : 'Markdown: the line you’re typing in shows its Markdown');
+}
+function applyNoteStyle() {
+  ui.np.editing = null;
+  if (ui.np.open) renderNotepad();
+  const box = $('#np-stickies'); if (box) box.innerHTML = '';
+  renderStickies();
+}
+/* a note's text as formatted text on the clipboard, with plain text for plain places */
+async function copyRich(md) {
+  const plain = rPlain(md), html = `<meta charset="utf-8">${renderMarkdown(md)}`;
+  try {
+    if (window.ClipboardItem && navigator.clipboard && navigator.clipboard.write) {
+      await navigator.clipboard.write([new ClipboardItem({ 'text/plain': new Blob([plain], { type: 'text/plain' }), 'text/html': new Blob([html], { type: 'text/html' }) })]);
+      return true;
+    }
+  } catch (e) { /* fall back to plain text */ }
+  return copyValue(plain);
+}
 function archiveNote(id, on) {
   const n = getNote(id); if (!n) return;
   if (ui.np.editing === id) ui.np.editing = null;
@@ -567,7 +607,7 @@ function noteToTodo(id, picked) {
   const sel = picked || npSelected(id) || n.text;
   const lines = sel.split('\n'), i = lines.findIndex((l) => l.trim());
   if (i < 0) return;
-  const title = lines[i].trim().replace(/^(?:#{1,6}\s+|(?:[-*•+]|\d+[.)])\s+)?(?:\[[ xX]?\]\s+)?/, '').replace(/\*\*|__|`/g, ''), notes = lines.slice(i + 1).join('\n').trim();
+  const title = lines[i].trim().replace(/^(?:#{1,6}\s+|(?:[-*•+]|\d+[.)])\s+)?(?:\[[ xX]?\]\s+)?/, '').replace(NP_MARKS, ''), notes = lines.slice(i + 1).join('\n').trim();
   let t;
   commit('Make To-Do', () => { t = makeTodo({ title, notes, start: 'inbox' }); t.order = topOrder(S.todos.filter((x) => isInbox(x) && !x.trashed)); S.todos.push(t); });
   toast(`Added “${title.length > 40 ? title.slice(0, 39) + '…' : title}” to the Inbox`, { action: 'Show', fn: () => { if (!npStays()) closeNotepad(); revealTodo(t.id); } });
@@ -580,7 +620,7 @@ function npTodoLines(text) {
   const listed = lines.filter((l) => bullet.test(l) || /^\[[ xX]?\]\s/.test(l));
   return (listed.length ? listed : lines)
     .filter((l) => !/^#{1,6}\s/.test(l) && !/^(?:(?:[-*•+]|\d+[.)])\s+)?\[[xX]\]/.test(l))
-    .map((l) => l.replace(bullet, '').replace(/^\[[ xX]?\]\s*/, '').replace(/\*\*|__|`/g, '').trim())
+    .map((l) => l.replace(bullet, '').replace(/^\[[ xX]?\]\s*/, '').replace(NP_MARKS, '').trim())
     .filter(Boolean);
 }
 function noteToTodos(id, picked) {
@@ -611,7 +651,7 @@ function hideSticky(id) {
 }
 function stickyHTML(n) {
   return `<div class="np-st-h" title="Drag to move"><span class="np-st-t"></span><button class="ib" data-st="open" title="Show in the Notepad" aria-label="Show in the Notepad">${ic('notepad')}</button><button class="ib" data-st="close" title="Put it away (it stays in the Notepad)" aria-label="Close sticky">${ic('x')}</button></div>`
-    + `<div class="np-st-b"><div class="np-view md" data-np-view="${n.id}">${renderMarkdown(n.text, NP_MD)}</div>${npEditorHTML(n.id, 'sticky-' + n.id, 'Sticky note', null)}</div>`
+    + `<div class="np-st-b"><div class="np-view md" data-np-view="${n.id}">${renderMarkdown(n.text, NP_MD)}</div>${npEditorHTML(n.id, 'sticky-' + n.id, 'Sticky note', null)}</div>${noteRich() ? npFmtHTML() : ''}`
     + ['n', 's', 'e', 'w', 'nw', 'ne', 'sw', 'se'].map((d) => `<div class="np-rs ${d}" data-st-rs="${d}" aria-hidden="true"></div>`).join('');
 }
 function renderStickies() {

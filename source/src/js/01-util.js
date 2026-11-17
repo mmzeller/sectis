@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.54.1';
+const APP_VERSION = '1.55.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -193,6 +193,10 @@ const I = {
   pencil: svg('<path d="M14.5 5.5 18.5 9.5M4.5 19.5l1-4.3L15.8 4.9a1.4 1.4 0 0 1 2 0l1.3 1.3a1.4 1.4 0 0 1 0 2L8.8 18.5z"/>'),
   grip: svg('<circle class="fill" cx="9" cy="6.5" r="1.5"/><circle class="fill" cx="15" cy="6.5" r="1.5"/><circle class="fill" cx="9" cy="12" r="1.5"/><circle class="fill" cx="15" cy="12" r="1.5"/><circle class="fill" cx="9" cy="17.5" r="1.5"/><circle class="fill" cx="15" cy="17.5" r="1.5"/>'),
   share: svg('<path d="M12 3.5v11M8 7.2 12 3.5l4 3.7"/><path d="M8.5 10H7a2 2 0 0 0-2 2v6.5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V12a2 2 0 0 0-2-2h-1.5"/>'),
+  listUl: svg('<path d="M9.5 6.5h10M9.5 12h10M9.5 17.5h10"/><circle class="fill" cx="5" cy="6.5" r="1.35"/><circle class="fill" cx="5" cy="12" r="1.35"/><circle class="fill" cx="5" cy="17.5" r="1.35"/>'),
+  listOl: svg('<path d="M10 6.5h10M10 12h10M10 17.5h10M4.2 5.2l1.3-.8v4.1M3.9 10.6a1.25 1.25 0 0 1 2.3.6c0 .9-2.3 1.6-2.3 2.8h2.5M4 16.1h2.2l-1.3 1.4a1.1 1.1 0 1 1-.9 1.9"/>'),
+  highlight: svg('<path d="m14.3 4.6 5.1 5.1-7.6 7.6H6.7v-5.1z"/><path d="M11.8 7.1l5.1 5.1M6.7 17.3 4.5 19.5h4.2l.9-.9M3.5 21h17"/>'),
+  checkbox: svg('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8.3 12.2 2.5 2.5 4.9-5.2"/>'),
   link: svg('<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4l-1.1 1.1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.1-1.1"/>'),
   notepad: svg('<path d="M6.5 3.5h8.2l3.3 3.3v13.7H6.5z"/><path d="M14.5 3.5v3.5H18M9.2 11h5.8M9.2 14.4h5.8M9.2 17.8h3.6"/>'),
   pin: svg('<path d="M9 3.8h6M10 3.8v5.4l-3.2 3.6v1.6h10.4v-1.6L14 9.2V3.8M12 14.4v5.8"/>'),
