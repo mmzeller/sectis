@@ -809,18 +809,19 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .md p { margin: 0 0 .55em; }
 .md ul, .md ol { margin: 0 0 .55em; padding-left: 1.35em; }
 .md li { margin: .1em 0; }
+.md li > ul, .md li > ol { margin: .1em 0 0; } /* a list inside an item (indented with Tab) */
 .md li.md-task { list-style: none; position: relative; }
 .md li.md-task::before { content: "☐"; position: absolute; left: -1.25em; color: var(--muted); }
 .md li.md-task.done::before { content: "☑"; color: var(--accent); }
-.md li.md-task.done { color: var(--muted); text-decoration: line-through; }
+.md li.md-task.done > .md-tt { color: var(--muted); text-decoration: line-through; }
 /* checkboxes you can tick (the Notepad) */
 .md li.md-tick::before { content: none; }
 .md .md-box, .le-task::before { position: absolute; box-sizing: border-box; width: 1em; height: 1em; border: 1.5px solid var(--muted); border-radius: .28em; background: none; }
 .md .md-box { left: -1.23em; top: .23em; padding: 0; cursor: pointer; -webkit-appearance: none; appearance: none; }
 .md .md-box:hover { border-color: var(--accent); }
-.md li.md-task.done .md-box, .le-task.le-done::before { background: var(--accent); border-color: var(--accent); }
-.md li.md-task.done .md-box::after, .le-task.le-done::after { content: ""; position: absolute; width: .28em; height: .52em; border: solid #fff; border-width: 0 .13em .13em 0; transform: rotate(45deg); }
-.md li.md-task.done .md-box::after { left: .3em; top: .1em; }
+.md li.md-task.done > .md-box, .le-task.le-done::before { background: var(--accent); border-color: var(--accent); }
+.md li.md-task.done > .md-box::after, .le-task.le-done::after { content: ""; position: absolute; width: .28em; height: .52em; border: solid #fff; border-width: 0 .13em .13em 0; transform: rotate(45deg); }
+.md li.md-task.done > .md-box::after { left: .3em; top: .1em; }
 .md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; cursor: pointer; overflow-wrap: anywhere; }
 .md code { font: .9em var(--mono); background: var(--hover); padding: 1px 4px; border-radius: 4px; }
 .md strong { font-weight: 650; }
@@ -1517,7 +1518,7 @@ body.np-sizing, body.np-sizing * { cursor: var(--np-cur) !important; user-select
 .np-card.archived { background: transparent; }
 .np-card.archived .np-view { color: var(--muted); }
 /* ---- live notes: formatted while you type; the line you're on shows its inline Markdown ---- */
-.le { position: relative; cursor: text; overflow-wrap: anywhere; white-space: pre-wrap; -webkit-user-select: text; user-select: text; }
+.le { position: relative; cursor: text; overflow-wrap: anywhere; white-space: pre-wrap; -webkit-user-select: text; user-select: text; tab-size: 4; }
 .le-ln { position: relative; min-height: 1.45em; }
 .le.le-empty::before { content: attr(data-placeholder); position: absolute; left: 0; top: 0; color: var(--faint); pointer-events: none; }
 .np-draft .le { min-height: 2.9em; }
@@ -1527,11 +1528,14 @@ body.np-sizing, body.np-sizing * { cursor: var(--np-cur) !important; user-select
 .le-h1 { font-size: 1.2em; font-weight: 700; }
 .le-h2 { font-size: 1.08em; font-weight: 700; }
 .le-h3 { font-weight: 700; }
-.le-li, .le-ol, .le-task { padding-left: 1.35em; }
-.le-li::before { content: "•"; position: absolute; left: .45em; top: 0; color: var(--muted); pointer-events: none; }
-.le-ol::before { content: attr(data-n); position: absolute; left: -.6em; width: 1.6em; text-align: right; top: 0; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
-.le-task::before { content: ""; left: .12em; top: .23em; cursor: pointer; }
-.le-done::after { left: .42em; top: .33em; pointer-events: none; }
+/* a list item in a level (Tab) sits in by --lv steps, like a list inside a list in the formatted note */
+.le-li, .le-ol, .le-task { --lvx: calc(var(--lv, 0) * 1.35em); padding-left: calc(1.35em + var(--lvx)); }
+.le-li::before { content: "•"; position: absolute; left: calc(.45em + var(--lvx)); top: 0; color: var(--muted); pointer-events: none; }
+.le-li:is([data-lv="1"], [data-lv="4"], [data-lv="7"])::before { content: "◦"; }
+.le-li:is([data-lv="2"], [data-lv="5"], [data-lv="8"])::before { content: "▪"; }
+.le-ol::before { content: attr(data-n); position: absolute; left: calc(-.6em + var(--lvx)); width: 1.6em; text-align: right; top: 0; color: var(--muted); pointer-events: none; font-variant-numeric: tabular-nums; }
+.le-task::before { content: ""; left: calc(.12em + var(--lvx)); top: .23em; cursor: pointer; }
+.le-done::after { left: calc(.42em + var(--lvx)); top: .33em; pointer-events: none; }
 .le-done { color: var(--muted); text-decoration: line-through; }
 .le-q { border-left: 3px solid var(--line-strong); padding-left: 10px; color: var(--muted); }
 .le code { font: .9em var(--mono); background: var(--hover); padding: 1px 4px; border-radius: 4px; }
@@ -1566,6 +1570,7 @@ body.np-sizing, body.np-sizing * { cursor: var(--np-cur) !important; user-select
 .np-aa-i:hover { background: var(--hover); }
 .np-aa-ck { display: inline-flex; width: 14px; height: 14px; flex: none; color: var(--accent); }
 .np-aa-ck svg { width: 14px; height: 14px; }
+.np-aa-k { margin-left: auto; padding-left: 18px; color: var(--faint); font-size: 12px; } /* Indent's and Outdent's keys */
 .np-aa-h1 span:last-child { font-size: 18px; font-weight: 700; }
 .np-aa-h2 span:last-child { font-size: 15.5px; font-weight: 700; }
 .np-aa-h3 span:last-child { font-weight: 650; }
@@ -1589,6 +1594,7 @@ body.np-sizing, body.np-sizing * { cursor: var(--np-cur) !important; user-select
   .np-fl { font-size: 16px; }
   .np-lk-in, .np-lk-b { height: 34px; font-size: 16px; }
   .np-aa-i { min-height: 40px; font-size: 16px; }
+  .np-aa-k { display: none; }
 }
 .np-arch .ic { width: 12px; height: 12px; color: var(--faint); }
 .np-group { display: flex; flex-direction: column; gap: 8px; }
@@ -1728,7 +1734,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.55.0';
+const APP_VERSION = '1.56.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -5538,7 +5544,7 @@ function openShortcuts() {
     ['Selected to-dos', [['Open', k('Return')], ['Complete', or(k('K'), k(M, 'K'))], ['Cancel', k(OPT, 'K')], ['Today', k('T')], ['This Evening', k('E')], ['Anytime', k('A')], ['Someday', k('O')], ['When…', k('S')], ['Deadline…', k('D')], ['Priority…', k('P')], ['Tags…', k('#')], ['Move…', k('M')], ['Repeat…', k('R')], ['Waiting For…', k('W')], ['Copy', k(M, 'C')], ['Paste after it', k(M, 'V')], ['Duplicate', k(M, 'D')], ['Move up / down', pair(k(M, '↑'), k(M, '↓'))], ['Delete', k('Delete')]]],
     ['Navigate', [['Next / previous to-do', pair(k('↓'), k('↑'))], ['Extend selection', pair(k(SH, '↓'), k(SH, '↑'))], ['Inbox … Trash, Board, Templates', k('1') + '<span class="sc-or">to</span>' + k('9')], ['Show or hide the sidebar', IS_MAC ? k(CTL, M, 'S') : k('Ctrl', 'Alt', 'S')], ['Notepad', k('J')], ['Undo', k(M, 'Z')], ['Close / deselect', k('Esc')]]],
     ['While editing a to-do', [['Save and close', or(k('Return'), k(M, 'Return'))], ['Complete', k(M, 'K')], ['When…', k(M, 'S')], ['Deadline…', k(SH, M, 'D')], ['Add checklist', k(SH, M, 'C')], ['Move checklist item', pair(k(M, '↑'), k(M, '↓'))], ['Paste lines as to-dos (one each)', k(M, 'V')]]],
-    ['In a note', [['Bold', k(M, 'B')], ['Italic', k(M, 'I')], ['Underline', k(M, 'U')], ['Strikethrough', k(SH, M, 'X')], ['Highlight', k(SH, M, 'H')], ['Code', k(M, 'E')], ['Link', k(M, 'K')], ['Checkbox, or tick it', k(SH, M, 'L')], ['Done, start a new note', k(M, 'Return')], ['Undo / redo', pair(k(M, 'Z'), k(SH, M, 'Z'))]]],
+    ['In a note', [['Bold', k(M, 'B')], ['Italic', k(M, 'I')], ['Underline', k(M, 'U')], ['Strikethrough', k(SH, M, 'X')], ['Highlight', k(SH, M, 'H')], ['Code', k(M, 'E')], ['Link', k(M, 'K')], ['Checkbox, or tick it', k(SH, M, 'L')], ['List item in / out a level', pair(k('Tab'), k(SH, 'Tab'))], ['Done, start a new note', k(M, 'Return')], ['Undo / redo', pair(k(M, 'Z'), k(SH, M, 'Z'))]]],
   ];
   openLayer({ modal: true, html: `<div class="modal-h"><h2>Keyboard Shortcuts</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div><div class="modal-b"><div class="sc-grid">${rows.map(([h, list]) => `<h4>${h}</h4>${list.map(([l, keys]) => `<div class="sc"><span>${l}</span><span>${keys}</span></div>`).join('')}`).join('')}</div></div>` });
 }
@@ -6402,7 +6408,8 @@ async function applyUpdate() {
 /* ===================== Formatted notes =====================
    Notes are plain text with light Markdown: **bold**, *italic*, ~~strike~~, <u>underline</u>,
    ==highlight==, `code`, # headings, - bullets, 1. numbered lists, > quotes, [text](link) and
-   bare links.
+   bare links. A list item indented under another (a tab, as Tab writes it, or 2 or 4 spaces) is
+   a list inside that item.
    Web links open in a new tab; app links (sintr://…) open the app, so they get no target. */
 function safeHref(url) {
   const u = String(url || '').trim();
@@ -6471,27 +6478,55 @@ function mdInline(raw, opts) {
   s = s.replace(/(^|[^\w=])==(?=[^\s=])(.+?)==(?![\w=])/g, (m, pre, x) => (/[\s=]$/.test(x) ? m : `${pre}<mark>${x}</mark>`));
   return s.replace(/\u0001(\d+)\u0002/g, (m, i) => tokens[+i]);
 }
+/* how deep each line's list item is (bullets, numbers and checkboxes): 0 at the top, one more
+   under an item above it that's indented less, the way Markdown nests lists, so a tab (what
+   Tab puts in), 2 spaces or 4 all work; -1 for a line that isn't a list item. A line that isn't
+   one (an empty line too) ends the list, so the next item starts at the top again */
+const MD_LI = /^(\s*)(?:[-*•+]|\d{1,4}[.)])\s/;
+const indentWidth = (s) => { let w = 0; for (const c of s) w = c === '\t' ? w + 4 - (w % 4) : w + 1; return w; };
+function listLevels(lines) {
+  const out = [], stack = [];
+  for (const line of lines) {
+    const m = line.match(MD_LI);
+    if (!m) { out.push(-1); stack.length = 0; continue; }
+    const w = indentWidth(m[1]);
+    while (stack.length && stack[stack.length - 1].w >= w) stack.pop();
+    const lv = stack.length ? stack[stack.length - 1].lv + 1 : 0;
+    stack.push({ w, lv }); out.push(lv);
+  }
+  return out;
+}
 /* opts.tasks (the Notepad): checkboxes you can click, and each line marked with where it is in
-   the text (data-ln), so a click in the formatted note puts the caret on the same spot */
+   the text (data-ln), so a click in the formatted note puts the caret on the same spot.
+   Indented list items are lists inside the item above them */
 function renderMarkdown(text, opts) {
-  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n'), tasks = !!(opts && opts.tasks);
-  let html = '', list = null, para = [];
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n'), tasks = !!(opts && opts.tasks), lv = listLevels(lines);
+  let html = '', para = [];
+  const open = []; // the lists we're in, outermost first: { tag, lv }; each one's last <li> is still open
   const flush = () => { if (para.length) { html += `<p>${para.map(([l, i]) => (tasks ? `<span data-ln="${i}">${mdInline(l, opts)}</span>` : mdInline(l, opts))).join('<br>')}</p>`; para = []; } };
-  const close = () => { if (list) { html += `</${list}>`; list = null; } };
-  const open = (tag, start) => { if (list !== tag) { close(); html += tag === 'ol' && start && start !== '1' ? `<ol start="${+start}">` : `<${tag}>`; list = tag; } };
+  const closeTo = (L) => { while (open.length && open[open.length - 1].lv > L) html += `</li></${open.pop().tag}>`; };
+  const close = () => closeTo(-1);
+  const item = (L, tag, start, li) => {
+    flush(); closeTo(L);
+    const top = open[open.length - 1];
+    if (top && top.lv === L) { html += '</li>'; if (top.tag !== tag) { html += `</${top.tag}>`; open.pop(); } }
+    const up = open[open.length - 1];
+    if (!up || up.lv < L) { html += tag === 'ol' && start && start !== '1' ? `<ol start="${+start}">` : `<${tag}>`; open.push({ tag, lv: L }); }
+    html += li;
+  };
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i], ln = tasks ? ` data-ln="${i}"` : '';
+    const line = lines[i], ln = tasks ? ` data-ln="${i}"` : '', L = Math.max(0, lv[i]);
     let m;
     if (!line.trim() || /^\s{0,3}#{1,3}\s+$/.test(line)) { flush(); close(); continue; } // an empty heading is an empty line
     if ((m = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/))) { flush(); close(); html += `<p class="md-h${m[1].length}"${ln}>${mdInline(m[2], opts)}</p>`; continue; }
     if ((m = line.match(/^\s*[-*•+]\s+\[( |x|X)\]\s+(.*)$/))) {
       const done = m[1] !== ' ';
-      flush(); open('ul');
-      html += `<li class="md-task${done ? ' done' : ''}${tasks ? ' md-tick' : ''}"${ln}>${tasks ? `<button type="button" class="md-box" data-tick="${i}" role="checkbox" aria-checked="${done}" aria-label="${done ? 'Uncheck' : 'Check off'}" title="${done ? 'Uncheck' : 'Check off'}"></button>` : ''}${mdInline(m[2], opts)}</li>`;
+      // its words in a span of their own, so ticking it off doesn't strike through what's under it
+      item(L, 'ul', null, `<li class="md-task${done ? ' done' : ''}${tasks ? ' md-tick' : ''}"${ln}>${tasks ? `<button type="button" class="md-box" data-tick="${i}" role="checkbox" aria-checked="${done}" aria-label="${done ? 'Uncheck' : 'Check off'}" title="${done ? 'Uncheck' : 'Check off'}"></button>` : ''}<span class="md-tt">${mdInline(m[2], opts)}</span>`);
       continue;
     }
-    if ((m = line.match(/^\s*[-*•+]\s+(.*)$/))) { flush(); open('ul'); html += `<li${ln}>${mdInline(m[1], opts)}</li>`; continue; }
-    if ((m = line.match(/^\s*(\d{1,4})[.)]\s+(.*)$/))) { flush(); open('ol', m[1]); html += `<li${ln}>${mdInline(m[2], opts)}</li>`; continue; }
+    if ((m = line.match(/^\s*[-*•+]\s+(.*)$/))) { item(L, 'ul', null, `<li${ln}>${mdInline(m[1], opts)}`); continue; }
+    if ((m = line.match(/^\s*(\d{1,4})[.)]\s+(.*)$/))) { item(L, 'ol', m[1], `<li${ln}>${mdInline(m[2], opts)}`); continue; }
     if ((m = line.match(/^\s*>\s?(.*)$/))) { flush(); close(); html += `<blockquote${ln}>${mdInline(m[1], opts)}</blockquote>`; continue; }
     close(); para.push([line, i]);
   }
@@ -6613,6 +6648,11 @@ document.addEventListener('pointerdown', (e) => {
    - [x]) tick with a click. Return carries on a list (bullets, numbers, checkboxes, quotes) and
    Return on an empty item ends it; Backspace at the start of an item (or heading or quote)
    takes its bullet, checkbox or number away.
+   Tab (or ⌘]) puts a list item, with the items under it, a level in, under the item above it;
+   ⇧Tab (or ⌘[) takes it out a level. In Markdown a level is a tab in front of the bullet, and
+   the editor reads 2 or 4 spaces the same way (listLevels, 13-notes.js). Return on an empty
+   item that's in a level, or Backspace at its start, takes it out one. Tab where there's no
+   list item types a tab, so it never jumps to another note.
    Typing [] and a space at the start of a line makes a checkbox.
    Keys: ⌘B bold, ⌘I italic, ⌘U underline (<u>…</u>), ⇧⌘X strikethrough, ⇧⌘H highlight
    (==…==), ⌘E code, ⌘K link, ⇧⌘L checkbox (or tick it), ⌘Z / ⇧⌘Z undo and redo. The browser's
@@ -6764,9 +6804,21 @@ function leRoles(line) {
   walk(leTree(blk.rest), '');
   return { pre: blk.pre, role, chars };
 }
-/* the editor's inside for some text; lines a..b show their Markdown */
+/* the editor's inside for some text; lines a..b show their Markdown. A list item that's in a
+   level (Tab) has data-lv and --lv, which push it in */
 function leHTML(text, a = -1, b = -1) {
-  return String(text || '').split('\n').map((l, i) => { const r = leLine(l); return `<div class="${r.cls}${i >= a && i <= b ? ' le-on' : ''}"${r.n ? ` data-n="${esc(r.n)}"` : ''}>${r.html || '<br>'}</div>`; }).join('');
+  const lines = String(text || '').split('\n'), lv = listLevels(lines);
+  return lines.map((l, i) => { const r = leLine(l); return `<div class="${r.cls}${i >= a && i <= b ? ' le-on' : ''}"${r.n ? ` data-n="${esc(r.n)}"` : ''}${lv[i] > 0 ? ` data-lv="${lv[i]}" style="--lv:${lv[i]}"` : ''}>${r.html || '<br>'}</div>`; }).join('');
+}
+/* after a line changed: the levels of the lines it could have moved (the ones after it, too) */
+function leLevelsTo(divs, lines) {
+  const lv = listLevels(lines);
+  divs.forEach((d, i) => {
+    if (!d) return;
+    const want = lv[i] > 0 ? String(lv[i]) : null;
+    if ((d.dataset.lv || null) === want) return;
+    if (want) { d.dataset.lv = want; d.style.setProperty('--lv', want); } else { delete d.dataset.lv; d.style.removeProperty('--lv'); if (!d.getAttribute('style')) d.removeAttribute('style'); }
+  });
 }
 
 /* ---- reading it back ---- */
@@ -6952,6 +7004,7 @@ function leSync(el) {
       if ((d.dataset.n || null) !== r.n) { if (r.n) d.dataset.n = r.n; else delete d.dataset.n; }
     });
     if (moved) leSetSel(el, sel.s, sel.e, sel.back);
+    if (lines.some((ln, i) => ln !== st.lines[i])) leLevelsTo(groups.map((g) => g.div), lines);
     st.text = text; st.lines = lines;
     el.classList.toggle('le-empty', !text);
   }
@@ -6969,7 +7022,10 @@ function leNewline(el, s, e, carry) {
   let lend = text.indexOf('\n', ls); if (lend < 0) lend = text.length;
   const line = text.slice(ls, lend), m = carry && s === e ? line.match(LE_ITEM) : null;
   if (!m || s - ls < m[0].length) { leEdit(el, s, e, '\n', { kind: 'line' }); return; }
-  if (!line.slice(m[0].length).trim()) { leEdit(el, ls, lend, '', { kind: 'line' }); return; } // Return on an empty item ends the list
+  if (!line.slice(m[0].length).trim()) { // Return on an empty item ends the list, or takes it out a level when it's in one
+    if ((m[2] || m[5] || m[7]) && leLevelAt(text, leLineAt(text, s)) > 0) { leIndent(el, -1, { s, e: s }); return; }
+    leEdit(el, ls, lend, '', { kind: 'line' }); return;
+  }
   let next;
   if (m[2]) next = m[1] + m[2] + m[3] + '[ ] ';
   else if (m[5]) next = m[1] + m[5] + m[6];
@@ -7099,6 +7155,79 @@ function leTick(el, i) {
   lePush(el, text, sel ? sel.s : 0, sel ? sel.e : 0, 'edit');
   el.dispatchEvent(new Event('input', { bubbles: true }));
 }
+/* ---- Tab and ⇧Tab: list items in and out a level ---- */
+const LE_OL_HEAD = /^(\s*)(\d{1,4})([.)]\s)/;
+const leLevelAt = (t, ln) => listLevels(t.split('\n'))[ln];
+/* lines la..lb's list items, each with the items under it, one level in (dir 1) or out (-1).
+   An item goes in only under the one above it (so not the first of a list), and out only when
+   it's in. In the lists that change, every indent is written as tabs, one a level, and the
+   numbers go in order (a numbered list inside an item starts at 1).
+   null: no list items there; else { text, map, moved }, map taking a place in the old text to
+   where it is in the new */
+function leIndentText(text, la, lb, dir) {
+  const lines = text.split('\n'), n = lines.length, lv = listLevels(lines), tgt = lv.slice(), moved = new Set();
+  let items = false;
+  for (let i = Math.max(0, la); i <= lb && i < n; i++) {
+    if (lv[i] < 0) continue;
+    items = true;
+    if (moved.has(i)) continue; // it went along with an item above it
+    let j = i + 1; while (j < n && lv[j] > lv[i]) j++; // i and what's under it
+    if (dir > 0 ? !(i > 0 && lv[i - 1] >= 0 && tgt[i] <= tgt[i - 1]) : tgt[i] <= 0) continue;
+    for (let k = i; k < j; k++) { tgt[k] += dir; moved.add(k); }
+  }
+  if (!items) return null;
+  const heads = new Map(), done = new Set(); // line → [old length, new length] of its indent (and number)
+  moved.forEach((i) => {
+    let a = i; while (a > 0 && lv[a - 1] >= 0) a--; // the list it's in
+    if (done.has(a)) return; done.add(a);
+    const cnt = []; // the last number at each level of the item we're under (null: a bullet came between)
+    for (let k = a; k < n && lv[k] >= 0; k++) {
+      const L = tgt[k], line = lines[k], om = line.match(LE_OL_HEAD);
+      cnt.length = L + 1; // lists inside the item before end here
+      let head = '\t'.repeat(L), old = line.match(/^\s*/)[0].length;
+      if (om) {
+        const num = cnt[L] != null ? cnt[L] + 1 : L > 0 || moved.has(k) ? 1 : +om[2];
+        cnt[L] = num; head += num; old += om[2].length;
+      } else cnt[L] = null;
+      if (line.slice(0, old) === head) continue;
+      lines[k] = head + line.slice(old);
+      heads.set(k, [old, head.length]);
+    }
+  });
+  const was = text.split('\n'), starts = [], now = [];
+  let o = 0; was.forEach((l) => { starts.push(o); o += l.length + 1; });
+  o = 0; lines.forEach((l) => { now.push(o); o += l.length + 1; });
+  const map = (off) => {
+    const i = leLineAt(text, off), p = off - starts[i], h = heads.get(i);
+    return now[i] + (!h || p === 0 ? p : p >= h[0] ? p - h[0] + h[1] : h[1]); // the start of a line stays its start
+  };
+  return { text: lines.join('\n'), map, moved: moved.size > 0 };
+}
+function leApply(el, text, s, e, back) {
+  leRender(el, text, s, e, back);
+  lePush(el, text, s, e, 'edit');
+  if (leRich(el)) leState(el).pend = null;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  if (leRich(el)) rTools(el);
+}
+/* the list item the caret's on (or the ones you've selected) in or out a level; false when
+   there's no list item there */
+function leIndent(el, dir, at) {
+  const sel = at || leGetSel(el); if (!sel) return false;
+  const t = leText(el), la = leLineAt(t, sel.s);
+  let lb = leLineAt(t, sel.e);
+  if (lb > la && t[sel.e - 1] === '\n') lb--; // a selection that ends at the start of a line leaves that line out
+  const r = leIndentText(t, la, lb, dir); if (!r) return false;
+  if (r.moved) leApply(el, r.text, r.map(sel.s), r.map(sel.e), sel.back);
+  return true;
+}
+/* Tab where there's no list item: a tab, like in Notes */
+function leTab(el) {
+  const sel = leGetSel(el); if (!sel) return;
+  const t = leText(el); if (t.slice(sel.s, sel.e).includes('\n')) return;
+  if (leRich(el)) rDo(el, sel.s === sel.e ? rtInsert(t, sel.s, '\t', { pend: rPend(el, sel.s, t) }) : rtReplace(t, sel.s, sel.e, '\t'), 'type', sel.s !== sel.e);
+  else leEdit(el, sel.s, sel.e, '\t', { kind: 'type', fresh: sel.s !== sel.e });
+}
 function leOpenLink(href) {
   const web = /^(https?|mailto):/i.test(href), a = document.createElement('a');
   a.href = web ? href : appLinkHref(href);
@@ -7136,6 +7265,7 @@ document.addEventListener('beforeinput', (e) => {
   if (t === 'historyUndo' || t === 'historyRedo') { e.preventDefault(); leUndo(el, t === 'historyRedo'); return; }
   const fmt = LE_FMT_INPUT[t];
   if (fmt) { e.preventDefault(); if (leRich(el)) rToggle(el, fmt); else leWrap(el, fmt); return; } // Bold, Italic, Underline from the browser's own menus (on iPhone, the B I U one)
+  if (t === 'formatIndent' || t === 'formatOutdent') { e.preventDefault(); leIndent(el, t === 'formatIndent' ? 1 : -1); return; } // the browser's own Indent / Outdent
   const sel = leGetSel(el); if (!sel) return;
   const text = leText(el);
   let r = null;
@@ -7160,9 +7290,13 @@ document.addEventListener('beforeinput', (e) => {
   }
   if (t.startsWith('delete')) {
     if (t === 'deleteContentBackward' && sel.s === sel.e && sel.s > 0) {
-      // right after a list marker, Backspace takes the whole marker away
+      // right after a list marker, Backspace takes the whole marker away (an item that's in a level goes out one first)
       const ls = text.lastIndexOf('\n', sel.s - 1) + 1;
-      if (sel.s > ls && LE_MARKER_ONLY.test(text.slice(ls, sel.s))) { e.preventDefault(); leEdit(el, ls, sel.s, ''); return; }
+      if (sel.s > ls && LE_MARKER_ONLY.test(text.slice(ls, sel.s))) {
+        e.preventDefault();
+        if (leLevelAt(text, leLineAt(text, sel.s)) > 0) { leIndent(el, -1, sel); return; }
+        leEdit(el, ls, sel.s, ''); return;
+      }
     }
     e.preventDefault();
     let a = r ? r.s : sel.s, b = r ? r.e : sel.e;
@@ -7189,6 +7323,12 @@ document.addEventListener('compositionend', (e) => {
 document.addEventListener('focusin', (e) => { const el = leHost(e.target); if (el && e.target === el) leFresh(el); }, true);
 document.addEventListener('keydown', (e) => {
   const el = leHost(e.target); if (!el || e.isComposing) return;
+  // Tab and ⇧Tab: a list item in or out a level (it stays in the note, rather than going on to the next one)
+  if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    e.preventDefault(); e.stopPropagation();
+    if (!leIndent(el, e.shiftKey ? -1 : 1) && !e.shiftKey) leTab(el);
+    return;
+  }
   const mod = e.metaKey || e.ctrlKey; if (!mod || e.altKey) return;
   const k = (e.key || '').toLowerCase(), sh = e.shiftKey, rich = leRich(el);
   const wrap = (x) => () => (rich ? rToggle(el, x) : leWrap(el, x));
@@ -7202,6 +7342,8 @@ document.addEventListener('keydown', (e) => {
     : k === 'h' && sh ? wrap('h')
     : k === 'k' && !sh ? () => (rich ? rOpenLink(el) : leLink(el))
     : k === 'l' && sh ? () => leTask(el)
+    : k === ']' && !sh ? () => leIndent(el, 1)
+    : k === '[' && !sh ? () => leIndent(el, -1)
     : null;
   if (!act) return;
   e.preventDefault(); e.stopPropagation(); act();
@@ -7275,8 +7417,10 @@ document.addEventListener('mousedown', (e) => {
   const el = leHost(e.target); if (!el || el.hidden) return;
   const link = e.target.closest('.le-a'), line = e.target.closest('.le-ln');
   const on = !!line && line.classList.contains('le-on') && document.activeElement === el;
-  if (line && line.classList.contains('le-task') && e.target === line && e.clientX < line.getBoundingClientRect().left + parseFloat(getComputedStyle(line).paddingLeft)) {
-    e.preventDefault(); leTick(el, [...el.children].indexOf(line)); return;
+  if (line && line.classList.contains('le-task') && e.target === line) {
+    // the box (an item that's in a level has room to its left that isn't the box)
+    const cs = getComputedStyle(line), pl = parseFloat(cs.paddingLeft), x = e.clientX - line.getBoundingClientRect().left;
+    if (x < pl && x > pl - 1.5 * parseFloat(cs.fontSize)) { e.preventDefault(); leTick(el, [...el.children].indexOf(line)); return; }
   }
   if (link && (e.metaKey || e.ctrlKey || (!on && !leRich(el)))) { e.preventDefault(); leOpenLink(link.dataset.href); return; }
   if (!e.shiftKey && e.detail < 2) leClick = { el, was: on };
@@ -7326,7 +7470,8 @@ document.addEventListener('selectionchange', () => {
    - The Markdown never shows, not even on the line you're on (the editor is .le.le-rich).
    - A toolbar under the note you're typing in: Aa (Title, Heading, Subheading, Body, Quote,
      Monospaced, Clear Formatting), bold, italic, underline, strikethrough, highlight, bulleted
-     and numbered lists, checklist and link. Its buttons light up for the text you're on.
+     and numbered lists, checklist and link; on a list item, Aa also has Indent and Outdent (Tab,
+     ⇧Tab), as in Notes. Its buttons light up for the text you're on.
    - The shortcuts format the selection (or the word you're in), and with nothing selected they
      switch the formatting on or off for what you type next (st.pend), like in Notes.
    - Deleting, typing over a selection, Return, pasting and copying keep formatting whole: the
@@ -7556,6 +7701,7 @@ function rtInsert(text, raw, data, o = {}) {
 function rtDelete(text, raw, type) {
   const at = rAt(text, raw), lines = text.split('\n'), L = rLine(lines[at.ln]), n = L.chars.length, back = type.includes('Backward');
   if (back && at.v === 0) {
+    if (listLevels(lines)[at.ln] > 0) { const r = leIndentText(text, at.ln, at.ln, -1); return { text: r.text, raw: r.map(raw) }; } // an item that's in a level goes out one
     if (L.pre) { lines[at.ln] = lines[at.ln].slice(L.pre.length); return { text: lines.join('\n'), at: { ln: at.ln, v: 0, bias: 'next' } }; } // its bullet, checkbox, number, # or > goes
     if (at.ln === 0) return null;
     const P = rLine(lines[at.ln - 1]);
@@ -7574,13 +7720,15 @@ function rtDelete(text, raw, type) {
   return { text: lines.join('\n'), at: { ln: at.ln, v: a, bias: a ? 'in' : 'next' } };
 }
 /* Return: the line splits, its formatting with it; lists carry on, and Return on an empty item
-   ends the list */
+   ends the list (or takes it out a level, when it's in one) */
 function rtNewline(text, s, e, carry) {
   let t = text, raw = Math.min(s, e);
   if (s !== e) { const r = rtReplace(text, s, e, ''); t = r.text; raw = rRaw(t, r.at); }
   const at = rAt(t, raw), lines = t.split('\n'), line = lines[at.ln], L = rLine(line);
   const left = L.chars.slice(0, at.v), right = L.chars.slice(at.v), m = carry ? line.match(LE_ITEM) : null;
-  if (m && !L.chars.some((c) => !rWs(c.c))) { lines[at.ln] = ''; return { text: lines.join('\n'), at: { ln: at.ln, v: 0 } }; }
+  if (m && !L.chars.some((c) => !rWs(c.c))) {
+    if ((m[2] || m[5] || m[7]) && listLevels(lines)[at.ln] > 0) { const r = leIndentText(t, at.ln, at.ln, -1); return { text: r.text, raw: r.map(raw) }; } // an empty item that's in a level goes out one
+    lines[at.ln] = ''; return { text: lines.join('\n'), at: { ln: at.ln, v: 0 } }; }
   const heading = /^\s{0,3}#/.test(L.pre);
   if (heading && carry && at.v === 0 && right.length) { lines.splice(at.ln, 0, ''); return { text: lines.join('\n'), at: { ln: at.ln + 1, v: 0, bias: 'next' } }; } // Return at the start of a heading: a line above it
   let next = '';
@@ -7663,7 +7811,13 @@ function rtBlock(text, s, e, kind) {
   if (!idx.length) return null;
   if (['ul', 'ol', 'task', 'q'].includes(kind) && idx.every((k) => rKind(lines[k]) === kind)) kind = 'p';
   let n = 1;
-  if (kind === 'ol' && A.ln > 0) { const pm = lines[A.ln - 1].match(/^\s*(\d{1,4})[.)]\s/); if (pm) n = +pm[1] + 1; }
+  if (kind === 'ol' && A.ln > 0) {
+    // carrying on the numbers of the item above at the same level (not the one it's inside)
+    const lv = listLevels(lines);
+    let k = A.ln - 1;
+    if (lv[A.ln] >= 0) while (k >= 0 && lv[k] > lv[A.ln]) k--;
+    const pm = k >= 0 && (lv[A.ln] < 0 || lv[k] === lv[A.ln]) && lines[k].match(/^\s*(\d{1,4})[.)]\s/); if (pm) n = +pm[1] + 1;
+  }
   idx.forEach((k) => {
     const line = lines[k], pre = leBlock(line).pre;
     if (kind !== 'ol' && rKind(line) === kind) return;
@@ -7786,7 +7940,7 @@ function htmlToMd(html) {
     else if (hm) first = '#'.repeat(+hm[1]) + ' ';
     if (tag === 'UL' || tag === 'OL') { c.list = { ol: tag === 'OL', n: +(node.getAttribute('start') || 1) || 1 }; c.depth = (ctx.depth || 0) + (ctx.list ? 1 : 0); }
     if (tag === 'LI' || (tag === 'P' && /MsoListParagraph/.test(node.className))) {
-      const ind = '  '.repeat(c.depth || 0);
+      const ind = '\t'.repeat(c.depth || 0); // a list inside a list: a tab a level, as Tab writes it
       const task = /\b(md-task|checked|unchecked|task-list-item|todo)\b/.test(node.className) || node.getAttribute('role') === 'checkbox' || node.hasAttribute('aria-checked') ? (/\b(done|checked)\b/.test(node.className) && !/\bunchecked\b/.test(node.className)) || node.getAttribute('aria-checked') === 'true' ? 'x' : ' ' : null;
       c.li = { task };
       const L = c.list && c.list.ol ? `${c.list.n++}. ` : '- ';
@@ -7982,8 +8136,9 @@ function rTools(el) {
 }
 function npAaHTML(st) {
   const it = (k, label, on) => `<button type="button" class="np-aa-i np-aa-${k}" data-fmt-set="${k}" role="menuitemradio" aria-checked="${!!on}">${on ? ic('check', 'np-aa-ck') : '<span class="np-aa-ck"></span>'}<span>${label}</span></button>`;
+  const act = (k, label, keys) => `<button type="button" class="np-aa-i" data-fmt-set="${k}" role="menuitem"><span class="np-aa-ck"></span><span>${label}</span>${keys ? `<span class="np-aa-k">${keys}</span>` : ''}</button>`;
   const b = st.block;
-  return `<div class="np-aa" role="menu">${it('h1', 'Title', b === 'h1')}${it('h2', 'Heading', b === 'h2')}${it('h3', 'Subheading', b === 'h3')}${it('p', 'Body', b === 'p' || b === 'ul' || b === 'ol' || b === 'task')}<div class="np-aa-sep"></div>${it('q', 'Quote', b === 'q')}${it('c', 'Monospaced', st.code)}<div class="np-aa-sep"></div><button type="button" class="np-aa-i" data-fmt-set="clear"><span class="np-aa-ck"></span><span>Clear Formatting</span></button></div>`;
+  return `<div class="np-aa" role="menu">${it('h1', 'Title', b === 'h1')}${it('h2', 'Heading', b === 'h2')}${it('h3', 'Subheading', b === 'h3')}${it('p', 'Body', b === 'p' || b === 'ul' || b === 'ol' || b === 'task')}<div class="np-aa-sep"></div>${it('q', 'Quote', b === 'q')}${it('c', 'Monospaced', st.code)}<div class="np-aa-sep"></div>${b === 'ul' || b === 'ol' || b === 'task' ? `${act('indent', 'Indent', 'Tab')}${act('outdent', 'Outdent', RT_SH + 'Tab')}<div class="np-aa-sep"></div>` : ''}${act('clear', 'Clear Formatting')}</div>`;
 }
 function rCloseAa(bar) {
   const aa = bar && $('.np-aa', bar); if (aa) aa.remove();
@@ -8059,6 +8214,7 @@ document.addEventListener('click', (e) => {
   if (k === 'style') { rOpenAa(el, bar); return; }
   rCloseAa(bar);
   if (k === 'link') { rOpenLink(el); return; }
+  if (k === 'indent' || k === 'outdent') { leIndent(el, k === 'indent' ? 1 : -1); return; }
   if (k === 'ul' || k === 'ol' || k === 'task' || k === 'q' || /^h[123]$/.test(k) || k === 'p') { rBlockDo(el, k); return; }
   if (k === 'clear') { rClear(el); return; }
   rToggle(el, k);

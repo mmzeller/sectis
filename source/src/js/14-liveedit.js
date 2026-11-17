@@ -6,6 +6,11 @@
    - [x]) tick with a click. Return carries on a list (bullets, numbers, checkboxes, quotes) and
    Return on an empty item ends it; Backspace at the start of an item (or heading or quote)
    takes its bullet, checkbox or number away.
+   Tab (or ⌘]) puts a list item, with the items under it, a level in, under the item above it;
+   ⇧Tab (or ⌘[) takes it out a level. In Markdown a level is a tab in front of the bullet, and
+   the editor reads 2 or 4 spaces the same way (listLevels, 13-notes.js). Return on an empty
+   item that's in a level, or Backspace at its start, takes it out one. Tab where there's no
+   list item types a tab, so it never jumps to another note.
    Typing [] and a space at the start of a line makes a checkbox.
    Keys: ⌘B bold, ⌘I italic, ⌘U underline (<u>…</u>), ⇧⌘X strikethrough, ⇧⌘H highlight
    (==…==), ⌘E code, ⌘K link, ⇧⌘L checkbox (or tick it), ⌘Z / ⇧⌘Z undo and redo. The browser's
@@ -157,9 +162,21 @@ function leRoles(line) {
   walk(leTree(blk.rest), '');
   return { pre: blk.pre, role, chars };
 }
-/* the editor's inside for some text; lines a..b show their Markdown */
+/* the editor's inside for some text; lines a..b show their Markdown. A list item that's in a
+   level (Tab) has data-lv and --lv, which push it in */
 function leHTML(text, a = -1, b = -1) {
-  return String(text || '').split('\n').map((l, i) => { const r = leLine(l); return `<div class="${r.cls}${i >= a && i <= b ? ' le-on' : ''}"${r.n ? ` data-n="${esc(r.n)}"` : ''}>${r.html || '<br>'}</div>`; }).join('');
+  const lines = String(text || '').split('\n'), lv = listLevels(lines);
+  return lines.map((l, i) => { const r = leLine(l); return `<div class="${r.cls}${i >= a && i <= b ? ' le-on' : ''}"${r.n ? ` data-n="${esc(r.n)}"` : ''}${lv[i] > 0 ? ` data-lv="${lv[i]}" style="--lv:${lv[i]}"` : ''}>${r.html || '<br>'}</div>`; }).join('');
+}
+/* after a line changed: the levels of the lines it could have moved (the ones after it, too) */
+function leLevelsTo(divs, lines) {
+  const lv = listLevels(lines);
+  divs.forEach((d, i) => {
+    if (!d) return;
+    const want = lv[i] > 0 ? String(lv[i]) : null;
+    if ((d.dataset.lv || null) === want) return;
+    if (want) { d.dataset.lv = want; d.style.setProperty('--lv', want); } else { delete d.dataset.lv; d.style.removeProperty('--lv'); if (!d.getAttribute('style')) d.removeAttribute('style'); }
+  });
 }
 
 /* ---- reading it back ---- */
@@ -345,6 +362,7 @@ function leSync(el) {
       if ((d.dataset.n || null) !== r.n) { if (r.n) d.dataset.n = r.n; else delete d.dataset.n; }
     });
     if (moved) leSetSel(el, sel.s, sel.e, sel.back);
+    if (lines.some((ln, i) => ln !== st.lines[i])) leLevelsTo(groups.map((g) => g.div), lines);
     st.text = text; st.lines = lines;
     el.classList.toggle('le-empty', !text);
   }
@@ -362,7 +380,10 @@ function leNewline(el, s, e, carry) {
   let lend = text.indexOf('\n', ls); if (lend < 0) lend = text.length;
   const line = text.slice(ls, lend), m = carry && s === e ? line.match(LE_ITEM) : null;
   if (!m || s - ls < m[0].length) { leEdit(el, s, e, '\n', { kind: 'line' }); return; }
-  if (!line.slice(m[0].length).trim()) { leEdit(el, ls, lend, '', { kind: 'line' }); return; } // Return on an empty item ends the list
+  if (!line.slice(m[0].length).trim()) { // Return on an empty item ends the list, or takes it out a level when it's in one
+    if ((m[2] || m[5] || m[7]) && leLevelAt(text, leLineAt(text, s)) > 0) { leIndent(el, -1, { s, e: s }); return; }
+    leEdit(el, ls, lend, '', { kind: 'line' }); return;
+  }
   let next;
   if (m[2]) next = m[1] + m[2] + m[3] + '[ ] ';
   else if (m[5]) next = m[1] + m[5] + m[6];
@@ -492,6 +513,79 @@ function leTick(el, i) {
   lePush(el, text, sel ? sel.s : 0, sel ? sel.e : 0, 'edit');
   el.dispatchEvent(new Event('input', { bubbles: true }));
 }
+/* ---- Tab and ⇧Tab: list items in and out a level ---- */
+const LE_OL_HEAD = /^(\s*)(\d{1,4})([.)]\s)/;
+const leLevelAt = (t, ln) => listLevels(t.split('\n'))[ln];
+/* lines la..lb's list items, each with the items under it, one level in (dir 1) or out (-1).
+   An item goes in only under the one above it (so not the first of a list), and out only when
+   it's in. In the lists that change, every indent is written as tabs, one a level, and the
+   numbers go in order (a numbered list inside an item starts at 1).
+   null: no list items there; else { text, map, moved }, map taking a place in the old text to
+   where it is in the new */
+function leIndentText(text, la, lb, dir) {
+  const lines = text.split('\n'), n = lines.length, lv = listLevels(lines), tgt = lv.slice(), moved = new Set();
+  let items = false;
+  for (let i = Math.max(0, la); i <= lb && i < n; i++) {
+    if (lv[i] < 0) continue;
+    items = true;
+    if (moved.has(i)) continue; // it went along with an item above it
+    let j = i + 1; while (j < n && lv[j] > lv[i]) j++; // i and what's under it
+    if (dir > 0 ? !(i > 0 && lv[i - 1] >= 0 && tgt[i] <= tgt[i - 1]) : tgt[i] <= 0) continue;
+    for (let k = i; k < j; k++) { tgt[k] += dir; moved.add(k); }
+  }
+  if (!items) return null;
+  const heads = new Map(), done = new Set(); // line → [old length, new length] of its indent (and number)
+  moved.forEach((i) => {
+    let a = i; while (a > 0 && lv[a - 1] >= 0) a--; // the list it's in
+    if (done.has(a)) return; done.add(a);
+    const cnt = []; // the last number at each level of the item we're under (null: a bullet came between)
+    for (let k = a; k < n && lv[k] >= 0; k++) {
+      const L = tgt[k], line = lines[k], om = line.match(LE_OL_HEAD);
+      cnt.length = L + 1; // lists inside the item before end here
+      let head = '\t'.repeat(L), old = line.match(/^\s*/)[0].length;
+      if (om) {
+        const num = cnt[L] != null ? cnt[L] + 1 : L > 0 || moved.has(k) ? 1 : +om[2];
+        cnt[L] = num; head += num; old += om[2].length;
+      } else cnt[L] = null;
+      if (line.slice(0, old) === head) continue;
+      lines[k] = head + line.slice(old);
+      heads.set(k, [old, head.length]);
+    }
+  });
+  const was = text.split('\n'), starts = [], now = [];
+  let o = 0; was.forEach((l) => { starts.push(o); o += l.length + 1; });
+  o = 0; lines.forEach((l) => { now.push(o); o += l.length + 1; });
+  const map = (off) => {
+    const i = leLineAt(text, off), p = off - starts[i], h = heads.get(i);
+    return now[i] + (!h || p === 0 ? p : p >= h[0] ? p - h[0] + h[1] : h[1]); // the start of a line stays its start
+  };
+  return { text: lines.join('\n'), map, moved: moved.size > 0 };
+}
+function leApply(el, text, s, e, back) {
+  leRender(el, text, s, e, back);
+  lePush(el, text, s, e, 'edit');
+  if (leRich(el)) leState(el).pend = null;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  if (leRich(el)) rTools(el);
+}
+/* the list item the caret's on (or the ones you've selected) in or out a level; false when
+   there's no list item there */
+function leIndent(el, dir, at) {
+  const sel = at || leGetSel(el); if (!sel) return false;
+  const t = leText(el), la = leLineAt(t, sel.s);
+  let lb = leLineAt(t, sel.e);
+  if (lb > la && t[sel.e - 1] === '\n') lb--; // a selection that ends at the start of a line leaves that line out
+  const r = leIndentText(t, la, lb, dir); if (!r) return false;
+  if (r.moved) leApply(el, r.text, r.map(sel.s), r.map(sel.e), sel.back);
+  return true;
+}
+/* Tab where there's no list item: a tab, like in Notes */
+function leTab(el) {
+  const sel = leGetSel(el); if (!sel) return;
+  const t = leText(el); if (t.slice(sel.s, sel.e).includes('\n')) return;
+  if (leRich(el)) rDo(el, sel.s === sel.e ? rtInsert(t, sel.s, '\t', { pend: rPend(el, sel.s, t) }) : rtReplace(t, sel.s, sel.e, '\t'), 'type', sel.s !== sel.e);
+  else leEdit(el, sel.s, sel.e, '\t', { kind: 'type', fresh: sel.s !== sel.e });
+}
 function leOpenLink(href) {
   const web = /^(https?|mailto):/i.test(href), a = document.createElement('a');
   a.href = web ? href : appLinkHref(href);
@@ -529,6 +623,7 @@ document.addEventListener('beforeinput', (e) => {
   if (t === 'historyUndo' || t === 'historyRedo') { e.preventDefault(); leUndo(el, t === 'historyRedo'); return; }
   const fmt = LE_FMT_INPUT[t];
   if (fmt) { e.preventDefault(); if (leRich(el)) rToggle(el, fmt); else leWrap(el, fmt); return; } // Bold, Italic, Underline from the browser's own menus (on iPhone, the B I U one)
+  if (t === 'formatIndent' || t === 'formatOutdent') { e.preventDefault(); leIndent(el, t === 'formatIndent' ? 1 : -1); return; } // the browser's own Indent / Outdent
   const sel = leGetSel(el); if (!sel) return;
   const text = leText(el);
   let r = null;
@@ -553,9 +648,13 @@ document.addEventListener('beforeinput', (e) => {
   }
   if (t.startsWith('delete')) {
     if (t === 'deleteContentBackward' && sel.s === sel.e && sel.s > 0) {
-      // right after a list marker, Backspace takes the whole marker away
+      // right after a list marker, Backspace takes the whole marker away (an item that's in a level goes out one first)
       const ls = text.lastIndexOf('\n', sel.s - 1) + 1;
-      if (sel.s > ls && LE_MARKER_ONLY.test(text.slice(ls, sel.s))) { e.preventDefault(); leEdit(el, ls, sel.s, ''); return; }
+      if (sel.s > ls && LE_MARKER_ONLY.test(text.slice(ls, sel.s))) {
+        e.preventDefault();
+        if (leLevelAt(text, leLineAt(text, sel.s)) > 0) { leIndent(el, -1, sel); return; }
+        leEdit(el, ls, sel.s, ''); return;
+      }
     }
     e.preventDefault();
     let a = r ? r.s : sel.s, b = r ? r.e : sel.e;
@@ -582,6 +681,12 @@ document.addEventListener('compositionend', (e) => {
 document.addEventListener('focusin', (e) => { const el = leHost(e.target); if (el && e.target === el) leFresh(el); }, true);
 document.addEventListener('keydown', (e) => {
   const el = leHost(e.target); if (!el || e.isComposing) return;
+  // Tab and ⇧Tab: a list item in or out a level (it stays in the note, rather than going on to the next one)
+  if (e.key === 'Tab' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+    e.preventDefault(); e.stopPropagation();
+    if (!leIndent(el, e.shiftKey ? -1 : 1) && !e.shiftKey) leTab(el);
+    return;
+  }
   const mod = e.metaKey || e.ctrlKey; if (!mod || e.altKey) return;
   const k = (e.key || '').toLowerCase(), sh = e.shiftKey, rich = leRich(el);
   const wrap = (x) => () => (rich ? rToggle(el, x) : leWrap(el, x));
@@ -595,6 +700,8 @@ document.addEventListener('keydown', (e) => {
     : k === 'h' && sh ? wrap('h')
     : k === 'k' && !sh ? () => (rich ? rOpenLink(el) : leLink(el))
     : k === 'l' && sh ? () => leTask(el)
+    : k === ']' && !sh ? () => leIndent(el, 1)
+    : k === '[' && !sh ? () => leIndent(el, -1)
     : null;
   if (!act) return;
   e.preventDefault(); e.stopPropagation(); act();
@@ -668,8 +775,10 @@ document.addEventListener('mousedown', (e) => {
   const el = leHost(e.target); if (!el || el.hidden) return;
   const link = e.target.closest('.le-a'), line = e.target.closest('.le-ln');
   const on = !!line && line.classList.contains('le-on') && document.activeElement === el;
-  if (line && line.classList.contains('le-task') && e.target === line && e.clientX < line.getBoundingClientRect().left + parseFloat(getComputedStyle(line).paddingLeft)) {
-    e.preventDefault(); leTick(el, [...el.children].indexOf(line)); return;
+  if (line && line.classList.contains('le-task') && e.target === line) {
+    // the box (an item that's in a level has room to its left that isn't the box)
+    const cs = getComputedStyle(line), pl = parseFloat(cs.paddingLeft), x = e.clientX - line.getBoundingClientRect().left;
+    if (x < pl && x > pl - 1.5 * parseFloat(cs.fontSize)) { e.preventDefault(); leTick(el, [...el.children].indexOf(line)); return; }
   }
   if (link && (e.metaKey || e.ctrlKey || (!on && !leRich(el)))) { e.preventDefault(); leOpenLink(link.dataset.href); return; }
   if (!e.shiftKey && e.detail < 2) leClick = { el, was: on };

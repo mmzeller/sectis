@@ -5,7 +5,8 @@
    - The Markdown never shows, not even on the line you're on (the editor is .le.le-rich).
    - A toolbar under the note you're typing in: Aa (Title, Heading, Subheading, Body, Quote,
      Monospaced, Clear Formatting), bold, italic, underline, strikethrough, highlight, bulleted
-     and numbered lists, checklist and link. Its buttons light up for the text you're on.
+     and numbered lists, checklist and link; on a list item, Aa also has Indent and Outdent (Tab,
+     ⇧Tab), as in Notes. Its buttons light up for the text you're on.
    - The shortcuts format the selection (or the word you're in), and with nothing selected they
      switch the formatting on or off for what you type next (st.pend), like in Notes.
    - Deleting, typing over a selection, Return, pasting and copying keep formatting whole: the
@@ -235,6 +236,7 @@ function rtInsert(text, raw, data, o = {}) {
 function rtDelete(text, raw, type) {
   const at = rAt(text, raw), lines = text.split('\n'), L = rLine(lines[at.ln]), n = L.chars.length, back = type.includes('Backward');
   if (back && at.v === 0) {
+    if (listLevels(lines)[at.ln] > 0) { const r = leIndentText(text, at.ln, at.ln, -1); return { text: r.text, raw: r.map(raw) }; } // an item that's in a level goes out one
     if (L.pre) { lines[at.ln] = lines[at.ln].slice(L.pre.length); return { text: lines.join('\n'), at: { ln: at.ln, v: 0, bias: 'next' } }; } // its bullet, checkbox, number, # or > goes
     if (at.ln === 0) return null;
     const P = rLine(lines[at.ln - 1]);
@@ -253,13 +255,15 @@ function rtDelete(text, raw, type) {
   return { text: lines.join('\n'), at: { ln: at.ln, v: a, bias: a ? 'in' : 'next' } };
 }
 /* Return: the line splits, its formatting with it; lists carry on, and Return on an empty item
-   ends the list */
+   ends the list (or takes it out a level, when it's in one) */
 function rtNewline(text, s, e, carry) {
   let t = text, raw = Math.min(s, e);
   if (s !== e) { const r = rtReplace(text, s, e, ''); t = r.text; raw = rRaw(t, r.at); }
   const at = rAt(t, raw), lines = t.split('\n'), line = lines[at.ln], L = rLine(line);
   const left = L.chars.slice(0, at.v), right = L.chars.slice(at.v), m = carry ? line.match(LE_ITEM) : null;
-  if (m && !L.chars.some((c) => !rWs(c.c))) { lines[at.ln] = ''; return { text: lines.join('\n'), at: { ln: at.ln, v: 0 } }; }
+  if (m && !L.chars.some((c) => !rWs(c.c))) {
+    if ((m[2] || m[5] || m[7]) && listLevels(lines)[at.ln] > 0) { const r = leIndentText(t, at.ln, at.ln, -1); return { text: r.text, raw: r.map(raw) }; } // an empty item that's in a level goes out one
+    lines[at.ln] = ''; return { text: lines.join('\n'), at: { ln: at.ln, v: 0 } }; }
   const heading = /^\s{0,3}#/.test(L.pre);
   if (heading && carry && at.v === 0 && right.length) { lines.splice(at.ln, 0, ''); return { text: lines.join('\n'), at: { ln: at.ln + 1, v: 0, bias: 'next' } }; } // Return at the start of a heading: a line above it
   let next = '';
@@ -342,7 +346,13 @@ function rtBlock(text, s, e, kind) {
   if (!idx.length) return null;
   if (['ul', 'ol', 'task', 'q'].includes(kind) && idx.every((k) => rKind(lines[k]) === kind)) kind = 'p';
   let n = 1;
-  if (kind === 'ol' && A.ln > 0) { const pm = lines[A.ln - 1].match(/^\s*(\d{1,4})[.)]\s/); if (pm) n = +pm[1] + 1; }
+  if (kind === 'ol' && A.ln > 0) {
+    // carrying on the numbers of the item above at the same level (not the one it's inside)
+    const lv = listLevels(lines);
+    let k = A.ln - 1;
+    if (lv[A.ln] >= 0) while (k >= 0 && lv[k] > lv[A.ln]) k--;
+    const pm = k >= 0 && (lv[A.ln] < 0 || lv[k] === lv[A.ln]) && lines[k].match(/^\s*(\d{1,4})[.)]\s/); if (pm) n = +pm[1] + 1;
+  }
   idx.forEach((k) => {
     const line = lines[k], pre = leBlock(line).pre;
     if (kind !== 'ol' && rKind(line) === kind) return;
@@ -465,7 +475,7 @@ function htmlToMd(html) {
     else if (hm) first = '#'.repeat(+hm[1]) + ' ';
     if (tag === 'UL' || tag === 'OL') { c.list = { ol: tag === 'OL', n: +(node.getAttribute('start') || 1) || 1 }; c.depth = (ctx.depth || 0) + (ctx.list ? 1 : 0); }
     if (tag === 'LI' || (tag === 'P' && /MsoListParagraph/.test(node.className))) {
-      const ind = '  '.repeat(c.depth || 0);
+      const ind = '\t'.repeat(c.depth || 0); // a list inside a list: a tab a level, as Tab writes it
       const task = /\b(md-task|checked|unchecked|task-list-item|todo)\b/.test(node.className) || node.getAttribute('role') === 'checkbox' || node.hasAttribute('aria-checked') ? (/\b(done|checked)\b/.test(node.className) && !/\bunchecked\b/.test(node.className)) || node.getAttribute('aria-checked') === 'true' ? 'x' : ' ' : null;
       c.li = { task };
       const L = c.list && c.list.ol ? `${c.list.n++}. ` : '- ';
@@ -661,8 +671,9 @@ function rTools(el) {
 }
 function npAaHTML(st) {
   const it = (k, label, on) => `<button type="button" class="np-aa-i np-aa-${k}" data-fmt-set="${k}" role="menuitemradio" aria-checked="${!!on}">${on ? ic('check', 'np-aa-ck') : '<span class="np-aa-ck"></span>'}<span>${label}</span></button>`;
+  const act = (k, label, keys) => `<button type="button" class="np-aa-i" data-fmt-set="${k}" role="menuitem"><span class="np-aa-ck"></span><span>${label}</span>${keys ? `<span class="np-aa-k">${keys}</span>` : ''}</button>`;
   const b = st.block;
-  return `<div class="np-aa" role="menu">${it('h1', 'Title', b === 'h1')}${it('h2', 'Heading', b === 'h2')}${it('h3', 'Subheading', b === 'h3')}${it('p', 'Body', b === 'p' || b === 'ul' || b === 'ol' || b === 'task')}<div class="np-aa-sep"></div>${it('q', 'Quote', b === 'q')}${it('c', 'Monospaced', st.code)}<div class="np-aa-sep"></div><button type="button" class="np-aa-i" data-fmt-set="clear"><span class="np-aa-ck"></span><span>Clear Formatting</span></button></div>`;
+  return `<div class="np-aa" role="menu">${it('h1', 'Title', b === 'h1')}${it('h2', 'Heading', b === 'h2')}${it('h3', 'Subheading', b === 'h3')}${it('p', 'Body', b === 'p' || b === 'ul' || b === 'ol' || b === 'task')}<div class="np-aa-sep"></div>${it('q', 'Quote', b === 'q')}${it('c', 'Monospaced', st.code)}<div class="np-aa-sep"></div>${b === 'ul' || b === 'ol' || b === 'task' ? `${act('indent', 'Indent', 'Tab')}${act('outdent', 'Outdent', RT_SH + 'Tab')}<div class="np-aa-sep"></div>` : ''}${act('clear', 'Clear Formatting')}</div>`;
 }
 function rCloseAa(bar) {
   const aa = bar && $('.np-aa', bar); if (aa) aa.remove();
@@ -738,6 +749,7 @@ document.addEventListener('click', (e) => {
   if (k === 'style') { rOpenAa(el, bar); return; }
   rCloseAa(bar);
   if (k === 'link') { rOpenLink(el); return; }
+  if (k === 'indent' || k === 'outdent') { leIndent(el, k === 'indent' ? 1 : -1); return; }
   if (k === 'ul' || k === 'ol' || k === 'task' || k === 'q' || /^h[123]$/.test(k) || k === 'p') { rBlockDo(el, k); return; }
   if (k === 'clear') { rClear(el); return; }
   rToggle(el, k);

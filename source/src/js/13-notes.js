@@ -1,7 +1,8 @@
 /* ===================== Formatted notes =====================
    Notes are plain text with light Markdown: **bold**, *italic*, ~~strike~~, <u>underline</u>,
    ==highlight==, `code`, # headings, - bullets, 1. numbered lists, > quotes, [text](link) and
-   bare links.
+   bare links. A list item indented under another (a tab, as Tab writes it, or 2 or 4 spaces) is
+   a list inside that item.
    Web links open in a new tab; app links (sintr://…) open the app, so they get no target. */
 function safeHref(url) {
   const u = String(url || '').trim();
@@ -70,27 +71,55 @@ function mdInline(raw, opts) {
   s = s.replace(/(^|[^\w=])==(?=[^\s=])(.+?)==(?![\w=])/g, (m, pre, x) => (/[\s=]$/.test(x) ? m : `${pre}<mark>${x}</mark>`));
   return s.replace(/\u0001(\d+)\u0002/g, (m, i) => tokens[+i]);
 }
+/* how deep each line's list item is (bullets, numbers and checkboxes): 0 at the top, one more
+   under an item above it that's indented less, the way Markdown nests lists, so a tab (what
+   Tab puts in), 2 spaces or 4 all work; -1 for a line that isn't a list item. A line that isn't
+   one (an empty line too) ends the list, so the next item starts at the top again */
+const MD_LI = /^(\s*)(?:[-*•+]|\d{1,4}[.)])\s/;
+const indentWidth = (s) => { let w = 0; for (const c of s) w = c === '\t' ? w + 4 - (w % 4) : w + 1; return w; };
+function listLevels(lines) {
+  const out = [], stack = [];
+  for (const line of lines) {
+    const m = line.match(MD_LI);
+    if (!m) { out.push(-1); stack.length = 0; continue; }
+    const w = indentWidth(m[1]);
+    while (stack.length && stack[stack.length - 1].w >= w) stack.pop();
+    const lv = stack.length ? stack[stack.length - 1].lv + 1 : 0;
+    stack.push({ w, lv }); out.push(lv);
+  }
+  return out;
+}
 /* opts.tasks (the Notepad): checkboxes you can click, and each line marked with where it is in
-   the text (data-ln), so a click in the formatted note puts the caret on the same spot */
+   the text (data-ln), so a click in the formatted note puts the caret on the same spot.
+   Indented list items are lists inside the item above them */
 function renderMarkdown(text, opts) {
-  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n'), tasks = !!(opts && opts.tasks);
-  let html = '', list = null, para = [];
+  const lines = String(text || '').replace(/\r\n?/g, '\n').split('\n'), tasks = !!(opts && opts.tasks), lv = listLevels(lines);
+  let html = '', para = [];
+  const open = []; // the lists we're in, outermost first: { tag, lv }; each one's last <li> is still open
   const flush = () => { if (para.length) { html += `<p>${para.map(([l, i]) => (tasks ? `<span data-ln="${i}">${mdInline(l, opts)}</span>` : mdInline(l, opts))).join('<br>')}</p>`; para = []; } };
-  const close = () => { if (list) { html += `</${list}>`; list = null; } };
-  const open = (tag, start) => { if (list !== tag) { close(); html += tag === 'ol' && start && start !== '1' ? `<ol start="${+start}">` : `<${tag}>`; list = tag; } };
+  const closeTo = (L) => { while (open.length && open[open.length - 1].lv > L) html += `</li></${open.pop().tag}>`; };
+  const close = () => closeTo(-1);
+  const item = (L, tag, start, li) => {
+    flush(); closeTo(L);
+    const top = open[open.length - 1];
+    if (top && top.lv === L) { html += '</li>'; if (top.tag !== tag) { html += `</${top.tag}>`; open.pop(); } }
+    const up = open[open.length - 1];
+    if (!up || up.lv < L) { html += tag === 'ol' && start && start !== '1' ? `<ol start="${+start}">` : `<${tag}>`; open.push({ tag, lv: L }); }
+    html += li;
+  };
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i], ln = tasks ? ` data-ln="${i}"` : '';
+    const line = lines[i], ln = tasks ? ` data-ln="${i}"` : '', L = Math.max(0, lv[i]);
     let m;
     if (!line.trim() || /^\s{0,3}#{1,3}\s+$/.test(line)) { flush(); close(); continue; } // an empty heading is an empty line
     if ((m = line.match(/^\s{0,3}(#{1,3})\s+(.+)$/))) { flush(); close(); html += `<p class="md-h${m[1].length}"${ln}>${mdInline(m[2], opts)}</p>`; continue; }
     if ((m = line.match(/^\s*[-*•+]\s+\[( |x|X)\]\s+(.*)$/))) {
       const done = m[1] !== ' ';
-      flush(); open('ul');
-      html += `<li class="md-task${done ? ' done' : ''}${tasks ? ' md-tick' : ''}"${ln}>${tasks ? `<button type="button" class="md-box" data-tick="${i}" role="checkbox" aria-checked="${done}" aria-label="${done ? 'Uncheck' : 'Check off'}" title="${done ? 'Uncheck' : 'Check off'}"></button>` : ''}${mdInline(m[2], opts)}</li>`;
+      // its words in a span of their own, so ticking it off doesn't strike through what's under it
+      item(L, 'ul', null, `<li class="md-task${done ? ' done' : ''}${tasks ? ' md-tick' : ''}"${ln}>${tasks ? `<button type="button" class="md-box" data-tick="${i}" role="checkbox" aria-checked="${done}" aria-label="${done ? 'Uncheck' : 'Check off'}" title="${done ? 'Uncheck' : 'Check off'}"></button>` : ''}<span class="md-tt">${mdInline(m[2], opts)}</span>`);
       continue;
     }
-    if ((m = line.match(/^\s*[-*•+]\s+(.*)$/))) { flush(); open('ul'); html += `<li${ln}>${mdInline(m[1], opts)}</li>`; continue; }
-    if ((m = line.match(/^\s*(\d{1,4})[.)]\s+(.*)$/))) { flush(); open('ol', m[1]); html += `<li${ln}>${mdInline(m[2], opts)}</li>`; continue; }
+    if ((m = line.match(/^\s*[-*•+]\s+(.*)$/))) { item(L, 'ul', null, `<li${ln}>${mdInline(m[1], opts)}`); continue; }
+    if ((m = line.match(/^\s*(\d{1,4})[.)]\s+(.*)$/))) { item(L, 'ol', m[1], `<li${ln}>${mdInline(m[2], opts)}`); continue; }
     if ((m = line.match(/^\s*>\s?(.*)$/))) { flush(); close(); html += `<blockquote${ln}>${mdInline(m[1], opts)}</blockquote>`; continue; }
     close(); para.push([line, i]);
   }
