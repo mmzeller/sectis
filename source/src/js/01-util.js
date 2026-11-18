@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.56.1';
+const APP_VERSION = '1.57.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -14,6 +14,8 @@ const isMobile = () => mq.matches;
 const isCoarse = () => window.matchMedia('(pointer: coarse)').matches;
 const IS_MAC = /Mac|iPhone|iPad|iPod/.test(navigator.platform || navigator.userAgent || '');
 const MODK = IS_MAC ? '⌘' : 'Ctrl+';
+/* the + that makes a new to-do: the floating one on iPhone, the one in a list's header on a Mac */
+const MAGIC_SEL = '#magic, .lh-add';
 const IN_FRAME = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
 function debounce(fn, ms) { let t; const f = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; f.flush = () => { clearTimeout(t); fn(); }; return f; }
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -174,6 +176,7 @@ const I = {
   move: svg('<path d="M4 12h13M13 7l5 5-5 5"/>'),
   paste: svg('<rect x="5" y="4.5" width="14" height="16" rx="2.5"/><path d="M9 4.5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v.5a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 4.5ZM8.8 11h6.4M8.8 15h4.4"/>'),
   copy: svg('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>'),
+  duplicate: svg('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/><path d="M14 11.5v5M11.5 14h5"/>'),
   heading: svg('<path d="M5 6h14M5 12h9M5 18h11"/>'),
   project: svg('<circle cx="12" cy="12" r="8.5"/><path class="fill" d="M12 12V3.5a8.5 8.5 0 0 1 8.5 8.5z"/>'),
   cancel: svg('<circle cx="12" cy="12" r="8.5"/><path d="m8.5 8.5 7 7M15.5 8.5l-7 7"/>'),

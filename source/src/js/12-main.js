@@ -54,6 +54,7 @@ function seedSample() {
 function applyTheme() {
   const t = S.settings.theme, r = document.documentElement;
   if (t === 'light' || t === 'dark') r.setAttribute('data-app-theme', t); else r.removeAttribute('data-app-theme');
+  syncTitleBar(t);
 }
 
 /* ---- clock: day rollover, repeats, reminders ---- */

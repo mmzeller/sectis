@@ -259,7 +259,7 @@ function templateMenuItems(id, anchor, opts = {}) {
     if (!opts.page) items.push({ label: 'Edit Template', icon: 'pencil', fn: () => editTemplate(id) });
   }
   if (opts.more) items.push(...opts.more);
-  items.push({ label: 'Duplicate Template', icon: 'copy', fn: () => duplicateTemplate(id) });
+  items.push({ label: 'Duplicate Template', icon: 'duplicate', fn: () => duplicateTemplate(id) });
   if (opts.page && x.type === 'project') items.push({ label: 'All Templates', icon: 'template', fn: () => navigate('templates') });
   items.push({ sep: 1 }, { label: 'Delete Template', icon: 'trash', danger: true, fn: () => deleteTemplate(id) });
   return items;

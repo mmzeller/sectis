@@ -118,11 +118,11 @@ function openQuickEntry(prefill = '', preset = null) {
       <div class="qe-ac" id="qe-ac" role="listbox" aria-label="Projects and areas" hidden></div>
       <div class="qe-parsed" id="qe-parsed"></div>
       <div class="c-body"><textarea class="c-notes" id="qe-notes" rows="2" placeholder="Notes" aria-label="Notes"></textarea>
-      <div class="c-foot"><div class="c-chips" id="qe-chips"></div><div class="c-tools">
+      <div class="c-foot"><button class="qe-dest" id="qe-dest" data-qe="move" title="Choose list"></button><div class="c-chips" id="qe-chips"></div><div class="c-tools">
         <button class="ib" data-qe="tags" title="Tags" aria-label="Tags">${ic('tag')}</button><button class="ib" data-qe="deadline" title="Deadline" aria-label="Deadline">${ic('flag')}</button>
         <button class="ib" data-qe="when" title="When" aria-label="When">${ic('calendar')}</button><button class="ib" data-qe="move" title="List" aria-label="Choose list">${ic('move')}</button></div></div>
-      <div class="qe-dest" id="qe-dest"></div></div></div>
-      <div class="modal-f"><span class="note" style="margin-right:auto;align-self:center">${S.settings.parseEntry ? 'Try “Call Sam tomorrow @Work #Errand !fri !!”' : ''}</span><button class="btn" data-qe="cancel">Cancel</button><button class="btn primary" data-qe="save">Save</button></div>`,
+      </div></div>
+      <div class="modal-f"><span class="note">${S.settings.parseEntry ? 'Try “Call Sam tomorrow @Work #Errand !fri !!”' : ''}</span><span class="qe-keys"><kbd>Return</kbd> to save <kbd>Esc</kbd> to cancel</span><button class="btn" data-qe="cancel">Cancel</button><button class="btn primary" data-qe="save">Save</button></div>`,
     onClose: () => { if (!saved) { S.todos = S.todos.filter((x) => x.id !== draft.id); reindex(); } },
     onMount: (el) => {
       const ti = $('#qe-title', el), no = $('#qe-notes', el);

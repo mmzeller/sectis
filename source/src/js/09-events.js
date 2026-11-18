@@ -48,7 +48,7 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-action]');
   if (!inLayer && ui.editing && !e.target.closest('.card') && !e.target.closest('#toasts')) {
     const isTool = a && a.dataset.id === ui.editing;
-    if (!isTool) closeEditor({ noRender: !!(a || e.target.closest('[data-nav], .row[data-id], [data-tpl], #magic')) });
+    if (!isTool) closeEditor({ noRender: !!(a || e.target.closest('[data-nav], .row[data-id], [data-tpl], ' + MAGIC_SEL)) });
   }
   const sbt = e.target.closest('[data-sbtoggle]');
   if (sbt) { e.preventDefault(); toggleSidebarArea(sbt.dataset.sbtoggle, e.altKey); return; }
@@ -59,7 +59,7 @@ document.addEventListener('click', (e) => {
   if (a) { if (!(inLayer && !a.closest('.tpl-modal'))) handleAction(a.dataset.action, a, e); else if (a.dataset.action === 'close-layer') closeLayer(); return; }
   if (inLayer) return;
   const nav = e.target.closest('[data-nav]'); if (nav) { navigate(nav.dataset.nav); return; }
-  if (e.target.closest('#magic')) { newTodo(); return; }
+  if (e.target.closest(MAGIC_SEL)) { newTodo(); return; }
   const ghost = e.target.closest('[data-tpl]'); if (ghost) { openTplModal(ghost.dataset.tpl); return; }
   const row = e.target.closest('#content .row[data-id]');
   if (row && !e.target.closest('.card')) { rowClick(row, e); return; }
@@ -200,7 +200,7 @@ function todoMenu(id, el) {
   if (t.trashed) { openMenu(el, [{ label: 'Put Back', icon: 'reopen', fn: () => restoreItems([id]) }]); return; } // in the Trash, that's all there is to do
   if (isTplChild(t)) {
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
-    items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
+    items.push({ label: 'Duplicate To-Do', icon: 'duplicate', fn: () => duplicateItems([id]) });
     items.push(...checklistMenuItems([id]));
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ sep: 1 }, { label: 'Delete To-Do', icon: 'trash', danger: true, fn: () => trashItems([id]) });
@@ -218,14 +218,14 @@ function todoMenu(id, el) {
     if (t.deadline) items.push({ label: 'Remove Deadline', icon: 'x', fn: () => applyDeadline([id], null) });
     items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
-    items.push(priorityMenuItem([id], el), colorMenuItem('t', t, el));
+    items.push({ sep: 1 }, priorityMenuItem([id], el), colorMenuItem('t', t, el));
     if (t.status === 'open') items.push({ label: t.waitFor ? `Waiting on ${t.waitFor}…` : 'Waiting For…', icon: 'hourglass', hint: 'W', fn: () => openWaiting([id], el) });
     if (t.waitFor) items.push({ label: 'Stop Waiting', icon: 'x', fn: () => stopWaiting([id]) });
     if (!t.templateId) items.push({ label: 'Also Add To…', icon: 'link', fn: () => openAlsoAddTo([id], el) });
     if (t.status === 'open' && sintrInUse()) items.push(recordInSintrItem(t.title, sintrPlaceOf(t)));
     if (linkSiblings(t).some((x) => x.status === 'open') || (t.status === 'open' && linkSiblings(t).length)) items.push({ label: 'Complete Everywhere', icon: 'check', fn: () => completeEverywhere(id) });
     if (linkSiblings(t).length) items.push({ label: 'Unlink This Copy', icon: 'x', fn: () => unlinkTodo(id) });
-    items.push({ label: 'Duplicate To-Do', icon: 'copy', fn: () => duplicateItems([id]) });
+    items.push({ sep: 1 }, { label: 'Duplicate To-Do', icon: 'duplicate', fn: () => duplicateItems([id]) });
     items.push(...checklistMenuItems([id]));
     items.push({ label: 'Share To-Do…', icon: 'share', fn: () => openShare({ type: 'items', ids: [id] }) });
     items.push({ label: t.projectId && getP(t.projectId) ? 'Convert to Sub-Project' : 'Convert to Project', icon: 'project', fn: () => convertToProject(id) });
@@ -289,7 +289,7 @@ function projectMenu(p, el, extra = []) {
     items.push({ label: 'Status Report…', icon: 'report', fn: () => openReport({ type: 'project', id: p.id }) });
     if (sintrInUse()) items.push(recordInSintrItem(pTitle(p), { type: 'project', id: p.id, title: pTitle(p) }));
     items.push(src ? { label: 'Edit Repeating Project', icon: 'repeat', fn: () => navigate('project:' + src.id) } : { label: 'Repeat…', icon: 'repeat', fn: () => openRepeat(p.id, el) });
-    items.push({ label: 'Duplicate Project', icon: 'copy', fn: () => duplicateProject(p) });
+    items.push({ label: 'Duplicate Project', icon: 'duplicate', fn: () => duplicateProject(p) });
     items.push({ sep: 1 }, { label: 'Cancel Project', icon: 'cancel', fn: () => completeProjectFlow(p, 'canceled') });
   } else {
     if (!p.trashed) items.push(...boardMenuItems('p', p.id, isColMenu(extra), el));

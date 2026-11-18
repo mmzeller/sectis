@@ -25,6 +25,9 @@ function placePop(el, anchor) {
   let x = r.left + r.width / 2 - pw / 2; x = clamp(x, 12, innerWidth - pw - 12);
   let y = r.bottom + 6; if (y + ph > innerHeight - 12) y = Math.max(12, r.top - ph - 6);
   el.style.left = x + 'px'; el.style.top = y + 'px';
+  // it opens out of what you clicked: from its top edge when below it, its bottom edge when above
+  el.style.setProperty('--pop-ox', clamp(r.left + r.width / 2 - x, 0, pw) + 'px');
+  el.style.setProperty('--pop-oy', y >= r.bottom ? '0px' : ph + 'px');
 }
 function closeLayer(L = layers[layers.length - 1]) {
   if (!L) return;

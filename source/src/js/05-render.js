@@ -53,6 +53,7 @@ function restoreFocus(f) {
 function afterRender() {
   fitBoardName($('#content .board-name'));
   noteBadge(); // how many notes were written on this page
+  miniBarSync(); // the list's name stays in reach once its header scrolls away
   $$('textarea[data-autosize]').forEach(autosize);
   if (ui.scrollToEditor) {
     ui.scrollToEditor = false;
@@ -61,6 +62,9 @@ function afterRender() {
   }
 }
 function autosize(el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+function magicHidden() {
+  return ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash', 'templates'].includes(ui.view.type));
+}
 function renderShell() {
   const app = $('#app');
   app.classList.toggle('m-home', ui.mobile === 'home');
@@ -69,9 +73,8 @@ function renderShell() {
   app.classList.toggle('touch', isCoarse());
   app.classList.toggle('compact', S.settings.density === 'compact');
   applySidebarMode();
-  const magic = $('#magic');
-  const hide = ui.sel.size > 1 || ui.selectMode || (!(isMobile() && ui.mobile === 'home') && ['logbook', 'trash', 'templates'].includes(ui.view.type));
-  magic.classList.toggle('hidden-in', hide);
+  // on a Mac the + sits in the list's header (headerPlus); the floating one is for iPhone
+  $('#magic').classList.toggle('hidden-in', magicHidden() || !isMobile());
   const L = LISTS[ui.view.type];
   document.title = isMobile() && ui.mobile === 'home' ? 'Sectis' : `${L ? L.title : ui.view.type === 'project' ? pTitle(getP(ui.view.id)) : ui.view.type === 'area' ? aTitle(getA(ui.view.id)) : ui.view.type === 'tag' ? tagTitle(ui.view.id) : ui.view.type === 'smart' ? smartTitle(getSmart(ui.view.id)) : 'Sectis'} – Sectis`;
 }
@@ -326,8 +329,8 @@ function tagBarHTML(items) {
   const match = picked.length > 1 ? `<div class="seg tb-match" role="group" aria-label="Show to-dos with">${[['any', 'Any', 'To-dos with any of these tags'], ['all', 'All', 'Only to-dos with all of these tags']].map(([v, l, t]) => `<button data-action="tag-match" data-v="${v}" class="${ui.tagMatch === v ? 'on' : ''}" aria-pressed="${ui.tagMatch === v}" title="${t}">${l}</button>`).join('')}</div>` : '';
   return `<div class="tagbar">${chip('', 'All', tagFilterAll())}${chips}${chip('__none', 'No Tag', ui.tagFilter === '__none')}${match}</div>`;
 }
-function emptyHTML(icon, title, text) {
-  return `<div class="empty">${ic(icon)}<p><b>${esc(title)}</b></p>${text ? `<p>${text}</p>` : ''}</div>`;
+function emptyHTML(icon, title, text, button = '') {
+  return `<div class="empty">${ic(icon)}<p><b>${esc(title)}</b></p>${text ? `<p>${text}</p>` : ''}${button}</div>`;
 }
 function mobileBarHTML() {
   if (ui.selectMode) return `<div class="m-bar"><button class="m-back" data-action="select-all">Select All</button><span class="sel-count">${ui.sel.size ? ui.sel.size + ' Selected' : ''}</span><button class="m-back" data-action="select-done">Done</button></div>`;
@@ -365,7 +368,10 @@ function renderMain() {
   $$('#content [data-hscroll]').forEach((el) => { sideways[el.dataset.hscroll] = el.scrollLeft; });
   $$('#content [data-vscroll]').forEach((el) => { updown[el.dataset.vscroll] = el.scrollTop; });
   $('#content').classList.toggle('board-view', ui.view.type === 'board' || ui.view.type === 'timeline' || (ui.view.type === 'project' && projectBoardOn(getP(ui.view.id))));
+  const moved = flipCapture(); // where each row was, so the ones that move can glide there
   $('#content').innerHTML = mobileBarHTML() + html;
+  headerPlus();
+  flipPlay(moved);
   $$('#content [data-hscroll]').forEach((el) => { const x = sideways[el.dataset.hscroll]; if (x) el.scrollLeft = x; });
   $$('#content [data-vscroll]').forEach((el) => { const y = updown[el.dataset.vscroll]; if (y) el.scrollTop = y; });
   addSortPill();

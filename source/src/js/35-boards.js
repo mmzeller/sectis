@@ -47,7 +47,7 @@ function boardsMenuItems() {
       ...(outside.length ? [{ header: `Outside ${focusTitle(ui.focusRec)}` }, ...outside.map((b) => go(b, true))] : []), { sep: 1 }] : []),
     { label: 'New Board', icon: 'plus', fn: () => newBoard() },
     { label: 'Rename Board', icon: 'pencil', fn: () => { const t = $('[data-fkey="board-name"]'); if (t) { t.focus(); t.select(); } } },
-    { label: 'Duplicate Board', icon: 'copy', fn: duplicateBoard },
+    { label: 'Duplicate Board', icon: 'duplicate', fn: duplicateBoard },
     { label: 'Delete Board…', icon: 'trash', danger: true, disabled: ui.boards.length < 2, fn: deleteBoard },
   ];
 }

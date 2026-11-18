@@ -19,7 +19,7 @@ function dragInit() {
 }
 function dragSource(target) {
   if (layers.length || D.st) return null;
-  const magic = target.closest('#magic');
+  const magic = target.closest(MAGIC_SEL);
   if (magic) return { magic: true, src: null };
   const src = target.closest('[data-drag]');
   if (!src || target.closest('input, textarea, select') || target.closest('.cb, .restore, .card, .ib, .sel-ring') || ui.selectMode) return null;

@@ -36,7 +36,7 @@ head = f"""<!doctype html>
 <title>Sectis</title>
 <meta name="description" content="Sectis, a private to-do app: Inbox, Today, Upcoming, projects, areas, tags, checklists and repeating to-dos. Works offline.">
 <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#17191e" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#18191c" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">

@@ -102,7 +102,7 @@ function viewSmart(sl) {
 function smartMenuItems(sl, el) {
   return [
     { label: 'Edit Smart List…', icon: 'sliders', fn: () => openSmartEditor(sl) },
-    { label: 'Duplicate Smart List', icon: 'copy', fn: () => duplicateSmart(sl) },
+    { label: 'Duplicate Smart List', icon: 'duplicate', fn: () => duplicateSmart(sl) },
     ...boardMenuItems('s', sl.id, false, el),
     { label: 'Delete Smart List', icon: 'trash', danger: true, fn: () => deleteSmart(sl) },
   ];

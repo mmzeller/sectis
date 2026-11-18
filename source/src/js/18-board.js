@@ -232,8 +232,8 @@ function viewBoard() {
   if (!stacks.length && hidden) return html;
   if (stacks.length && curBoard().tl) html += boardTimelineHTML();
   if (!stacks.length) {
-    return html + emptyHTML('columns', 'See your lists side by side',
-      'Add projects or areas as columns with <b>Add Column</b>, or choose <b>Add to Board</b> from any project or area’s ••• menu. An area’s <b>Open as Board</b> lays out all of its projects at once.');
+    return html + emptyHTML('columns', 'See your lists side by side', 'Each project, area, list or tag you add becomes a column.',
+      `<button class="btn primary empty-btn" data-action="board-add">${ic('plus')}<span>Add Column</span></button>`);
   }
   return html + `<div class="board bstacks" data-kind="board" data-hscroll="board" data-cols="${[].concat(...stacks).length}">${stacks.map((s, i) => {
     const w = stackW(s), last = s[s.length - 1];
