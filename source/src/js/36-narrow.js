@@ -4,14 +4,15 @@
    - The sidebar can be hidden: the button at the bottom of the sidebar, or ⌃⌘S. Each device
      remembers. The button at the top left brings it back.
    - In a window 640px wide or less the sidebar starts hidden and slides in over the list when
-     you want it, then gets out of the way once you pick a list or click elsewhere.
+     you want it, then gets out of the way once you pick a list or click elsewhere. On a Board
+     it does the same up to 900px (half a laptop screen), so the columns get the room.
    - While dragging, hold over the sidebar button for a moment and the sidebar slides in, so
      to-dos can still be dropped on lists, projects and areas.
    - Lists use less padding when the main pane is narrow. */
-const SB_FLOAT_AT = 640;
+const SB_FLOAT_AT = 640, SB_BOARD_FLOAT_AT = 900;
 ui.sbHidden = lsGet('sectis.sbHidden') === '1';
 ui.sbFloat = false;
-const sbNarrow = () => !isMobile() && window.innerWidth <= SB_FLOAT_AT;
+const sbNarrow = () => !isMobile() && (window.innerWidth <= SB_FLOAT_AT || (ui.view && ui.view.type === 'board' && window.innerWidth <= SB_BOARD_FLOAT_AT));
 const sbOff = () => !isMobile() && (ui.sbHidden || sbNarrow());
 function applySidebarMode() {
   const app = $('#app'); if (!app) return;

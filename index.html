@@ -97,6 +97,7 @@
   --t-brown: #94673e;
   --tg-tint: 14%;
   --tg-ink: 52%;
+  --sh-l: 72%; --sh-d: 76%; /* Light and Deep shades: how much of the plain color they keep */
   --hl: #fde58f;
   --raise: #ffffff;
   --nav-on: #e4e6eb;
@@ -154,6 +155,7 @@
     --t-brown: #c99d72;
     --tg-tint: 18%;
     --tg-ink: 66%;
+    --sh-l: 62%; --sh-d: 80%; /* on a dark background Deep keeps more color, or it fades into it */
     --hl: rgba(222, 178, 44, .42);
     --raise: #44464e;
     --nav-on: #323439;
@@ -212,6 +214,7 @@
   --t-brown: #c99d72;
   --tg-tint: 18%;
   --tg-ink: 66%;
+  --sh-l: 62%; --sh-d: 80%; /* on a dark background Deep keeps more color, or it fades into it */
   --hl: rgba(222, 178, 44, .42);
   --raise: #44464e;
   --nav-on: #323439;
@@ -269,6 +272,7 @@
   --t-brown: #94673e;
   --tg-tint: 14%;
   --tg-ink: 52%;
+  --sh-l: 72%; --sh-d: 76%; /* Light and Deep shades: how much of the plain color they keep */
   --hl: #fde58f;
   --raise: #ffffff;
   --nav-on: #e4e6eb;
@@ -277,19 +281,20 @@
   color-scheme: light;
 }
 :root {
-  /* the palette's Light and Deep shades, mixed from each plain color (so they follow the theme) */
-  --t-red-l: color-mix(in oklab, var(--t-red) 62%, #fff); --t-red-d: color-mix(in oklab, var(--t-red) 68%, #000);
-  --t-orange-l: color-mix(in oklab, var(--t-orange) 62%, #fff); --t-orange-d: color-mix(in oklab, var(--t-orange) 68%, #000);
-  --t-yellow-l: color-mix(in oklab, var(--t-yellow) 62%, #fff); --t-yellow-d: color-mix(in oklab, var(--t-yellow) 68%, #000);
-  --t-lime-l: color-mix(in oklab, var(--t-lime) 62%, #fff); --t-lime-d: color-mix(in oklab, var(--t-lime) 68%, #000);
-  --t-green-l: color-mix(in oklab, var(--t-green) 62%, #fff); --t-green-d: color-mix(in oklab, var(--t-green) 68%, #000);
-  --t-teal-l: color-mix(in oklab, var(--t-teal) 62%, #fff); --t-teal-d: color-mix(in oklab, var(--t-teal) 68%, #000);
-  --t-cyan-l: color-mix(in oklab, var(--t-cyan) 62%, #fff); --t-cyan-d: color-mix(in oklab, var(--t-cyan) 68%, #000);
-  --t-blue-l: color-mix(in oklab, var(--t-blue) 62%, #fff); --t-blue-d: color-mix(in oklab, var(--t-blue) 68%, #000);
-  --t-indigo-l: color-mix(in oklab, var(--t-indigo) 62%, #fff); --t-indigo-d: color-mix(in oklab, var(--t-indigo) 68%, #000);
-  --t-purple-l: color-mix(in oklab, var(--t-purple) 62%, #fff); --t-purple-d: color-mix(in oklab, var(--t-purple) 68%, #000);
-  --t-pink-l: color-mix(in oklab, var(--t-pink) 62%, #fff); --t-pink-d: color-mix(in oklab, var(--t-pink) 68%, #000);
-  --t-brown-l: color-mix(in oklab, var(--t-brown) 62%, #fff); --t-brown-d: color-mix(in oklab, var(--t-brown) 68%, #000);
+  /* the palette's Light and Deep shades, mixed from each plain color (so they follow the theme);
+     --sh-l and --sh-d differ by theme so neither shade fades into the background */
+  --t-red-l: color-mix(in oklab, var(--t-red) var(--sh-l), #fff); --t-red-d: color-mix(in oklab, var(--t-red) var(--sh-d), #000);
+  --t-orange-l: color-mix(in oklab, var(--t-orange) var(--sh-l), #fff); --t-orange-d: color-mix(in oklab, var(--t-orange) var(--sh-d), #000);
+  --t-yellow-l: color-mix(in oklab, var(--t-yellow) var(--sh-l), #fff); --t-yellow-d: color-mix(in oklab, var(--t-yellow) var(--sh-d), #000);
+  --t-lime-l: color-mix(in oklab, var(--t-lime) var(--sh-l), #fff); --t-lime-d: color-mix(in oklab, var(--t-lime) var(--sh-d), #000);
+  --t-green-l: color-mix(in oklab, var(--t-green) var(--sh-l), #fff); --t-green-d: color-mix(in oklab, var(--t-green) var(--sh-d), #000);
+  --t-teal-l: color-mix(in oklab, var(--t-teal) var(--sh-l), #fff); --t-teal-d: color-mix(in oklab, var(--t-teal) var(--sh-d), #000);
+  --t-cyan-l: color-mix(in oklab, var(--t-cyan) var(--sh-l), #fff); --t-cyan-d: color-mix(in oklab, var(--t-cyan) var(--sh-d), #000);
+  --t-blue-l: color-mix(in oklab, var(--t-blue) var(--sh-l), #fff); --t-blue-d: color-mix(in oklab, var(--t-blue) var(--sh-d), #000);
+  --t-indigo-l: color-mix(in oklab, var(--t-indigo) var(--sh-l), #fff); --t-indigo-d: color-mix(in oklab, var(--t-indigo) var(--sh-d), #000);
+  --t-purple-l: color-mix(in oklab, var(--t-purple) var(--sh-l), #fff); --t-purple-d: color-mix(in oklab, var(--t-purple) var(--sh-d), #000);
+  --t-pink-l: color-mix(in oklab, var(--t-pink) var(--sh-l), #fff); --t-pink-d: color-mix(in oklab, var(--t-pink) var(--sh-d), #000);
+  --t-brown-l: color-mix(in oklab, var(--t-brown) var(--sh-l), #fff); --t-brown-d: color-mix(in oklab, var(--t-brown) var(--sh-d), #000);
 }
 
 
@@ -945,6 +950,14 @@ body.drag-project .sb-loose { display: flex; }
   .row { padding: 10px 6px; align-items: center; }
   .row .r-line { min-height: 24px; }
   .cb { margin-top: 0; border-radius: var(--r-s); }
+  /* a to-do whose title wraps keeps its checkbox beside the first line, not halfway down */
+  .row.todo { align-items: flex-start; }
+  .row.todo > .cb { margin-top: 2px; }
+  .row.todo > .r-right { min-height: 24px; }
+  /* the tag bar is one row you swipe along, running to the screen's edge */
+  .tagbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px))); padding-right: 16px; overscroll-behavior-x: contain; }
+  .tagbar::-webkit-scrollbar { display: none; }
+  .tagbar > * { flex: none; }
   .cb .ic { width: 14px; height: 14px; }
   .r-ic, .r-star, .r-moon, .r-box { width: 16px; height: 16px; }
   .r-sub { font-size: var(--fs-s); }
@@ -1178,6 +1191,8 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .bcol-ic { flex: none; width: 18px; height: 18px; }
 .bcol-t { flex: 1; min-width: 0; }
 .bcol-title { display: block; max-width: 100%; text-align: left; font-weight: 650; font-size: var(--fs-m); line-height: 20px; overflow-wrap: anywhere; }
+/* a long name takes two lines at most (the whole name is in its tooltip) */
+.bcol-tt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .bcol-title:hover { text-decoration: underline; text-underline-offset: 3px; }
 .bcol-sub { font-size: var(--fs-xs); color: var(--muted); line-height: 15px; }
 .bcol-count { flex: none; font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; padding: 0 2px; }
@@ -1194,6 +1209,28 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .sub-hr .ib:hover { color: var(--fg); }
 .sub-hr.done .sub-h-t { color: var(--muted); }
 .bcol .row { padding-left: 8px; padding-right: 8px; }
+/* A to-do on a Board: its title gets the card's whole width, and its date or deadline goes on the
+   line under it, beside where it's from (or under the title when it has nothing beside it), so a
+   narrow column doesn't wrap titles three lines deep. */
+.bcol .row.todo { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1px 10px; align-items: start; }
+.bcol .row.todo > .r-main { display: contents; }
+.bcol .row.todo > .cb, .bcol .row.todo > .sel-ring { grid-column: 1; grid-row: 1; }
+.bcol .row.todo .r-line { grid-column: 2 / 4; grid-row: 1; }
+.bcol .row.todo .r-sub { grid-column: 2; grid-row: 2; min-width: 0; }
+.bcol .row.todo > .r-right { grid-column: 3; grid-row: 2; min-height: 0; justify-self: end; }
+.bcol .row.todo:not(:has(.r-sub)) > .r-right { grid-column: 2 / 4; justify-self: start; }
+.bcol .row.todo .r-cklist { grid-column: 2 / 4; grid-row: 3; }
+/* a project on a Board (in an area's column) the same way; with or without its fold arrow, the
+   lines are counted from the right: icon, title, then deadline */
+.bcol .row.prow { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 1px 10px; align-items: start; }
+.bcol .row.prow:not(:has(> .disc)) { grid-template-columns: auto minmax(0, 1fr) auto; }
+.bcol .row.prow > .r-main { display: contents; }
+.bcol .row.prow > .disc { grid-column: 1; grid-row: 1; }
+.bcol .row.prow > .pie-ic { grid-column: -4 / -3; grid-row: 1; }
+.bcol .row.prow .r-line { grid-column: -3 / -1; grid-row: 1; }
+.bcol .row.prow .r-sub { grid-column: -3 / -2; grid-row: 2; min-width: 0; }
+.bcol .row.prow > .r-right { grid-column: -2 / -1; grid-row: 2; min-height: 0; justify-self: end; }
+.bcol .row.prow:not(:has(.r-sub)) > .r-right { grid-column: -3 / -1; justify-self: start; }
 .bcol .bcol-projs { margin-top: 6px; }
 .bcol .pchildren { margin-left: 26px; }
 .bcol-empty { padding: 10px; color: var(--faint); font-size: var(--fs-s); }
@@ -1968,7 +2005,7 @@ button.np-gl:hover { color: var(--fg); }
 'use strict';
 const SECTIS_WEB = true;
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.58.0';
+const APP_VERSION = '1.59.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -9408,7 +9445,7 @@ function boardColHTML(c) {
     const area = areaOf(p), where = isSub(p) ? projPath(parentOf(p)) : area ? aTitle(area) : 'Project';
     const sec = `project:${p.id}:`;
     return `<section class="bcol${open ? '' : ' closed'}${sizedH}${shownColor(p) ? ' colored' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h, shownColor(p))}>${gripHTML}
-      <div class="bcol-h" data-col="p:${p.id}">${projIc(p, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button>`}<div class="bcol-sub">${open ? esc(where) : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
+      <div class="bcol-h" data-col="p:${p.id}">${projIc(p, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}"><span class="bcol-tt">${esc(pTitle(p))}</span></button>`}<div class="bcol-sub">${open ? esc(where) : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
       <div class="bcol-body"${bodyAttr}>${boardProjectBody(p)}</div>${resizeHandlesHTML(key)}</section>`;
   }
   const a = getA(c.id);
@@ -9420,7 +9457,7 @@ function boardColHTML(c) {
   if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(projs).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
   return `<section class="bcol${sizedH}${effColor(a) ? ' colored' : ''}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h, effColor(a) ? colorVar(effColor(a)) : null)}>${gripHTML}
-    <div class="bcol-h" data-col="a:${a.id}">${areaIc(a, 'bcol-ic')}<div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
+    <div class="bcol-h" data-col="a:${a.id}">${areaIc(a, 'bcol-ic')}<div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}"><span class="bcol-tt">${esc(aTitle(a))}</span></button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
     <div class="bcol-body"${bodyAttr}>${body}</div>${resizeHandlesHTML(key)}</section>`;
 }
 /* a project in a Board column: its to-dos, then its sub-projects as rows that open in place */
@@ -9496,7 +9533,7 @@ function projectBoardHTML(p, items, ctx) {
   subs.forEach((q) => {
     const qo = q.status === 'open', pr = projectProgress(q);
     cols.push([`h:${q.id}`, () => col(`h:${q.id}`, qo && open ? `project:${q.id}:` : '',
-      `${projIc(q, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', q.id) ? renameInputHTML('p', q) : `<button class="bcol-title" data-nav="project:${q.id}" title="Open ${esc(pTitle(q))}">${esc(pTitle(q))}</button>`}${qo ? '' : `<div class="bcol-sub">${q.status === 'done' ? 'Completed' : 'Canceled'}</div>`}</div>`,
+      `${projIc(q, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', q.id) ? renameInputHTML('p', q) : `<button class="bcol-title" data-nav="project:${q.id}" title="Open ${esc(pTitle(q))}"><span class="bcol-tt">${esc(pTitle(q))}</span></button>`}${qo ? '' : `<div class="bcol-sub">${q.status === 'done' ? 'Completed' : 'Canceled'}</div>`}</div>`,
       boardProjectBody(q), pr.open, `<button class="ib" data-action="hcol-menu" data-id="${q.id}" data-col="h:${q.id}" aria-label="Sub-project options" title="Sub-project options">${ic('more')}</button>`, qo ? '' : ' closed')]);
   });
   const stacks = [];
@@ -11482,7 +11519,7 @@ function listColHTML(c) {
   const canAdd = c.t !== 'l' || !['upcoming', 'waiting'].includes(c.id);
   const sized = c.h ? ' sized-h' : '';
   return `<section class="bcol lcol${sized}" data-col="${key}" data-newsec="${body.sec || ''}" data-colzone="${body.sec || ''}"${body.drop ? ` data-coldrop="${body.drop}"` : ''}${colHStyle(c.h)}>${gripHTML}
-    <div class="bcol-h" data-col="${key}">${colIcon(c)}<div class="bcol-t"><button class="bcol-title" data-nav="${nav}" title="Open ${esc(colName(c.t, c.id))}">${esc(colName(c.t, c.id))}</button><div class="bcol-sub">${sub}</div></div>${body.open ? `<span class="bcol-count" title="Open to-dos">${body.open}</span>` : ''}${canAdd ? `<button class="ib" data-action="lcol-add" data-col="${key}" aria-label="New to-do" title="New to-do">${ic('plus')}</button>` : ''}<button class="ib" data-action="bcol-menu" data-col="${key}" aria-label="Column options" title="Column options">${ic('more')}</button></div>
+    <div class="bcol-h" data-col="${key}">${colIcon(c)}<div class="bcol-t"><button class="bcol-title" data-nav="${nav}" title="Open ${esc(colName(c.t, c.id))}"><span class="bcol-tt">${esc(colName(c.t, c.id))}</span></button><div class="bcol-sub">${sub}</div></div>${body.open ? `<span class="bcol-count" title="Open to-dos">${body.open}</span>` : ''}${canAdd ? `<button class="ib" data-action="lcol-add" data-col="${key}" aria-label="New to-do" title="New to-do">${ic('plus')}</button>` : ''}<button class="ib" data-action="bcol-menu" data-col="${key}" aria-label="Column options" title="Column options">${ic('more')}</button></div>
     <div class="bcol-body"${c.h ? ` data-vscroll="${key}"` : ''}>${body.html || `<div class="bcol-empty">${c.t === 's' ? 'Nothing matches right now' : 'Nothing here'}</div>`}</div>${resizeHandlesHTML(key)}</section>`;
 }
 /* the + on a list, tag or smart-list column: a new to-do that belongs there */
@@ -11577,14 +11614,15 @@ function boardFocusMenu(at) {
    - The sidebar can be hidden: the button at the bottom of the sidebar, or ⌃⌘S. Each device
      remembers. The button at the top left brings it back.
    - In a window 640px wide or less the sidebar starts hidden and slides in over the list when
-     you want it, then gets out of the way once you pick a list or click elsewhere.
+     you want it, then gets out of the way once you pick a list or click elsewhere. On a Board
+     it does the same up to 900px (half a laptop screen), so the columns get the room.
    - While dragging, hold over the sidebar button for a moment and the sidebar slides in, so
      to-dos can still be dropped on lists, projects and areas.
    - Lists use less padding when the main pane is narrow. */
-const SB_FLOAT_AT = 640;
+const SB_FLOAT_AT = 640, SB_BOARD_FLOAT_AT = 900;
 ui.sbHidden = lsGet('sectis.sbHidden') === '1';
 ui.sbFloat = false;
-const sbNarrow = () => !isMobile() && window.innerWidth <= SB_FLOAT_AT;
+const sbNarrow = () => !isMobile() && (window.innerWidth <= SB_FLOAT_AT || (ui.view && ui.view.type === 'board' && window.innerWidth <= SB_BOARD_FLOAT_AT));
 const sbOff = () => !isMobile() && (ui.sbHidden || sbNarrow());
 function applySidebarMode() {
   const app = $('#app'); if (!app) return;
@@ -12170,11 +12208,13 @@ function tlLayout(r) {
     avail = content.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     if (phone) avail -= 16; // a little room at each edge (see .tl-wrap)
   }
-  // on a phone each name sits above its own row, so the days get the whole width
-  const lw = phone ? 0 : avail < 560 ? 130 : avail < 900 ? 180 : 240;
+  // on a phone, and in a narrow Mac window (beside another app, or with the Notepad open), each
+  // name sits above its own row, so the days get the whole width and no name is cut short
+  const stack = phone || avail < 640;
+  const lw = stack ? 0 : avail < 900 ? 180 : 240;
   const grid = Math.max(100, avail - lw - 2), min = phone ? Math.round(r.z.min * 0.7) : r.z.min;
   const dw = Math.max(min, Math.floor((grid / r.days) * 100) / 100);
-  return { lw, dw, fits: dw * r.days <= grid + 0.5, stack: phone, vw: avail };
+  return { lw, dw, fits: dw * r.days <= grid + 0.5, stack, vw: avail };
 }
 const tlAt = (n) => `calc(var(--dw) * ${n})`;
 function tlColor(x) { return shownColor(x) || ''; } // by Color By: area and project, progress or priority (33-colors.js)

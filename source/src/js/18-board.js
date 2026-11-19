@@ -250,7 +250,7 @@ function boardColHTML(c) {
     const area = areaOf(p), where = isSub(p) ? projPath(parentOf(p)) : area ? aTitle(area) : 'Project';
     const sec = `project:${p.id}:`;
     return `<section class="bcol${open ? '' : ' closed'}${sizedH}${shownColor(p) ? ' colored' : ''}" data-col="p:${p.id}" data-newsec="${open ? sec : ''}" data-colzone="${open ? sec : ''}"${colHStyle(c.h, shownColor(p))}>${gripHTML}
-      <div class="bcol-h" data-col="p:${p.id}">${projIc(p, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}">${esc(pTitle(p))}</button>`}<div class="bcol-sub">${open ? esc(where) : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
+      <div class="bcol-h" data-col="p:${p.id}">${projIc(p, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', p.id) ? renameInputHTML('p', p) : `<button class="bcol-title" data-nav="project:${p.id}" title="Open ${esc(pTitle(p))}"><span class="bcol-tt">${esc(pTitle(p))}</span></button>`}<div class="bcol-sub">${open ? esc(where) : p.status === 'done' ? 'Completed' : 'Canceled'}</div></div>${pr.open ? `<span class="bcol-count" title="Open to-dos">${pr.open}</span>` : ''}${open ? `<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(pTitle(p))}" title="New to-do">${ic('plus')}</button>` : ''}${more}</div>
       <div class="bcol-body"${bodyAttr}>${boardProjectBody(p)}</div>${resizeHandlesHTML(key)}</section>`;
   }
   const a = getA(c.id);
@@ -262,7 +262,7 @@ function boardColHTML(c) {
   if (projs.length) body += `<div class="sec bcol-projs" data-sec="areaprojects:${a.id}" data-ok="order">${sortedRows(projs).map((p) => projRowHTML(p, { star: true, when: true, expandable: true })).join('')}</div>`;
   if (!todos.length && !projs.length) body += `<div class="bcol-empty">Nothing here yet</div>`;
   return `<section class="bcol${sizedH}${effColor(a) ? ' colored' : ''}" data-col="a:${a.id}" data-newsec="${sec}" data-colzone="${sec}"${colHStyle(c.h, effColor(a) ? colorVar(effColor(a)) : null)}>${gripHTML}
-    <div class="bcol-h" data-col="a:${a.id}">${areaIc(a, 'bcol-ic')}<div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}">${esc(aTitle(a))}</button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
+    <div class="bcol-h" data-col="a:${a.id}">${areaIc(a, 'bcol-ic')}<div class="bcol-t">${renamingNow('a', a.id) ? renameInputHTML('a', a) : `<button class="bcol-title" data-nav="area:${a.id}" title="Open ${esc(aTitle(a))}"><span class="bcol-tt">${esc(aTitle(a))}</span></button>`}<div class="bcol-sub">Area</div></div>${n ? `<span class="bcol-count" title="Open to-dos">${n}</span>` : ''}<button class="ib" data-action="bcol-add" data-sec="${sec}" aria-label="New to-do in ${esc(aTitle(a))}" title="New to-do">${ic('plus')}</button>${more}</div>
     <div class="bcol-body"${bodyAttr}>${body}</div>${resizeHandlesHTML(key)}</section>`;
 }
 /* a project in a Board column: its to-dos, then its sub-projects as rows that open in place */
@@ -338,7 +338,7 @@ function projectBoardHTML(p, items, ctx) {
   subs.forEach((q) => {
     const qo = q.status === 'open', pr = projectProgress(q);
     cols.push([`h:${q.id}`, () => col(`h:${q.id}`, qo && open ? `project:${q.id}:` : '',
-      `${projIc(q, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', q.id) ? renameInputHTML('p', q) : `<button class="bcol-title" data-nav="project:${q.id}" title="Open ${esc(pTitle(q))}">${esc(pTitle(q))}</button>`}${qo ? '' : `<div class="bcol-sub">${q.status === 'done' ? 'Completed' : 'Canceled'}</div>`}</div>`,
+      `${projIc(q, 'bcol-ic', pr.frac)}<div class="bcol-t">${renamingNow('p', q.id) ? renameInputHTML('p', q) : `<button class="bcol-title" data-nav="project:${q.id}" title="Open ${esc(pTitle(q))}"><span class="bcol-tt">${esc(pTitle(q))}</span></button>`}${qo ? '' : `<div class="bcol-sub">${q.status === 'done' ? 'Completed' : 'Canceled'}</div>`}</div>`,
       boardProjectBody(q), pr.open, `<button class="ib" data-action="hcol-menu" data-id="${q.id}" data-col="h:${q.id}" aria-label="Sub-project options" title="Sub-project options">${ic('more')}</button>`, qo ? '' : ' closed')]);
   });
   const stacks = [];

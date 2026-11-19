@@ -76,6 +76,7 @@
   --t-brown: #94673e;
   --tg-tint: 14%;
   --tg-ink: 52%;
+  --sh-l: 72%; --sh-d: 76%; /* Light and Deep shades: how much of the plain color they keep */
   --hl: #fde58f;
   --raise: #ffffff;
   --nav-on: #e4e6eb;
@@ -133,6 +134,7 @@
     --t-brown: #c99d72;
     --tg-tint: 18%;
     --tg-ink: 66%;
+    --sh-l: 62%; --sh-d: 80%; /* on a dark background Deep keeps more color, or it fades into it */
     --hl: rgba(222, 178, 44, .42);
     --raise: #44464e;
     --nav-on: #323439;
@@ -191,6 +193,7 @@
   --t-brown: #c99d72;
   --tg-tint: 18%;
   --tg-ink: 66%;
+  --sh-l: 62%; --sh-d: 80%; /* on a dark background Deep keeps more color, or it fades into it */
   --hl: rgba(222, 178, 44, .42);
   --raise: #44464e;
   --nav-on: #323439;
@@ -248,6 +251,7 @@
   --t-brown: #94673e;
   --tg-tint: 14%;
   --tg-ink: 52%;
+  --sh-l: 72%; --sh-d: 76%; /* Light and Deep shades: how much of the plain color they keep */
   --hl: #fde58f;
   --raise: #ffffff;
   --nav-on: #e4e6eb;
@@ -256,19 +260,20 @@
   color-scheme: light;
 }
 :root {
-  /* the palette's Light and Deep shades, mixed from each plain color (so they follow the theme) */
-  --t-red-l: color-mix(in oklab, var(--t-red) 62%, #fff); --t-red-d: color-mix(in oklab, var(--t-red) 68%, #000);
-  --t-orange-l: color-mix(in oklab, var(--t-orange) 62%, #fff); --t-orange-d: color-mix(in oklab, var(--t-orange) 68%, #000);
-  --t-yellow-l: color-mix(in oklab, var(--t-yellow) 62%, #fff); --t-yellow-d: color-mix(in oklab, var(--t-yellow) 68%, #000);
-  --t-lime-l: color-mix(in oklab, var(--t-lime) 62%, #fff); --t-lime-d: color-mix(in oklab, var(--t-lime) 68%, #000);
-  --t-green-l: color-mix(in oklab, var(--t-green) 62%, #fff); --t-green-d: color-mix(in oklab, var(--t-green) 68%, #000);
-  --t-teal-l: color-mix(in oklab, var(--t-teal) 62%, #fff); --t-teal-d: color-mix(in oklab, var(--t-teal) 68%, #000);
-  --t-cyan-l: color-mix(in oklab, var(--t-cyan) 62%, #fff); --t-cyan-d: color-mix(in oklab, var(--t-cyan) 68%, #000);
-  --t-blue-l: color-mix(in oklab, var(--t-blue) 62%, #fff); --t-blue-d: color-mix(in oklab, var(--t-blue) 68%, #000);
-  --t-indigo-l: color-mix(in oklab, var(--t-indigo) 62%, #fff); --t-indigo-d: color-mix(in oklab, var(--t-indigo) 68%, #000);
-  --t-purple-l: color-mix(in oklab, var(--t-purple) 62%, #fff); --t-purple-d: color-mix(in oklab, var(--t-purple) 68%, #000);
-  --t-pink-l: color-mix(in oklab, var(--t-pink) 62%, #fff); --t-pink-d: color-mix(in oklab, var(--t-pink) 68%, #000);
-  --t-brown-l: color-mix(in oklab, var(--t-brown) 62%, #fff); --t-brown-d: color-mix(in oklab, var(--t-brown) 68%, #000);
+  /* the palette's Light and Deep shades, mixed from each plain color (so they follow the theme);
+     --sh-l and --sh-d differ by theme so neither shade fades into the background */
+  --t-red-l: color-mix(in oklab, var(--t-red) var(--sh-l), #fff); --t-red-d: color-mix(in oklab, var(--t-red) var(--sh-d), #000);
+  --t-orange-l: color-mix(in oklab, var(--t-orange) var(--sh-l), #fff); --t-orange-d: color-mix(in oklab, var(--t-orange) var(--sh-d), #000);
+  --t-yellow-l: color-mix(in oklab, var(--t-yellow) var(--sh-l), #fff); --t-yellow-d: color-mix(in oklab, var(--t-yellow) var(--sh-d), #000);
+  --t-lime-l: color-mix(in oklab, var(--t-lime) var(--sh-l), #fff); --t-lime-d: color-mix(in oklab, var(--t-lime) var(--sh-d), #000);
+  --t-green-l: color-mix(in oklab, var(--t-green) var(--sh-l), #fff); --t-green-d: color-mix(in oklab, var(--t-green) var(--sh-d), #000);
+  --t-teal-l: color-mix(in oklab, var(--t-teal) var(--sh-l), #fff); --t-teal-d: color-mix(in oklab, var(--t-teal) var(--sh-d), #000);
+  --t-cyan-l: color-mix(in oklab, var(--t-cyan) var(--sh-l), #fff); --t-cyan-d: color-mix(in oklab, var(--t-cyan) var(--sh-d), #000);
+  --t-blue-l: color-mix(in oklab, var(--t-blue) var(--sh-l), #fff); --t-blue-d: color-mix(in oklab, var(--t-blue) var(--sh-d), #000);
+  --t-indigo-l: color-mix(in oklab, var(--t-indigo) var(--sh-l), #fff); --t-indigo-d: color-mix(in oklab, var(--t-indigo) var(--sh-d), #000);
+  --t-purple-l: color-mix(in oklab, var(--t-purple) var(--sh-l), #fff); --t-purple-d: color-mix(in oklab, var(--t-purple) var(--sh-d), #000);
+  --t-pink-l: color-mix(in oklab, var(--t-pink) var(--sh-l), #fff); --t-pink-d: color-mix(in oklab, var(--t-pink) var(--sh-d), #000);
+  --t-brown-l: color-mix(in oklab, var(--t-brown) var(--sh-l), #fff); --t-brown-d: color-mix(in oklab, var(--t-brown) var(--sh-d), #000);
 }
 
 
@@ -924,6 +929,14 @@ body.drag-project .sb-loose { display: flex; }
   .row { padding: 10px 6px; align-items: center; }
   .row .r-line { min-height: 24px; }
   .cb { margin-top: 0; border-radius: var(--r-s); }
+  /* a to-do whose title wraps keeps its checkbox beside the first line, not halfway down */
+  .row.todo { align-items: flex-start; }
+  .row.todo > .cb { margin-top: 2px; }
+  .row.todo > .r-right { min-height: 24px; }
+  /* the tag bar is one row you swipe along, running to the screen's edge */
+  .tagbar { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: calc(-1 * max(16px, env(safe-area-inset-right, 0px))); padding-right: 16px; overscroll-behavior-x: contain; }
+  .tagbar::-webkit-scrollbar { display: none; }
+  .tagbar > * { flex: none; }
   .cb .ic { width: 14px; height: 14px; }
   .r-ic, .r-star, .r-moon, .r-box { width: 16px; height: 16px; }
   .r-sub { font-size: var(--fs-s); }
@@ -1157,6 +1170,8 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .bcol-ic { flex: none; width: 18px; height: 18px; }
 .bcol-t { flex: 1; min-width: 0; }
 .bcol-title { display: block; max-width: 100%; text-align: left; font-weight: 650; font-size: var(--fs-m); line-height: 20px; overflow-wrap: anywhere; }
+/* a long name takes two lines at most (the whole name is in its tooltip) */
+.bcol-tt { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .bcol-title:hover { text-decoration: underline; text-underline-offset: 3px; }
 .bcol-sub { font-size: var(--fs-xs); color: var(--muted); line-height: 15px; }
 .bcol-count { flex: none; font-size: var(--fs-xs); color: var(--muted); font-variant-numeric: tabular-nums; padding: 0 2px; }
@@ -1173,6 +1188,28 @@ textarea[data-oneline] { display: block; resize: none; overflow: hidden; -webkit
 .sub-hr .ib:hover { color: var(--fg); }
 .sub-hr.done .sub-h-t { color: var(--muted); }
 .bcol .row { padding-left: 8px; padding-right: 8px; }
+/* A to-do on a Board: its title gets the card's whole width, and its date or deadline goes on the
+   line under it, beside where it's from (or under the title when it has nothing beside it), so a
+   narrow column doesn't wrap titles three lines deep. */
+.bcol .row.todo { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 1px 10px; align-items: start; }
+.bcol .row.todo > .r-main { display: contents; }
+.bcol .row.todo > .cb, .bcol .row.todo > .sel-ring { grid-column: 1; grid-row: 1; }
+.bcol .row.todo .r-line { grid-column: 2 / 4; grid-row: 1; }
+.bcol .row.todo .r-sub { grid-column: 2; grid-row: 2; min-width: 0; }
+.bcol .row.todo > .r-right { grid-column: 3; grid-row: 2; min-height: 0; justify-self: end; }
+.bcol .row.todo:not(:has(.r-sub)) > .r-right { grid-column: 2 / 4; justify-self: start; }
+.bcol .row.todo .r-cklist { grid-column: 2 / 4; grid-row: 3; }
+/* a project on a Board (in an area's column) the same way; with or without its fold arrow, the
+   lines are counted from the right: icon, title, then deadline */
+.bcol .row.prow { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; gap: 1px 10px; align-items: start; }
+.bcol .row.prow:not(:has(> .disc)) { grid-template-columns: auto minmax(0, 1fr) auto; }
+.bcol .row.prow > .r-main { display: contents; }
+.bcol .row.prow > .disc { grid-column: 1; grid-row: 1; }
+.bcol .row.prow > .pie-ic { grid-column: -4 / -3; grid-row: 1; }
+.bcol .row.prow .r-line { grid-column: -3 / -1; grid-row: 1; }
+.bcol .row.prow .r-sub { grid-column: -3 / -2; grid-row: 2; min-width: 0; }
+.bcol .row.prow > .r-right { grid-column: -2 / -1; grid-row: 2; min-height: 0; justify-self: end; }
+.bcol .row.prow:not(:has(.r-sub)) > .r-right { grid-column: -3 / -1; justify-self: start; }
 .bcol .bcol-projs { margin-top: 6px; }
 .bcol .pchildren { margin-left: 26px; }
 .bcol-empty { padding: 10px; color: var(--faint); font-size: var(--fs-s); }

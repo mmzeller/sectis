@@ -110,11 +110,13 @@ function tlLayout(r) {
     avail = content.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     if (phone) avail -= 16; // a little room at each edge (see .tl-wrap)
   }
-  // on a phone each name sits above its own row, so the days get the whole width
-  const lw = phone ? 0 : avail < 560 ? 130 : avail < 900 ? 180 : 240;
+  // on a phone, and in a narrow Mac window (beside another app, or with the Notepad open), each
+  // name sits above its own row, so the days get the whole width and no name is cut short
+  const stack = phone || avail < 640;
+  const lw = stack ? 0 : avail < 900 ? 180 : 240;
   const grid = Math.max(100, avail - lw - 2), min = phone ? Math.round(r.z.min * 0.7) : r.z.min;
   const dw = Math.max(min, Math.floor((grid / r.days) * 100) / 100);
-  return { lw, dw, fits: dw * r.days <= grid + 0.5, stack: phone, vw: avail };
+  return { lw, dw, fits: dw * r.days <= grid + 0.5, stack, vw: avail };
 }
 const tlAt = (n) => `calc(var(--dw) * ${n})`;
 function tlColor(x) { return shownColor(x) || ''; } // by Color By: area and project, progress or priority (33-colors.js)
