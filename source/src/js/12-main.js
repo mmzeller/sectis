@@ -92,7 +92,14 @@ function idb(mode, fn) {
     const req = indexedDB.open('sectis', 1);
     req.onupgradeneeded = () => req.result.createObjectStore('kv');
     req.onerror = () => reject(req.error);
-    req.onsuccess = () => { const db = req.result; const tx = db.transaction('kv', mode); const st = tx.objectStore('kv'); const r = fn(st); tx.oncomplete = () => { resolve(r && 'result' in r ? r.result : undefined); db.close(); }; tx.onerror = () => reject(tx.error); };
+    req.onsuccess = () => {
+      const db = req.result; let tx, r;
+      try { tx = db.transaction('kv', mode); r = fn(tx.objectStore('kv')); } catch (e) { db.close(); reject(e); return; }
+      tx.oncomplete = () => { resolve(r && 'result' in r ? r.result : undefined); db.close(); };
+      // a full disk aborts the transaction rather than failing the request: either way, say so
+      tx.onerror = () => { db.close(); reject(tx.error); };
+      tx.onabort = () => { db.close(); reject(tx.error || new Error('IndexedDB write aborted')); };
+    };
   });
 }
 const idbGet = (k) => idb('readonly', (s) => s.get(k));
@@ -111,7 +118,7 @@ async function fileSyncLoad() {
   const text = await (await fileSync.handle.getFile()).text();
   if (text.trim()) {
     const data = JSON.parse(text);
-    if (Array.isArray(data.todos) && (data.savedAt || 0) > (S.savedAt || 0)) { S = normalizeState(data); reindex(); generateRepeats(); lsSet(STORE_KEY, JSON.stringify(S)); render(); toast(`Loaded ${fileSync.name}`); return; }
+    if (Array.isArray(data.todos) && (data.savedAt || 0) > (S.savedAt || 0)) { S = normalizeState(data); reindex(); generateRepeats(); persistLocal(JSON.stringify(S)); render(); toast(`Loaded ${fileSync.name}`); return; }
   }
   fileSyncWrite(JSON.stringify(S));
 }
@@ -164,12 +171,30 @@ async function fileSyncUnlink() {
   hideFileBanner(); toast('Disconnected. Your to-dos stay in this browser.');
 }
 function showFileBanner() {
-  const b = $('#banner'); if (!b) return;
+  const b = $('#banner'); if (!b || ui.saveFailing) return;
   b.innerHTML = `<div class="banner">${ic('file')}<span>Allow Sectis to keep saving to <b>${esc(fileSync.name || 'your data file')}</b>.</span><button class="btn primary" data-fs="reconnect">Reconnect</button><button class="btn" data-fs="unlink">Disconnect</button></div>`;
   b.hidden = false;
   b.onclick = (e) => { const x = e.target.closest('[data-fs]'); if (!x) return; if (x.dataset.fs === 'reconnect') fileSyncReconnect(); else fileSyncUnlink(); };
 }
 function hideFileBanner() { const b = $('#banner'); if (b) { b.hidden = true; b.innerHTML = ''; } }
+/* while neither localStorage nor IndexedDB can save (02-model.js), say so until it's fixed */
+function renderSaveBanner() {
+  const b = $('#banner'); if (!b) return;
+  if (!ui.saveFailing) { if (b.dataset.kind === 'save') { delete b.dataset.kind; hideFileBanner(); if (fileSync.needsPermission) showFileBanner(); } return; }
+  b.dataset.kind = 'save';
+  b.innerHTML = `<div class="banner warn">${ic('info')}<span><b>Sectis can’t save your latest changes in this browser.</b> Export a backup so nothing is lost.</span><button class="btn primary" data-sv="export">Export Backup</button><button class="btn" data-sv="retry">Try Again</button></div>`;
+  b.hidden = false;
+  b.onclick = (e) => { const x = e.target.closest('[data-sv]'); if (!x) return; if (x.dataset.sv === 'export') openExport(); else { saveNow(); setTimeout(() => { if (ui.saveFailing) toast('Still can’t save here. Export a backup.'); }, 800); } };
+}
+
+/* Ask the browser to keep Sectis's data even when the disk runs low (and Safari not to clear
+   it after a week away). Browsers decide for themselves; asking again after a week is harmless. */
+function askToKeepData() {
+  if (!SECTIS_WEB || IN_FRAME || !navigator.storage || !navigator.storage.persist || !hasRealData()) return;
+  const last = Number(lsGet('sectis.persistAsked') || 0);
+  if (Date.now() - last < 7 * 864e5) return;
+  navigator.storage.persisted().then((yes) => { if (yes) return true; lsSet('sectis.persistAsked', String(Date.now())); return navigator.storage.persist(); }).catch(() => {});
+}
 
 /* ---- start ---- */
 function restoreView() {
@@ -181,11 +206,11 @@ function restoreView() {
   else if (type === 'area' && id && getA(id)) ui.view = { type, id };
   else ui.view = { type: 'today' };
 }
-function init() {
+function init(raw) {
   // headings become sub-projects as the data loads: keep a copy of how it was, just in case
-  const before = lsGet(STORE_KEY);
+  const before = raw || lsGet(STORE_KEY);
   const hadHeadings = !!before && /"headings":\s*\[\s*\{|"headingId":\s*"/.test(before);
-  loadState();
+  loadState(before);
   if (hadHeadings) { saveSoon(); backupRaw(before, 'convert'); }
   loadExpanded();
   loadBoard();
@@ -204,7 +229,7 @@ function init() {
   window.addEventListener('hashchange', () => openFromAddress());
   setInterval(tick, 20000);
   setTimeout(checkReminders, 1500);
-  setTimeout(dailyBackup, 6000);
+  setTimeout(() => { dailyBackup(); askToKeepData(); }, 6000);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') tick(); });
   mq.addEventListener && mq.addEventListener('change', () => { if (!isMobile()) ui.mobile = 'list'; render(); });
   window.addEventListener('resize', debounce(() => { if (layers.length) layers.forEach((L) => L.el.classList.contains('pop') && placePop(L.el, L.anchor)); }, 120));

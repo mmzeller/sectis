@@ -212,13 +212,17 @@ function todoMenu(id, el) {
     items.push({ label: 'Move…', icon: 'move', fn: () => openMove([id], el) });
     items.push({ sep: 1 }, { label: 'Stop Repeating', icon: 'x', danger: true, fn: () => stopRepeating(id) });
   } else {
+    // the same order as for several selected (batchMenuItems) and for a project: when it happens,
+    // then how it's filed, then copies, then finishing it
     if (t.status !== 'open') items.push(completedMenuItem([id], el), { sep: 1 });
     items.push({ label: 'When…', icon: 'calendar', hint: 'S', fn: () => openWhen([id], el) });
     items.push({ label: t.deadline ? `Deadline: ${fmtDate(t.deadline, { weekday: false })}…` : 'Deadline…', icon: 'flag', hint: 'D', fn: () => openWhen([id], el, 'deadline') });
     if (t.deadline) items.push({ label: 'Remove Deadline', icon: 'x', fn: () => applyDeadline([id], null) });
-    items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     items.push({ label: t.templateId ? 'Edit Repeat…' : 'Repeat…', icon: 'repeat', hint: 'R', fn: () => (t.templateId && getT(t.templateId) && !getT(t.templateId).trashed ? openTplModal(t.templateId) : openRepeat(id, el)) });
-    items.push({ sep: 1 }, priorityMenuItem([id], el), colorMenuItem('t', t, el));
+    items.push({ sep: 1 }, priorityMenuItem([id], el));
+    items.push({ label: 'Tags…', icon: 'tag', hint: '#', fn: () => openTagPicker([id], el) });
+    items.push(colorMenuItem('t', t, el));
+    items.push({ label: 'Move…', icon: 'move', hint: 'M', fn: () => openMove([id], el) });
     if (t.status === 'open') items.push({ label: t.waitFor ? `Waiting on ${t.waitFor}…` : 'Waiting For…', icon: 'hourglass', hint: 'W', fn: () => openWaiting([id], el) });
     if (t.waitFor) items.push({ label: 'Stop Waiting', icon: 'x', fn: () => stopWaiting([id]) });
     if (!t.templateId) items.push({ label: 'Also Add To…', icon: 'link', fn: () => openAlsoAddTo([id], el) });
@@ -334,24 +338,28 @@ function batchMenuItems(anchor) {
   const todos = ids.filter((x) => getT(x));
   const loggable = loggableItems(ids);
   const close = () => { if (ui.selectMode) { ui.selectMode = false; ui.sel.clear(); render(); } };
+  // the same order as one to-do's menu (todoMenu): when, how it's filed, copies, finishing
   return [
     { header: `${n} Selected` },
-    { label: 'Tags…', icon: 'tag', hint: '#', fn: () => endSelectAfter(openTagPicker(ids, anchor)) },
+    ...(completedItems(ids).length ? [completedMenuItem(ids, anchor, endSelectAfter)] : []),
     { label: 'When…', icon: 'calendar', hint: 'S', fn: () => endSelectAfter(openWhen(ids, anchor)) },
-    { label: 'Move…', icon: 'move', hint: 'M', disabled: !todos.length, fn: () => endSelectAfter(openMove(todos, anchor)) },
-    { label: 'Also Add To…', icon: 'link', disabled: !todos.length, fn: () => endSelectAfter(openAlsoAddTo(todos, anchor)) },
+    { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
     { label: 'Deadline…', icon: 'flag', hint: 'D', fn: () => endSelectAfter(openWhen(ids, anchor, 'deadline')) },
+    { sep: 1 },
     { label: 'Priority…', icon: 'priority', hint: 'P', fn: () => endSelectAfter(openPriority(ids, anchor)) },
+    { label: 'Tags…', icon: 'tag', hint: '#', fn: () => endSelectAfter(openTagPicker(ids, anchor)) },
     { label: 'Color…', icon: 'palette', fn: () => endSelectAfter(openColorFor(ids.map(itemById), anchor)) },
     ...(ids.some((x) => placeColor(itemById(x))) ? [{ label: 'Remove Colors', icon: 'x', fn: () => { removeColors(ids.map(itemById)); close(); } }] : []),
-    ...(completedItems(ids).length ? [completedMenuItem(ids, anchor, endSelectAfter)] : []),
+    { label: 'Move…', icon: 'move', hint: 'M', disabled: !todos.length, fn: () => endSelectAfter(openMove(todos, anchor)) },
     { label: 'Waiting For…', icon: 'hourglass', hint: 'W', disabled: !todos.length, fn: () => endSelectAfter(openWaiting(todos, anchor)) },
-    { label: 'Today', icon: 'star', hint: 'T', fn: () => { applyWhen(ids, 'today'); close(); } },
+    { label: 'Also Add To…', icon: 'link', disabled: !todos.length, fn: () => endSelectAfter(openAlsoAddTo(todos, anchor)) },
+    { sep: 1 },
+    ...checklistMenuItems(ids).map((it) => Object.assign(it, { fn: ((f) => () => { f(); close(); })(it.fn) })),
+    { label: 'Share…', icon: 'share', fn: () => openShare({ type: 'items', ids }) },
+    { sep: 1 },
     { label: 'Complete', icon: 'check', hint: 'K', fn: () => { completeIds(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: loggable.some((x) => x.status === 'open') ? 'Complete & Move to Logbook' : 'Move to Logbook', icon: 'logbook', disabled: !loggable.length, fn: () => { logItems(ids); ui.sel.clear(); ui.selectMode = false; render(); } },
     { label: 'Delete', icon: 'trash', danger: true, fn: () => { trashItems(ids); ui.selectMode = false; render(); } },
-    ...checklistMenuItems(ids).map((it) => Object.assign(it, { fn: ((f) => () => { f(); close(); })(it.fn) })),
-    { label: 'Share…', icon: 'share', fn: () => openShare({ type: 'items', ids }) },
     { label: 'Clear Selection', icon: 'x', fn: () => { ui.sel.clear(); ui.selectMode = false; render(); } },
     { sep: 1 },
   ];

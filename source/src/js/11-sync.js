@@ -266,7 +266,7 @@ async function syncApplyRemote(docs, opts = {}) {
       for (const id of [...ui.sel]) if (!itemById(id)) ui.sel.delete(id);
       if (ui.editing && !getT(ui.editing)) ui.editing = null;
       undoStack.length = 0; // undo would otherwise roll back changes made on the other device
-      S.savedAt = Date.now(); lsSet(STORE_KEY, JSON.stringify(S));
+      S.savedAt = Date.now(); persistLocal(JSON.stringify(S));
       if (typeof fileSyncWrite === 'function') fileSyncWrite(JSON.stringify(S));
     } finally { Y.applying = false; }
     if (!opts.theirs) Y.cursor = cursor; // (copies read while sending don't move it: changes before them may still be on the way)

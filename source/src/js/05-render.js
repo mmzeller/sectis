@@ -421,24 +421,32 @@ function viewUpcoming() {
   const T = T0();
   const all = upcomingItems();
   const items = all.filter(matchesTagFilter).sort((a, b) => (a.when < b.when ? -1 : a.when > b.when ? 1 : byToday(a, b)));
+  // What's due later shows on the day it's due, like the red dots on the calendar above. Something
+  // already listed on the day it starts shows there (with its deadline), not twice.
+  const listed = new Set(all.map((x) => x.id));
+  const dueAll = deadlineItems().filter((x) => x.deadline > T && !listed.has(x.id));
+  const due = dueAll.filter(matchesTagFilter).sort(byDeadline);
   const ghosts = templatePreviews();
-  const lastDate = [...items.map((x) => x.when), ...ghosts.map((g) => g.date)].sort().pop() || T;
+  const lastDate = [...items.map((x) => x.when), ...due.map((x) => x.deadline), ...ghosts.map((g) => g.date)].sort().pop() || T;
   let html = '';
   const rowsFor = (from, to, withDate) => {
     const its = items.filter((x) => x.when >= from && x.when <= to);
     const gs = ghosts.filter((g) => g.date >= from && g.date <= to).sort((a, b) => (a.date < b.date ? -1 : 1));
-    return { its, gs, html: its.map((x) => rowHTML(x, { parent: true, when: withDate })).join('') + gs.map((g) => ghostRowHTML(g.tpl, withDate ? g.date : null)).join('') };
+    const ds = due.filter((x) => x.deadline >= from && x.deadline <= to);
+    // the due ones sit below the day's own list, outside it: dropping there doesn't schedule anything
+    const dueHTML = ds.length ? `<div class="up-due" aria-label="Due">${ds.map((x) => rowHTML(x, { parent: true, when: false })).join('')}</div>` : '';
+    return { its, gs, ds, html: its.map((x) => rowHTML(x, { parent: true, when: withDate })).join('') + gs.map((g) => ghostRowHTML(g.tpl, withDate ? g.date : null)).join(''), dueHTML };
   };
   for (let i = 1; i <= 7; i++) {
     const d = addDays(T, i), r = rowsFor(d, d, false);
-    html += `<div class="day-h" data-zone="upcoming:${d}"><span class="day-n">${pd(d).getDate()}</span><span class="day-w">${i === 1 ? 'Tomorrow' : WEEKDAYS[dow(d)]}</span></div><div class="sec" data-sec="upcoming:${d}" data-ok="todayOrder">${r.html}</div>`;
+    html += `<div class="day-h" data-zone="upcoming:${d}"><span class="day-n">${pd(d).getDate()}</span><span class="day-w">${i === 1 ? 'Tomorrow' : WEEKDAYS[dow(d)]}</span></div><div class="sec" data-sec="upcoming:${d}" data-ok="todayOrder">${r.html}</div>${r.dueHTML}`;
   }
   let cursor = addDays(T, 8);
   const cm = pd(T).getMonth(), cy = pd(T).getFullYear();
   const endOfMonth = dateFromParts(cy, cm, daysInMonth(cy, cm));
   if (cursor <= endOfMonth) {
     const r = rowsFor(cursor, endOfMonth, true);
-    html += `<div class="day-h month" data-zone="upcoming:${cursor}"><span class="day-n">Rest of ${MONTHS[cm]}</span></div><div class="sec" data-sec="upcoming:${cursor}" data-ok="todayOrder">${r.html}</div>`;
+    html += `<div class="day-h month" data-zone="upcoming:${cursor}"><span class="day-n">Rest of ${MONTHS[cm]}</span></div><div class="sec" data-sec="upcoming:${cursor}" data-ok="todayOrder">${r.html}</div>${r.dueHTML}`;
     cursor = addDays(endOfMonth, 1);
   }
   let m = monthIndex(cursor) ; const lastM = Math.max(monthIndex(lastDate), monthIndex(T) + 3);
@@ -447,14 +455,14 @@ function viewUpcoming() {
     const y = Math.floor(m / 12), mo = m % 12;
     const from = dateFromParts(y, mo, Math.max(1, m === monthIndex(cursor) ? pd(cursor).getDate() : 1)), to = dateFromParts(y, mo, daysInMonth(y, mo));
     const r = rowsFor(from, to, true);
-    html += `<div class="day-h month" data-zone="upcoming:${from}"><span class="day-n">${MONTHS[mo]}${y !== cy ? ' ' + y : ''}</span></div><div class="sec" data-sec="upcoming:${from}" data-ok="todayOrder">${r.html}</div>`;
+    html += `<div class="day-h month" data-zone="upcoming:${from}"><span class="day-n">${MONTHS[mo]}${y !== cy ? ' ' + y : ''}</span></div><div class="sec" data-sec="upcoming:${from}" data-ok="todayOrder">${r.html}</div>${r.dueHTML}`;
   }
   if (lastM > capM) {
     const from = dateFromParts(Math.floor((capM + 1) / 12), (capM + 1) % 12, 1);
     const r = rowsFor(from, '9999-12-31', true);
-    if (r.its.length || r.gs.length) html += `<div class="day-h month" data-zone="upcoming:${from}"><span class="day-n">Later</span></div><div class="sec" data-sec="upcoming:${from}" data-ok="todayOrder">${r.html}</div>`;
+    if (r.its.length || r.gs.length || r.ds.length) html += `<div class="day-h month" data-zone="upcoming:${from}"><span class="day-n">Later</span></div><div class="sec" data-sec="upcoming:${from}" data-ok="todayOrder">${r.html}</div>${r.dueHTML}`;
   }
-  return headerHTML('upcoming') + tagBarHTML(all) + upcomingCalHTML() + `<div class="list">${html}</div>`;
+  return headerHTML('upcoming') + tagBarHTML(all.concat(dueAll)) + upcomingCalHTML() + `<div class="list">${html}</div>`;
 }
 function groupedView(key, todoFilter, somedayProjects) {
   const todosAll = S.todos.filter(todoFilter);

@@ -10,13 +10,17 @@ function backupCounts(data) {
   return {
     todos: (data.todos || []).filter((t) => !t.trashed && !t.isTemplate && !t.isDraft && t.status === 'open').length,
     projects: (data.projects || []).filter((p) => !p.trashed && !p.isTemplate && p.status === 'open').length,
+    notes: Array.isArray(data.notes) ? data.notes.length : null, // null: a backup from before notes were kept
   };
 }
+/* everything a backup keeps and a restore puts back: to-dos, projects, areas and tags, and the
+   Notepad, smart lists and focuses (which backups before 1.58 left out) */
+const BK_KINDS = ['todos', 'projects', 'headings', 'areas', 'tags', 'smart', 'focuses', 'notes'];
 async function makeBackup(reason = 'daily', raw = null) {
   if (!backupsSupported()) return false;
   try {
     const list = (await idbGet(BK_INDEX)) || [];
-    const snap = raw ? JSON.parse(raw) : { schema: S.schema, savedAt: S.savedAt, todos: S.todos.filter((t) => !t.isDraft), projects: S.projects, headings: S.headings, areas: S.areas, tags: S.tags };
+    const snap = raw ? JSON.parse(raw) : Object.assign({ schema: S.schema, savedAt: S.savedAt }, Object.fromEntries(BK_KINDS.map((k) => [k, k === 'todos' ? S.todos.filter((t) => !t.isDraft) : S[k]])));
     const data = raw || JSON.stringify(snap);
     const key = 'backup:' + Date.now();
     await idbSet(key, data);
@@ -40,9 +44,11 @@ async function dailyBackup() {
     await makeBackup('daily');
   } catch (e) { /* storage unavailable here */ } finally { bk.running = false; }
 }
+/* Puts a backup's lists back. A backup from before 1.58 has no notes, smart lists or focuses:
+   those stay as they are now instead of being emptied. */
 function restoreSnapshot(data) {
   commit('Restore Backup', () => {
-    for (const k of ['todos', 'projects', 'headings', 'areas', 'tags', 'smart', 'focuses', 'notes']) S[k] = Array.isArray(data[k]) ? data[k] : [];
+    for (const k of BK_KINDS) if (Array.isArray(data[k])) S[k] = data[k]; else if (k === 'headings') S[k] = [];
     S = normalizeState(S);
   });
 }
@@ -50,11 +56,11 @@ async function openBackups() {
   let list = null;
   try { list = backupsSupported() ? (await idbGet(BK_INDEX)) || [] : null; } catch (e) { list = null; }
   const when = (b) => { const d = new Date(b.at); return `${fmtDate(ymd(d), { weekday: true })}, ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`; };
-  const rows = () => (list || []).map((b) => `<div class="bk-row"><div class="bk-main"><b>${esc(when(b))}</b><small>${esc(BK_LABELS[b.reason] || b.reason)} · ${plural(b.counts.todos, 'open to-do')}, ${plural(b.counts.projects, 'project')}</small></div><button class="btn" data-bk="copy" data-key="${b.key}">Copy</button><button class="btn" data-bk="restore" data-key="${b.key}">Restore</button></div>`).join('');
+  const rows = () => (list || []).map((b) => `<div class="bk-row"><div class="bk-main"><b>${esc(when(b))}</b><small>${esc(BK_LABELS[b.reason] || b.reason)} · ${plural(b.counts.todos, 'open to-do')}, ${plural(b.counts.projects, 'project')}${b.counts.notes != null ? `, ${plural(b.counts.notes, 'note')}` : ''}</small></div><button class="btn" data-bk="copy" data-key="${b.key}">Copy</button><button class="btn" data-bk="restore" data-key="${b.key}">Restore</button></div>`).join('');
   const body = list === null ? '<p class="note" style="margin:0">Backups aren’t available in this browser.</p>'
     : list.length ? rows() : '<p class="note" style="margin:0">No backups yet. The first one is saved later today.</p>';
   const L = openLayer({ modal: true, html: `<div class="modal-h"><h2>Backups</h2><button class="ib" data-action="close-layer" aria-label="Close">${ic('x')}</button></div>
-    <div class="modal-b"><p style="margin-top:0">Sectis keeps a copy of your to-dos on this device once a day for the last 14 days, plus a copy before big changes like importing or restoring. Each device keeps its own.</p><div class="bk-list">${body}</div><p class="note" id="bk-note"></p></div>
+    <div class="modal-b"><p style="margin-top:0">Sectis keeps a copy of your to-dos and notes on this device once a day for the last 14 days, plus a copy before big changes like importing or restoring. Each device keeps its own.</p><div class="bk-list">${body}</div><p class="note" id="bk-note"></p></div>
     <div class="modal-f">${list ? '<button class="btn" data-bk="now">Back Up Now</button>' : ''}<button class="btn primary" data-action="close-layer">Done</button></div>`,
     onMount: (el) => el.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-bk]'); if (!b) return;
@@ -64,7 +70,7 @@ async function openBackups() {
       if (!raw) { note.textContent = 'That backup couldn’t be read.'; return; }
       const meta = (list || []).find((x) => x.key === b.dataset.key);
       if (b.dataset.bk === 'copy') { copyText(JSON.stringify(Object.assign({ app: 'Sectis', version: APP_VERSION, exportedAt: new Date().toISOString() }, JSON.parse(raw))), null, note); return; }
-      const ok = await confirmDialog({ title: 'Restore this backup?', body: `Your lists will go back to how they were on ${esc(when(meta))}.${Y.enabled ? ' Your other synced devices will change too.' : ''} A copy of what you have now is saved first, and you can undo right after.`, ok: 'Restore' });
+      const ok = await confirmDialog({ title: 'Restore this backup?', body: `Your lists will go back to how they were on ${esc(when(meta))}.${meta.counts.notes == null ? ' This backup is from before Sectis kept the Notepad, smart lists and focuses in backups, so those stay as they are now.' : ''}${Y.enabled ? ' Your other synced devices will change too.' : ''} A copy of what you have now is saved first, and you can undo right after.`, ok: 'Restore' });
       if (!ok) return;
       await makeBackup('restore');
       restoreSnapshot(JSON.parse(raw));

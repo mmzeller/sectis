@@ -1,5 +1,5 @@
 /* ===================== Utilities, dates, icons ===================== */
-const APP_VERSION = '1.57.0';
+const APP_VERSION = '1.58.0';
 const STORE_KEY = 'sectis.data.v1';
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => Array.from(el.querySelectorAll(s));
@@ -20,6 +20,7 @@ const IN_FRAME = (() => { try { return window.self !== window.top; } catch (e) {
 function debounce(fn, ms) { let t; const f = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; f.flush = () => { clearTimeout(t); fn(); }; return f; }
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
 function plural(n, w, p) { return `${n} ${n === 1 ? w : (p || w + 's')}`; }
 
 /* ---- dates: every calendar date is a local 'YYYY-MM-DD' string ---- */
@@ -53,7 +54,7 @@ function fmtRel(s) {
 function fmtTime(hm) { if (!hm) return ''; const [h, m] = hm.split(':').map(Number); return `${((h + 11) % 12) + 1}:${pad2(m)} ${h >= 12 ? 'PM' : 'AM'}`; }
 function deadlineInfo(s) {
   const n = diffDays(ui.today, s);
-  if (n < 0) return { text: n === -1 ? '1 day ago' : `${-n} days ago`, due: true };
+  if (n < 0) return { text: n === -1 ? '1 day overdue' : `${-n} days overdue`, due: true };
   if (n === 0) return { text: 'Today', due: true };
   if (n === 1) return { text: 'Tomorrow', due: false };
   if (n < 15) return { text: `${n} days left`, due: false };

@@ -84,21 +84,61 @@ const getA = (id) => idx.area.get(id);
 const getTag = (id) => idx.tag.get(id);
 const itemById = (id) => idx.todo.get(id) || idx.project.get(id);
 
-/* ---- persistence ---- */
-function loadState() {
-  let raw = lsGet(STORE_KEY), parsed = null;
+/* ---- persistence ----
+   Every save goes to two places on this device: localStorage, which is quick to read as Sectis
+   opens, and IndexedDB ('state'), which has no 5 MB limit. Sectis opens with whichever copy is
+   newer (99-start.js). If localStorage ever fills up, IndexedDB keeps everything and the stale
+   localStorage copy is removed once the new one is safe, so the next start reads IndexedDB.
+   If neither can save, a banner stays at the top until saving works again. */
+const IDB_STATE = 'state';
+const store = { ready: false, blocked: false, pending: null, writing: false, lsOk: true, idbOk: true };
+function persistLocal(json) {
+  store.lsOk = lsSet(STORE_KEY, json);
+  if (!backupsSupported() || store.blocked) { store.idbOk = false; saveHealth(); return; }
+  store.pending = json;
+  storeFlush();
+}
+/* writes the latest save to IndexedDB, one at a time; not before Sectis has read what's there */
+function storeFlush() {
+  if (store.writing || !store.ready || !store.pending) return;
+  store.writing = true;
+  (async () => {
+    while (store.pending) {
+      const json = store.pending; store.pending = null;
+      try { await idbSet(IDB_STATE, json); store.idbOk = true; } catch (e) { store.idbOk = false; }
+      // localStorage couldn't take the latest save: drop its older copy, now that IndexedDB has this one
+      if (store.idbOk && !store.lsOk && !store.pending) lsDel(STORE_KEY);
+    }
+    store.writing = false;
+    saveHealth();
+  })();
+}
+/* Sectis has read IndexedDB's copy (or couldn't: then it never writes over what it didn't read) */
+function storeReady(blocked) {
+  store.blocked = !!blocked; store.ready = true;
+  if (store.blocked) { if (!store.lsOk) { store.idbOk = false; saveHealth(); } return; }
+  if (!store.pending && S) store.pending = JSON.stringify(S); // so IndexedDB has a copy from the start
+  storeFlush();
+}
+function saveHealth() {
+  const failing = !store.lsOk && !store.idbOk;
+  if (failing === !!ui.saveFailing) return;
+  ui.saveFailing = failing;
+  if (typeof renderSaveBanner === 'function') renderSaveBanner();
+}
+function loadState(rawIn) {
+  let raw = rawIn || lsGet(STORE_KEY), parsed = null;
   if (raw) { try { parsed = JSON.parse(raw); } catch (e) { parsed = null; } }
   if (parsed) S = normalizeState(parsed);
   else { S = emptyState(); seedSample(); }
   reindex();
 }
-let saveFailedOnce = false;
 function saveNow() {
   if (!S) return;
   propagateLinks();
   S.savedAt = Date.now();
   const json = JSON.stringify(S);
-  if (!lsSet(STORE_KEY, json) && !saveFailedOnce) { saveFailedOnce = true; toast('Couldn’t save in this browser. Export a backup from Settings.'); }
+  persistLocal(json);
   ui.lastLocalWrite = S.savedAt;
   if (typeof fileSyncWrite === 'function') fileSyncWrite(json);
   syncLocalSaved();

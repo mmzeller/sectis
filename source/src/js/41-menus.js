@@ -47,7 +47,7 @@ function tagChipMenu(tag, at) {
 function dayMenu(sec, label, at) {
   openMenu(at, [{ header: label }, { label: `New To-Do ${sec === 'evening' ? 'This Evening' : 'on ' + label}`, icon: 'plus', fn: () => newTodo({ sec }) }, ...pasteIntoItems(sec)]);
 }
-// a group in Deadlines (Overdue, Tomorrow, This Week…): move all its deadlines at once, or select them
+// a group in Deadlines (Overdue, Tomorrow, Within a Week…): move all its deadlines at once, or select them
 function deadlineGroupMenu(key, at) {
   const g = deadlineGroups(deadlineItems().filter(matchesTagFilter)).find((x) => x.key === key);
   if (!g) return;

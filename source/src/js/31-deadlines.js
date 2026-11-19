@@ -1,6 +1,6 @@
 /* ===================== Deadlines =====================
    Everything with a deadline, across all projects and areas, soonest first:
-   Overdue, Today, Tomorrow, This Week, then by month. Checked items stay until they're logged,
+   Overdue, Today, Tomorrow, Within a Week (the 7 days ahead), then by month. Checked items stay until they're logged,
    like everywhere else. Dropping to-dos on Deadlines in the sidebar asks for a deadline. */
 function deadlineItems() {
   const has = (x) => !!x.deadline && !x.isTemplate && !x.trashed && inFocus(x);
@@ -16,7 +16,7 @@ function deadlineGroups(items) {
     if (d < T && x.status === 'open') put('overdue', 'Overdue', x);
     else if (d <= T) put('today', 'Today', x);
     else if (d === tm) put('tomorrow', 'Tomorrow', x);
-    else if (d <= wk) put('week', 'This Week', x);
+    else if (d <= wk) put('week', 'Within a Week', x);
     else { const dd = pd(d); put('m' + d.slice(0, 7), (d.slice(0, 7) === T.slice(0, 7) ? 'Rest of ' : '') + MONTHS[dd.getMonth()] + (dd.getFullYear() !== cy ? ' ' + dd.getFullYear() : ''), x); }
   });
   // Overdue first even when a checked item from an earlier day sorted ahead of it
@@ -30,7 +30,9 @@ function deadlineCounts() {
 function viewDeadlines() {
   const all = deadlineItems(), items = all.filter(matchesTagFilter);
   const c = deadlineCounts();
-  const sub = c.overdue ? `${plural(c.overdue, 'overdue item')} · ${c.soon} due within a week` : c.soon ? `${c.soon} due within a week` : '';
+  // the sidebar's count includes the overdue ones (like Today's); here they're said apart
+  const ahead = c.soon - c.overdue;
+  const sub = c.overdue ? `${c.overdue} overdue${ahead ? ` · ${ahead} more due within a week` : ''}` : ahead ? `${ahead} due within a week` : '';
   let html = '';
   deadlineGroups(items).forEach((g) => {
     const n = g.items.filter((x) => x.status === 'open').length;

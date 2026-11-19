@@ -869,6 +869,9 @@ kbd { font: 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--lin
 .toast button { color: #9db4ff; font-weight: 650; padding: 2px 6px; border-radius: var(--r-s); white-space: nowrap; }
 .toast button:hover { background: rgba(255, 255, 255, .08); }
 .banner { position: sticky; top: 0; z-index: 15; display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: var(--accent-tint); color: var(--fg); font-size: var(--fs-s); flex-wrap: wrap; }
+.banner.warn { background: color-mix(in srgb, var(--t-orange) 16%, var(--bg)); }
+.banner.warn > .ic { color: var(--t-orange); }
+.banner > span { flex: 1 1 260px; text-align: left; }
 
 /* Drag */
 .drag-ghost { position: fixed; left: 0; top: 0; z-index: 100; pointer-events: none; padding: 6px 12px; border-radius: var(--r-m); background: var(--pop); box-shadow: var(--shadow-pop); max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: var(--fs-s); display: flex; align-items: center; gap: 8px; }
